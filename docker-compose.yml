@@ -1,0 +1,52 @@
+name: tankit
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tankit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tankit_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-tankit}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tankit}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend/src/TankIt.Api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__Default: >-
+        Host=db;Port=5432;Database=${POSTGRES_DB:-tankit};
+        Username=${POSTGRES_USER:-tankit};Password=${POSTGRES_PASSWORD:-tankit_dev}
+      FrontendOrigin: ${FRONTEND_ORIGIN:-http://localhost:5173}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+
+  # frontend:
+  #   Uncomment once frontend/app/ has a chosen framework + Dockerfile
+  #   (see frontend/app/README.md — this is still an open decision).
+  #   build:
+  #     context: ./frontend/app
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - backend
+  #   environment:
+  #     VITE_API_URL: http://localhost:${BACKEND_PORT:-8080}
+  #   ports:
+  #     - "${FRONTEND_PORT:-5173}:5173"
+
+volumes:
+  db_data:
