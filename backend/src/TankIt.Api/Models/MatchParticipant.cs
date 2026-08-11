@@ -10,6 +10,7 @@ public class MatchParticipant
     public bool IsAi { get; set; }
     public required string TankColor { get; set; }
     public short? Placement { get; set; } // 1 = winner; null until match ends
+    public short? Points { get; set; } // match.PlayerCount - Placement; null until match ends
     public int ShotsFired { get; set; }
     public int Hits { get; set; }
     public int Kills { get; set; }

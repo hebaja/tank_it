@@ -26,6 +26,7 @@ rankings, real-time online multiplayer, and a rule-based AI opponent for solo/pr
 | Online multiplayer | 🔲 To build | Replaces local-only play; SignalR (`backend/`). |
 | Landing page (register/login, rooms, rankings) | 🔲 To build | `frontend/app/` — framework TBD. |
 | AI opponent (solo/practice) | 🔲 To build | Rule-based, not ML. Reuses existing game loop. |
+| Championship mode (FT-N) | 🔲 To build | Best-of-series race to a target score. See §6. |
 
 ## 2. Team organization & roles
 
@@ -94,7 +95,7 @@ is the target once the frontend framework lands.
 
 ## 5. Modules & points plan
 
-Target was 14 minimum; committed scope reaches **17**, a healthy buffer without chasing every
+Target was 14 minimum; committed scope reaches **18**, a healthy buffer without chasing every
 available module.
 
 ### 5.1 Free (fall out of the game we're already building)
@@ -118,24 +119,72 @@ available module.
 
 ### 5.3 Committed buffer modules
 
-| Category | Module | Type | Pts |
-|---|---|---|---|
-| User Management | Game stats & match history | Minor | 1 |
-| User Management | Remote auth (OAuth 2.0: Google/GitHub/42) | Minor | 1 |
-| DevOps | Health check / status page + backups | Minor | 1 |
-| | **Buffer subtotal** | | **3** |
+| Category | Module | Type | Pts | Notes |
+|---|---|---|---|---|
+| User Management | Game stats & match history | Minor | 1 | |
+| User Management | Remote auth (OAuth 2.0: Google/GitHub/42) | Minor | 1 | |
+| DevOps | Health check / status page + backups | Minor | 1 | |
+| Gaming & UX | Tournament system | Minor | 1 | Delivered as the Championship/FT-N mode (§6) — a fixed-roster race to a target score, not a bracket, but satisfies the module. |
+| | **Buffer subtotal** | | **4** | |
 
-**Total: 17 points.**
+**Total: 18 points.**
 
 Explicitly **not** committed (available later if velocity allows, but not planned for): chat +
-profile + friends (Major, 2pt), Tournament system (Minor, 1pt), Gamification/
-achievements/leaderboard (Minor, 1pt). If scope changes, extend both this table and
-`docs/database-schema.md` together rather than improvising.
+profile + friends (Major, 2pt), Gamification/achievements/leaderboard (Minor, 1pt). If scope
+changes, extend both this table and `docs/database-schema.md` together rather than improvising.
 
 **Excluded outright** (per team direction, not revisited): Accessibility & Internationalization,
 Cybersecurity, Blockchain.
 
-## 6. Architecture overview
+## 6. Championship mode (FT-N)
+
+Players can play a **single match** or enter a **championship**: a fixed-roster series of
+matches racing to a target score, first to reach it wins. Same lobby size (2–4) and same
+players for every match in the series — no substitutions mid-championship. AI opponents are
+allowed, so a solo player can run a championship against bots for practice.
+
+### Scoring (your rule, generalized)
+
+For an N-player match: **1st to die scores 0, ..., winner scores N−1.** A 4-player match is
+exactly your spec (0/1/2/3); this generalizes cleanly to 3-player (0/1/2) and 2-player (0/1)
+matches — same underlying rule, just scaled to the lobby size.
+
+### Target score by roster size
+
+| Players | Format | Target |
+|---|---|---|
+| 4 | FT10 | 10 |
+| 3 | FT7 | 7 |
+| 2 | FT5 | 5 |
+
+### Win condition
+
+After every match, cumulative points are re-checked for all participants. First to reach the
+target wins the championship immediately — the series doesn't run a fixed number of matches.
+If two participants cross the target in the *same* match (the only way it can happen, since
+the check runs once per completed match) with **different totals**, the higher total wins
+outright — your example: dark reaches 11, green reaches 12 in the same match, green is
+champion, no tie-break needed.
+
+### Tie-break (exact tie only — same total, at or above target, in the same deciding match)
+
+1. **More kills**, summed across the championship's matches.
+2. **More matches won** (placement = 1), across the championship's matches.
+3. **Head-to-head** — pairwise, how many times one tied player placed better than the other
+   across the matches they shared. *(Not "who scored more combined points in shared matches"
+   — tested that against a real database while building this: in a fixed-roster championship
+   every match is shared, so that number is always identical to the tied total and resolves
+   nothing.)*
+4. **Sudden-death decider match** — *added here as a deterministic last resort, not something
+   you explicitly asked for; flag if you'd rather leave a triple-tie undefined or handle it
+   some other way.* If still tied after all three criteria above — which is reachable, not just
+   theoretical: two players can genuinely split their head-to-head record evenly — the tied
+   players play one more match. Its winner is champion outright.
+
+Full query definitions (validated against a real Postgres instance) are in
+`docs/database-schema.md` under "Championship mode (FT-N)".
+
+## 7. Architecture overview
 
 ```mermaid
 flowchart LR
@@ -146,7 +195,7 @@ flowchart LR
     end
 
     subgraph Server [backend/]
-        API[REST Controllers<br/>Auth, Health, Profile, Stats]
+        API[REST Controllers<br/>Auth, Health, Profile, Stats, Championships]
         Hub[GameHub<br/>SignalR]
     end
 
@@ -162,7 +211,7 @@ REST handles account/profile/friends/stats CRUD; SignalR (`/hubs/game`) handles 
 and in-match tank/projectile sync. Both sides read/write the same Postgres instance through EF
 Core.
 
-## 7. Repository structure
+## 8. Repository structure
 
 ```
 tanks_project/
@@ -183,7 +232,7 @@ tanks_project/
 └── PROPOSAL.pdf                original discussion draft, kept for history
 ```
 
-## 8. Open items
+## 9. Open items
 
 1. Pick the frontend framework (React / Angular / Vue) — owner scaffolds `frontend/app/`.
 2. Scaffold the backend for real once a `dotnet` SDK is available (`dotnet restore`, first EF
@@ -191,3 +240,7 @@ tanks_project/
 3. Wire ASP.NET Identity + JWT + OAuth per `backend/src/TankIt.Api/Controllers/AuthController.cs`.
 4. Implement `GameHub`'s real-time contract (tank move/fire sync, reconnection handling).
 5. Build the shrinking-map mechanic and AI opponent in `frontend/game/`.
+6. Implement championship lifecycle (create/join, sequencing matches, standings + tie-break,
+   decider-match trigger) per `backend/src/TankIt.Api/Controllers/ChampionshipController.cs`.
+7. Confirm the sudden-death decider-match fallback (§6) — flagged as an addition, not an
+   explicit team decision.

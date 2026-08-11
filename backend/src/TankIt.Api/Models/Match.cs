@@ -17,6 +17,9 @@ public class Match
     public short PlayerCount { get; set; } // 2-4
     public Guid? WinnerId { get; set; } // null if AI won, draw, or aborted
     public User? Winner { get; set; }
+    public Guid? ChampionshipId { get; set; } // null = standalone match
+    public Championship? Championship { get; set; }
+    public short? SequenceNumber { get; set; } // this match's order within its championship
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

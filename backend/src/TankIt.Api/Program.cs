@@ -8,7 +8,9 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+           .UseSnakeCaseNamingConvention()); // keeps EF Core migrations aligned with
+                                              // db/init/schema.sql's snake_case columns
 
 // Frontend dev server origin; tighten/parameterize per environment once
 // frontend/app's framework (and its dev port) is chosen.
