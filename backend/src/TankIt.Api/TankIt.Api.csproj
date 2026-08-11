@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- No dotnet SDK was available in the environment that scaffolded this file;
-         bump to match whatever LTS SDK the team installs (`dotnet --version`). -->
+         bump to match whatever LTS SDK the team installs (`dotnet version`). -->
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
