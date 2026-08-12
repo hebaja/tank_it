@@ -17,8 +17,6 @@ CREATE TABLE users (
     password_hash  VARCHAR(255),              -- NULL for OAuth-only accounts
     display_name   VARCHAR(32) NOT NULL,
     avatar_url     TEXT,
-    is_online      BOOLEAN NOT NULL DEFAULT false,
-    last_seen_at   TIMESTAMPTZ,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -44,19 +42,6 @@ CREATE TABLE refresh_tokens (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
-
--- Friends + online status (part of standard User Management module)
-CREATE TABLE friendships (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    requester_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    addressee_id  UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status        VARCHAR(10) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'blocked')),
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (requester_id <> addressee_id),
-    UNIQUE (requester_id, addressee_id)
-);
-CREATE INDEX idx_friendships_addressee_status ON friendships(addressee_id, status);
 
 -- ============================================================================
 -- Gaming & UX / Championship mode (FT-N) — satisfies the Tournament system module

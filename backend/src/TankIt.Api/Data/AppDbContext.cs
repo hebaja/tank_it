@@ -8,7 +8,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<User> Users => Set<User>();
     public DbSet<OAuthAccount> OAuthAccounts => Set<OAuthAccount>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-    public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<PlayerStats> PlayerStats => Set<PlayerStats>();
@@ -38,19 +37,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(r => r.User)
                 .WithMany(u => u.RefreshTokens)
                 .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<Friendship>(e =>
-        {
-            e.HasIndex(f => new { f.RequesterId, f.AddresseeId }).IsUnique();
-            e.HasOne(f => f.Requester)
-                .WithMany()
-                .HasForeignKey(f => f.RequesterId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(f => f.Addressee)
-                .WithMany()
-                .HasForeignKey(f => f.AddresseeId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

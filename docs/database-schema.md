@@ -18,8 +18,6 @@ if those get scoped in, rather than building for hypothetical scope now.
 erDiagram
     users ||--o{ oauth_accounts : "has"
     users ||--o{ refresh_tokens : "has"
-    users ||--o{ friendships : "requests"
-    users ||--o{ friendships : "receives"
     users ||--o{ match_participants : "plays as"
     users ||--o| player_stats : "aggregates to"
     users ||--o{ matches : "wins"
@@ -36,8 +34,6 @@ erDiagram
         varchar password_hash "nullable, OAuth-only accounts"
         varchar display_name
         text avatar_url
-        boolean is_online
-        timestamptz last_seen_at
     }
     oauth_accounts {
         uuid id PK
@@ -51,12 +47,6 @@ erDiagram
         varchar token_hash UK
         timestamptz expires_at
         timestamptz revoked_at
-    }
-    friendships {
-        uuid id PK
-        uuid requester_id FK
-        uuid addressee_id FK
-        varchar status "pending | accepted | blocked"
     }
     championships {
         uuid id PK
@@ -120,8 +110,7 @@ instead of aggregating `match_participants` on every page load.
 
 **Why AI opponents don't get a `users` row.** `match_participants.user_id` is nullable with
 `is_ai` as the discriminator, rather than creating synthetic bot user accounts. Keeps `users`
-authoritative for real accounts only — auth, friends, and rankings never need to filter out
-bots.
+authoritative for real accounts only — auth and rankings never need to filter out bots.
 
 **Why `elo_rating` isn't just "wins minus losses."** Battle royale matches have 2–4
 participants and a `placement`, not a binary win/loss — an Elo-style rating (adjusted by how
@@ -133,11 +122,6 @@ outcome per match for auditability.
 
 **Why `password_hash` is nullable.** A user who signs up via OAuth only (Google/GitHub/42)
 never sets a password. Login logic must check `oauth_accounts` when `password_hash IS NULL`.
-
-**Friendship direction.** `friendships` stores one directional row per request
-(`requester_id` → `addressee_id`). A pending request only exists in one direction; once
-`accepted`, treat the pair as symmetric at the query layer (check both directions, or
-normalize on write — pick one and document it in `backend/README.md` once implemented).
 
 ## Championship mode (FT-N)
 
@@ -213,6 +197,8 @@ ORDER BY total_points DESC, total_kills DESC, matches_won DESC;
 
 - Chat / messages — not selected as a buffer module.
 - Achievements / XP / gamification — not selected.
+- Friends / friendship (and, as a consequence, online status/presence) — dropped by team
+  decision (2026-08-11); see `docs/GDD.md` §5.2.
 - Health checks — the buffer "Health check / status page" module is a stateless liveness
   endpoint (backend process + DB connectivity check), not persisted state.
 
