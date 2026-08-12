@@ -35,6 +35,13 @@ services:
     ports:
       - "${BACKEND_PORT:-8080}:8080"
 
+  frontend:
+    build:
+      context: ./frontend/game
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+
   # frontend:
   #   Uncomment once frontend/app/ has a chosen framework + Dockerfile
   #   (see frontend/app/README.md — this is still an open decision).
