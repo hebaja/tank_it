@@ -9,16 +9,16 @@ Angular, or Vue — TBD, see `frontend/app/README.md`).
 
 ## Requirements
 
-[Node.js](https://nodejs.org) and `npm`.
+[Node.js](https://nodejs.org) and [`yarn`](https://classic.yarnpkg.com/).
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `npm install` | Install dependencies |
-| `npm run dev` | Launch a dev server at `http://localhost:8080` |
-| `npm run build` | Production build into `dist/` |
-| `npm run dev-nolog` / `npm run build-nolog` | Same as above without Phaser's anonymous usage ping (see `log.js`) |
+| `yarn install` | Install dependencies |
+| `yarn dev` | Launch a dev server at `http://localhost:8080` |
+| `yarn build` | Production build into `dist/` |
+| `yarn dev-nolog` / `yarn build-nolog` | Same as above without Phaser's anonymous usage ping (see `log.js`) |
 
 ## Structure
 
