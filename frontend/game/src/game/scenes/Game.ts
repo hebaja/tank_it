@@ -13,7 +13,6 @@ export class Game extends Scene {
 	barrelGroup: Phaser.Physics.Arcade.Group
 	tankGroup: Phaser.Physics.Arcade.Group
 	projectileGroup: Phaser.Physics.Arcade.Group
-	//ammoGauge: AmmoGauge
 
 	constructor() {
 		super('Game');
@@ -38,8 +37,10 @@ export class Game extends Scene {
 			'rock',
 			'map/rock.png'
 		)
-
-
+		this.load.image(
+			'danger',
+			'map/red_tile.png'
+		)
 
 		Tank.preload(this)
 		Projectile.preload(this)
@@ -61,11 +62,6 @@ export class Game extends Scene {
 
 		this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
 
-		// this.ammoGauge = new AmmoGauge(this, 160, 32, 'blue', -HORIZONTAL_MARGIN)
-
-
-
-
 		const em = new ExplosionManager(this)
 
 		const terrainTileset = map.addTilesetImage(
@@ -76,6 +72,10 @@ export class Game extends Scene {
 			'corner',
 			'corner'
 		)
+		const dangerTileset = map.addTilesetImage(
+			'red_tile',
+			'danger'
+		)
 		const blocksTileset = map.addTilesetImage(
 			'stone',
 			'stone'
@@ -85,35 +85,35 @@ export class Game extends Scene {
 			'rock'
 		)
 
-		if (!terrainTileset || !cornerTileset || !blocksTileset || !blocksHardTileset) {
+		if (!terrainTileset || !cornerTileset || !dangerTileset || !blocksTileset || !blocksHardTileset) {
 			throw new Error("Tileset not found");
 		}
 		const backgroundLayer = map.createLayer(
-			"background",
+			'background',
 			[terrainTileset, cornerTileset]
 		)
 		const blocksLayer = map.createLayer(
-			"blocks",
+			'blocks',
 			[blocksTileset]
 		)
 		const blocksHardLayer = map.createLayer(
-			"blocks_hard",
+			'blocks_hard',
 			[blocksHardTileset]
+		)
+		const dangerLayer = map.createLayer(
+			'danger_layer',
+			[dangerTileset]
 		)
 
 		backgroundLayer.depth = 0
 		blocksLayer.depth = 10
 		blocksHardLayer.depth = 10
+		dangerLayer.depth = 20
 
 		this.tankGroup = this.physics.add.group()
 		this.projectileGroup = this.physics.add.group()
 		this.barrelGroup = this.physics.add.group()
 
-		// 25, 25, Color.blue
-		// 25, 925, Color.red
-		// 925, 925, Color.green
-		// 925, 25, Color.dark
-		
 		new Tank(this, 25, 25, Color.blue, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup)
@@ -134,6 +134,23 @@ export class Game extends Scene {
 		this.barrelGroup.children.forEach((child) => (child as Barrel).setImmovable(true))
 
 		this.physics.add.collider(this.tankGroup, this.barrelGroup)
+
+		var rowStart = 0
+		var rowEnd = (dangerLayer.width / 64) - 1
+		var count = 3
+
+		dangerLayer.forEachTile((tile) => {
+			tile.setAlpha(0.0)
+		})
+
+		dangerLayer.forEachTile((tile) => {
+			if ((tile.x == rowStart + count && tile.y >= count && tile.y <= rowEnd - count)
+			|| (tile.y == rowStart + count && tile.x >= count && tile.x <= rowEnd - count))
+				this.triggerDangerEffect(tile)
+			if ((tile.x == rowEnd - count && tile.y >= count && tile.y <= rowEnd - count)
+			|| tile.y == rowEnd - count && tile.x >= count && tile.x <= rowEnd - count)
+				this.triggerDangerEffect(tile)
+		})
 
 		this.events.on('projectileFired', (projectile: Projectile) => {
 
@@ -221,6 +238,18 @@ export class Game extends Scene {
 					proj1.destroy()
 					proj2.destroy()
 				})
+		})
+	}
+
+	triggerDangerEffect(tile: Phaser.Tilemaps.Tile) {
+		tile.setAlpha(0.5)
+		this.tweens.add({
+			targets: tile,
+			alpha: 0.1,
+			duration: 500,
+			ease: 'Sine.easeInOut',
+			yoyo: true,
+			repeat: -1,
 		})
 	}
 
