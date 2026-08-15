@@ -6,6 +6,7 @@ import { Barrel } from '../objects/Barrel';
 import { Oil } from '../objects/Oil';
 import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
+import { DeathWallManager } from '../managers/DeathWallManager';
 
 export class Game extends Scene {
 	tanks: Tank[] = []
@@ -37,14 +38,11 @@ export class Game extends Scene {
 			'rock',
 			'map/rock.png'
 		)
-		this.load.image(
-			'danger',
-			'map/red_tile.png'
-		)
 
 		Tank.preload(this)
 		Projectile.preload(this)
 		ExplosionManager.preload(this)
+		DeathWallManager.preload(this)
 		Barrel.preload(this)
 		Oil.preload(this)
 		AmmoGauge.preload(this)
@@ -72,10 +70,6 @@ export class Game extends Scene {
 			'corner',
 			'corner'
 		)
-		const dangerTileset = map.addTilesetImage(
-			'red_tile',
-			'danger'
-		)
 		const blocksTileset = map.addTilesetImage(
 			'stone',
 			'stone'
@@ -85,7 +79,9 @@ export class Game extends Scene {
 			'rock'
 		)
 
-		if (!terrainTileset || !cornerTileset || !dangerTileset || !blocksTileset || !blocksHardTileset) {
+		const dwm = new DeathWallManager(this, map)
+
+		if (!terrainTileset || !cornerTileset || !blocksTileset || !blocksHardTileset) {
 			throw new Error("Tileset not found");
 		}
 		const backgroundLayer = map.createLayer(
@@ -100,15 +96,10 @@ export class Game extends Scene {
 			'blocks_hard',
 			[blocksHardTileset]
 		)
-		const dangerLayer = map.createLayer(
-			'danger_layer',
-			[dangerTileset]
-		)
 
 		backgroundLayer.depth = 0
 		blocksLayer.depth = 10
 		blocksHardLayer.depth = 10
-		dangerLayer.depth = 20
 
 		this.tankGroup = this.physics.add.group()
 		this.projectileGroup = this.physics.add.group()
@@ -134,23 +125,6 @@ export class Game extends Scene {
 		this.barrelGroup.children.forEach((child) => (child as Barrel).setImmovable(true))
 
 		this.physics.add.collider(this.tankGroup, this.barrelGroup)
-
-		var rowStart = 0
-		var rowEnd = (dangerLayer.width / 64) - 1
-		var count = 3
-
-		dangerLayer.forEachTile((tile) => {
-			tile.setAlpha(0.0)
-		})
-
-		dangerLayer.forEachTile((tile) => {
-			if ((tile.x == rowStart + count && tile.y >= count && tile.y <= rowEnd - count)
-			|| (tile.y == rowStart + count && tile.x >= count && tile.x <= rowEnd - count))
-				this.triggerDangerEffect(tile)
-			if ((tile.x == rowEnd - count && tile.y >= count && tile.y <= rowEnd - count)
-			|| tile.y == rowEnd - count && tile.x >= count && tile.x <= rowEnd - count)
-				this.triggerDangerEffect(tile)
-		})
 
 		this.events.on('projectileFired', (projectile: Projectile) => {
 
@@ -238,18 +212,6 @@ export class Game extends Scene {
 					proj1.destroy()
 					proj2.destroy()
 				})
-		})
-	}
-
-	triggerDangerEffect(tile: Phaser.Tilemaps.Tile) {
-		tile.setAlpha(0.5)
-		this.tweens.add({
-			targets: tile,
-			alpha: 0.1,
-			duration: 500,
-			ease: 'Sine.easeInOut',
-			yoyo: true,
-			repeat: -1,
 		})
 	}
 
