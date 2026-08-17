@@ -1,4 +1,4 @@
-import { Geom, Scene, Tilemaps } from 'phaser';
+import { Scene, Tilemaps } from 'phaser';
 import { Tank } from '../objects/Tank';
 import { Projectile } from '../objects/Projectile';
 import { ExplosionManager } from '../managers/ExplosionManager';
@@ -62,8 +62,6 @@ export class Game extends Scene {
 			'main_tileset'
 		)
 
-		const dwm = new DeathWallManager(this, map)
-
 		if (!terrainTileset || !blocksTileset || !blocksHardTileset) {
 			throw new Error("Tileset not found");
 		}
@@ -92,6 +90,8 @@ export class Game extends Scene {
 		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 925, 25, Color.dark, Tank.tankIndex++, this.tankGroup)
+		
+		const dwm = new DeathWallManager(this, map, this.tankGroup)
 
 		blocksLayer.setCollisionByExclusion([-1]);
 		blocksHardLayer.setCollisionByExclusion([-1]);

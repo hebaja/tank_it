@@ -185,7 +185,7 @@ export class Tank extends Physics.Arcade.Sprite {
 	}
 
 	fire() {
-		if (!this.ammoGauge.canFire)
+		if (!this.ammoGauge.getCanFire())
 			return;
 
 		const tip = this.getTipTank(20)

@@ -1,4 +1,4 @@
-import { Scene, Tilemaps } from "phaser"
+import { Physics, Scene, Tilemaps } from "phaser"
 
 export class DeathWallManager {
 
@@ -9,8 +9,10 @@ export class DeathWallManager {
 	private dangerLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
 	private effect: Phaser.Tweens.Tween[] = []
 	private destroyed: Set<Tilemaps.Tile> = new Set()
+	private startTime: number = 7000
+	private destroyRingTime: number = 8000
 
-	constructor(scene: Scene, map: Tilemaps.Tilemap) {
+	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group) {
 		this.mainScene = scene	
 		const dangerTileset = map.addTilesetImage(
 			'main_tileset',
@@ -24,10 +26,12 @@ export class DeathWallManager {
 		this.ringEnd = (this.dangerLayer.width / 64) - 1
 		this.dangerLayer.forEachTile((tile) => tile.setAlpha(0.0))
 
-		const deathWallTimer = scene.time.delayedCall(4000, () => {
+		scene.physics.add.collider(this.dangerLayer, tankGroup)
+
+		const deathWallTimer = scene.time.delayedCall(this.startTime, () => {
 			this.start()
 			scene.time.addEvent(({
-				delay: 4000,
+				delay: this.destroyRingTime,
 				loop: true,
 				callback: () => {
 					
@@ -51,6 +55,7 @@ export class DeathWallManager {
 							type: "explosion",
 							onComplete: () => {
 								tile.index = dangerTileset.firstgid + 42
+								tile.setCollision(true)
 								tile.setAlpha(1.0)
 								this.destroyed.add(tile)
 							}
