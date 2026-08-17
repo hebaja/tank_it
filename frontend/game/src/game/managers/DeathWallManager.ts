@@ -11,17 +11,17 @@ export class DeathWallManager {
 	private destroyed: Set<Tilemaps.Tile> = new Set()
 
 	static preload(scene: Scene) {
-		scene.load.image(
-		'danger',
-		'map/red_tile.png'
-		)
+		// scene.load.image(
+		// 'danger',
+		// 'map/red_tile.png'
+		// )
 	}
 
 	constructor(scene: Scene, map: Tilemaps.Tilemap) {
 		this.mainScene = scene	
 		const dangerTileset = map.addTilesetImage(
-			'red_tile',
-			'danger'
+			'main_tileset',
+			'main_tileset'
 		)
 		if (!dangerTileset) throw new Error("Tileset not found");
 		this.dangerLayer = map.createLayer(
@@ -55,7 +55,7 @@ export class DeathWallManager {
 							y: tile.pixelY + tile.width / 2,
 							type: "explosion",
 							onComplete: () => {
-								tile.index = dangerTileset.firstgid + 1
+								tile.index = dangerTileset.firstgid + 42
 								tile.setAlpha(1.0)
 								this.destroyed.add(tile)
 							}

@@ -23,21 +23,17 @@ export class Game extends Scene {
 		this.load.setPath('assets');
 		this.load.tilemapTiledJSON('level', 'map/tanks_map.json')
 		this.load.image(
-			'terrain_tileset',
-			'map/terrainTiles_default.png'
+			'main_tileset',
+			'map/main_tileset.png'
 		)
-		this.load.image(
-			'corner',
-			'map/corner.png'
-		)
-		this.load.image(
-			'stone',
-			'map/stone.png'
-		)
-		this.load.image(
-			'rock',
-			'map/rock.png'
-		)
+		// this.load.image(
+		// 	'stone',
+		// 	'map/stone.png'
+		// )
+		// this.load.image(
+		// 	'rock',
+		// 	'map/rock.png'
+		// )
 
 		Tank.preload(this)
 		Projectile.preload(this)
@@ -63,30 +59,26 @@ export class Game extends Scene {
 		const em = new ExplosionManager(this)
 
 		const terrainTileset = map.addTilesetImage(
-			'terrain_tileset',
-			'terrain_tileset'
-		)
-		const cornerTileset = map.addTilesetImage(
-			'corner',
-			'corner'
+			'main_tileset',
+			'main_tileset'
 		)
 		const blocksTileset = map.addTilesetImage(
-			'stone',
-			'stone'
+			'main_tileset',
+			'main_tileset'
 		)
 		const blocksHardTileset = map.addTilesetImage(
-			'rock',
-			'rock'
+			'main_tileset',
+			'main_tileset'
 		)
 
 		const dwm = new DeathWallManager(this, map)
 
-		if (!terrainTileset || !cornerTileset || !blocksTileset || !blocksHardTileset) {
+		if (!terrainTileset || !blocksTileset || !blocksHardTileset) {
 			throw new Error("Tileset not found");
 		}
 		const backgroundLayer = map.createLayer(
 			'background',
-			[terrainTileset, cornerTileset]
+			[terrainTileset]
 		)
 		const blocksLayer = map.createLayer(
 			'blocks',
