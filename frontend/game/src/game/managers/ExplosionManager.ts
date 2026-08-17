@@ -72,7 +72,8 @@ export class ExplosionManager {
 	private handleExplosion(data: {
 		x: number,
 		y: number,
-		type: string
+		type: string,
+		onComplete?: () => void
 	}): void {
 
 		var sprite: Phaser.GameObjects.Sprite
@@ -84,6 +85,7 @@ export class ExplosionManager {
 				sprite.play("explosion")
 				sprite.once('animationcomplete-explosion', () => {
 					sprite.destroy()
+					data.onComplete?.()
 				})
 				break
 			case 'explosion_smoke':
@@ -92,6 +94,7 @@ export class ExplosionManager {
 				sprite.play("explosion_smoke")
 				sprite.once('animationcomplete-explosion_smoke', () => {
 					sprite.destroy()
+					data.onComplete?.()
 				})
 				break
 			default:

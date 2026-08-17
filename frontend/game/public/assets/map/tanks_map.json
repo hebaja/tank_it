@@ -166,15 +166,15 @@
          "tilewidth":64
         }, 
         {
-         "columns":1,
+         "columns":2,
          "firstgid":204,
          "image":"red_tile.png",
          "imageheight":64,
-         "imagewidth":64,
+         "imagewidth":128,
          "margin":0,
          "name":"red_tile",
          "spacing":0,
-         "tilecount":1,
+         "tilecount":2,
          "tileheight":64,
          "tilewidth":64
         }],

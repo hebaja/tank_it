@@ -3,11 +3,17 @@ import { Scene, Tilemaps } from "phaser"
 export class DeathWallManager {
 
 	private mainScene: Scene
+	private ringStart: number = 0
+	private ringEnd: number = 0
+	private step: number = 0
+	private dangerLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
+	private effect: Phaser.Tweens.Tween[] = []
+	private destroyed: Set<Tilemaps.Tile> = new Set()
 
 	static preload(scene: Scene) {
 		scene.load.image(
-			'danger',
-			'map/red_tile.png'
+		'danger',
+		'map/red_tile.png'
 		)
 	}
 
@@ -18,40 +24,74 @@ export class DeathWallManager {
 			'danger'
 		)
 		if (!dangerTileset) throw new Error("Tileset not found");
-		const dangerLayer = map.createLayer(
+		this.dangerLayer = map.createLayer(
 			'danger_layer',
 			[dangerTileset]
 		).setDepth(20)
+		this.ringEnd = (this.dangerLayer.width / 64) - 1
+		this.dangerLayer.forEachTile((tile) => tile.setAlpha(0.0))
 
-		dangerLayer.forEachTile((tile) => {
-			tile.setAlpha(0.0)
-		})
-		
-		var rowStart = 0
-		var rowEnd = (dangerLayer.width / 64) - 1
-		var count = 6
+		const deathWallTimer = scene.time.delayedCall(4000, () => {
+			this.start()
+			scene.time.addEvent(({
+				delay: 4000,
+				loop: true,
+				callback: () => {
+					
+					this.dangerLayer.forEachTile((tile) => {
+						if (!this.destroyed.has(tile)) tile.setAlpha(0.0)
+					})
 
-		dangerLayer.forEachTile((tile) => {
-			if ((tile.x == rowStart + count && tile.y >= count && tile.y <= rowEnd - count)
-			|| (tile.y == rowStart + count && tile.x >= count && tile.x <= rowEnd - count))
+					this.effect.forEach((effect) => {
+						const tile = effect.targets[0] as Tilemaps.Tile
+
+						effect.stop()
+						effect.remove()
+						this.effect = this.effect.filter((e) => {
+							if (e === effect) return false })
+
+						scene.events.emit("explosion", {
+							x: tile.pixelX + tile.width / 2,
+							y: tile.pixelY + tile.width / 2,
+							type: "explosion",
+							onComplete: () => {
+								tile.index = dangerTileset.firstgid + 1
+								tile.setAlpha(1.0)
+								this.destroyed.add(tile)
+							}
+						})
+					})
+
+					this.step++
+					this.start()
+					if (this.step == 6)
+						deathWallTimer.remove()
+				}
+			}))
+		})
+	}
+
+	private start() {
+		this.dangerLayer.forEachTile((tile) => {
+			if ((tile.x == this.ringStart + this.step && tile.y >= this.step && tile.y <= this.ringEnd - this.step)
+			|| (tile.y == this.ringStart + this.step && tile.x >= this.step && tile.x <= this.ringEnd - this.step))
 				this.triggerDangerEffect(tile)
-			if ((tile.x == rowEnd - count && tile.y >= count && tile.y <= rowEnd - count)
-			|| tile.y == rowEnd - count && tile.x >= count && tile.x <= rowEnd - count)
+			if ((tile.x == this.ringEnd - this.step && tile.y >= this.step && tile.y <= this.ringEnd - this.step)
+			|| tile.y == this.ringEnd - this.step && tile.x >= this.step && tile.x <= this.ringEnd - this.step)
 				this.triggerDangerEffect(tile)
 		})
-		
 	}
 	
-	triggerDangerEffect(tile: Phaser.Tilemaps.Tile) {
+	private triggerDangerEffect(tile: Phaser.Tilemaps.Tile) {
+		if (this.destroyed.has(tile)) return
 		tile.setAlpha(0.5)
-		this.mainScene.tweens.add({
+		this.effect.push(this.mainScene.tweens.add({
 			targets: tile,
 			alpha: 0.1,
 			duration: 500,
 			ease: 'Sine.easeInOut',
 			yoyo: true,
 			repeat: -1,
-		})
+		}))
 	}
-
 }
