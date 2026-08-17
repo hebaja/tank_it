@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Geom, Scene, Tilemaps } from 'phaser';
 import { Tank } from '../objects/Tank';
 import { Projectile } from '../objects/Projectile';
 import { ExplosionManager } from '../managers/ExplosionManager';
@@ -26,19 +26,10 @@ export class Game extends Scene {
 			'main_tileset',
 			'map/main_tileset.png'
 		)
-		// this.load.image(
-		// 	'stone',
-		// 	'map/stone.png'
-		// )
-		// this.load.image(
-		// 	'rock',
-		// 	'map/rock.png'
-		// )
 
 		Tank.preload(this)
 		Projectile.preload(this)
 		ExplosionManager.preload(this)
-		DeathWallManager.preload(this)
 		Barrel.preload(this)
 		Oil.preload(this)
 		AmmoGauge.preload(this)
@@ -205,12 +196,29 @@ export class Game extends Scene {
 					proj2.destroy()
 				})
 		})
+
+		this.events.on('tileDestroy', (tile: Tilemaps.Tile) => {
+			this.tankGroup.getChildren().forEach(t => {
+				const tank: Tank = t as Tank
+				const body = tank.body
+				if (!body) return
+				if (tile.intersects(body.left, body.top, body.right, body.bottom))
+				{
+					this.events.emit("explosion", {
+						x: tank.x,
+						y: tank.y,
+						type: "explosion"
+					})
+					tank.destroy()
+				}
+			})
+		})
 	}
 
 	update() {
 		this.tankGroup.getChildren().forEach(t => {
 		let onOil = false
-		const tank : Tank = t as Tank
+		const tank: Tank = t as Tank
 
 		for (let i = 0; i < this.oils.length; i++)
 			this.physics.world.overlap(tank, this.oils[i], () => onOil = true )

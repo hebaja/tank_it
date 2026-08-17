@@ -10,13 +10,6 @@ export class DeathWallManager {
 	private effect: Phaser.Tweens.Tween[] = []
 	private destroyed: Set<Tilemaps.Tile> = new Set()
 
-	static preload(scene: Scene) {
-		// scene.load.image(
-		// 'danger',
-		// 'map/red_tile.png'
-		// )
-	}
-
 	constructor(scene: Scene, map: Tilemaps.Tilemap) {
 		this.mainScene = scene	
 		const dangerTileset = map.addTilesetImage(
@@ -49,6 +42,8 @@ export class DeathWallManager {
 						effect.remove()
 						this.effect = this.effect.filter((e) => {
 							if (e === effect) return false })
+						
+						this.mainScene.events.emit('tileDestroy', tile)
 
 						scene.events.emit("explosion", {
 							x: tile.pixelX + tile.width / 2,
