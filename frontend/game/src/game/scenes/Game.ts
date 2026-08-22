@@ -224,5 +224,10 @@ export class Game extends Scene {
 			this.physics.world.overlap(tank, this.oils[i], () => onOil = true )
 		tank.slowDown(onOil)
 		})
+
+		if(this.tankGroup.getLength() == 3) {
+			this.scene.pause()
+			this.scene.launch('Overlay')
+		}
 	}
 }
