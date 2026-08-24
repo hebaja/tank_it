@@ -7,13 +7,15 @@ import { Oil } from '../objects/Oil';
 import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
 import { DeathWallManager } from '../managers/DeathWallManager';
+import { MatchManager } from '../managers/MatchManager';
 
 export class Game extends Scene {
-	tanks: Tank[] = []
 	oils: Oil[] = []
 	barrelGroup: Phaser.Physics.Arcade.Group
 	tankGroup: Phaser.Physics.Arcade.Group
 	projectileGroup: Phaser.Physics.Arcade.Group
+	matchManager: MatchManager
+	deathOrder: Tank[] = []
 
 	constructor() {
 		super('Game');
@@ -46,6 +48,11 @@ export class Game extends Scene {
 		this.cameras.main.setScroll(-HORIZONTAL_MARGIN, 0)
 
 		this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
+
+		// this.ammoGauge = new AmmoGauge(this, 160, 32, 'blue', -HORIZONTAL_MARGIN)
+
+
+		this.matchManager = new MatchManager(this)
 
 		const em = new ExplosionManager(this)
 
@@ -82,16 +89,11 @@ export class Game extends Scene {
 		blocksLayer.depth = 10
 		blocksHardLayer.depth = 10
 
-		this.tankGroup = this.physics.add.group()
 		this.projectileGroup = this.physics.add.group()
 		this.barrelGroup = this.physics.add.group()
 
-		new Tank(this, 25, 25, Color.blue, Tank.tankIndex++, this.tankGroup)
-		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup)
-		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup)
-		new Tank(this, 925, 25, Color.dark, Tank.tankIndex++, this.tankGroup)
 		
-		const dwm = new DeathWallManager(this, map, this.tankGroup)
+		this.initTanks()
 
 		blocksLayer.setCollisionByExclusion([-1]);
 		blocksHardLayer.setCollisionByExclusion([-1]);
@@ -109,6 +111,7 @@ export class Game extends Scene {
 
 		this.physics.add.collider(this.tankGroup, this.barrelGroup)
 
+		this.events.off('projectileFired')
 		this.events.on('projectileFired', (projectile: Projectile) => {
 
 			this.physics.add.collider(
@@ -117,7 +120,6 @@ export class Game extends Scene {
 				(p, b) => {
 					const blockTile = b as Phaser.Tilemaps.Tile
 					const proj = p as Projectile
-
 					this.events.emit("explosion", {
 						x: blockTile.getCenterX(),
 						y: blockTile.getCenterY(),
@@ -174,6 +176,8 @@ export class Game extends Scene {
 						type: "explosion"
 					})
 
+					if (tank.active) this.deathOrder.push(tank)
+
 					proj.destroy()
 					tank.destroy()
 				})
@@ -222,12 +226,31 @@ export class Game extends Scene {
 
 		for (let i = 0; i < this.oils.length; i++)
 			this.physics.world.overlap(tank, this.oils[i], () => onOil = true )
-		tank.slowDown(onOil)
+			tank.slowDown(onOil)
 		})
 
-		if(this.tankGroup.getLength() == 3) {
-			this.scene.pause()
-			this.scene.launch('Overlay')
+		if(this.tankGroup.getLength() == 1) {
+			const winner = this.tankGroup.getChildren().find(t => !this.deathOrder.includes(t as Tank))
+			
+			if (winner) {
+				this.events.emit('match_end', {
+					deathOrder: this.deathOrder,
+					winner: winner
+				})
+			}
 		}
+	}
+	
+	initTanks() {
+		Tank.tankIndex = 0
+		this.tankGroup = this.physics.add.group()
+		// 25, 25, Color.blue
+		// 25, 925, Color.red
+		// 925, 925, Color.green
+		// 925, 25, Color.dark
+		new Tank(this, 25, 25, Color.blue, Tank.tankIndex++, this.tankGroup)
+		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup)
+		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup)
+		new Tank(this, 925, 25, Color.dark, Tank.tankIndex++, this.tankGroup)
 	}
 }
