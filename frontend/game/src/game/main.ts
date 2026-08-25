@@ -1,5 +1,6 @@
 import { Game as MainGame } from './scenes/Game';
 import { AUTO, Game, Scale,Types } from 'phaser';
+import { Overlay } from './scenes/Overlay';
 
 // Find out more information about the Game Config at:
 // https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -21,7 +22,8 @@ const config: Types.Core.GameConfig = {
         autoCenter: Scale.CENTER_BOTH
     },
     scene: [
-        MainGame
+        MainGame,
+		Overlay
     ]
 };
 

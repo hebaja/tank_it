@@ -43,30 +43,34 @@ export class ExplosionManager {
 	}
 
 	createAnims() {
-		this.scene.anims.create({
-			key: 'explosion',
-			frames: [
-				{ key: 'explosion_1' },
-				{ key: 'explosion_2' },
-				{ key: 'explosion_3' },
-				{ key: 'explosion_4' },
-				{ key: 'explosion_5' },
-			],
-			frameRate: 10,
-			repeat: 0
-		});
-		this.scene.anims.create({
-			key: 'explosion_smoke',
-			frames: [
-				{ key: 'explosion_smoke_1' },
-				{ key: 'explosion_smoke_2' },
-				{ key: 'explosion_smoke_3' },
-				{ key: 'explosion_smoke_4' },
-				{ key: 'explosion_smoke_5' },
-			],
-			frameRate: 10,
-			repeat: 0
-		});
+		if (!this.scene.anims.exists('explosion')) {
+			this.scene.anims.create({
+				key: 'explosion',
+				frames: [
+					{ key: 'explosion_1' },
+					{ key: 'explosion_2' },
+					{ key: 'explosion_3' },
+					{ key: 'explosion_4' },
+					{ key: 'explosion_5' },
+				],
+				frameRate: 10,
+				repeat: 0
+			})
+		}
+		if (!this.scene.anims.exists('explosion_smoke')) {
+			this.scene.anims.create({
+				key: 'explosion_smoke',
+				frames: [
+					{ key: 'explosion_smoke_1' },
+					{ key: 'explosion_smoke_2' },
+					{ key: 'explosion_smoke_3' },
+					{ key: 'explosion_smoke_4' },
+					{ key: 'explosion_smoke_5' },
+				],
+				frameRate: 10,
+				repeat: 0
+			})
+		}
 	}
 
 	private handleExplosion(data: {
