@@ -4,17 +4,17 @@ import { type Corner, HUD } from "../config/layout.ts";
 
 export class AmmoGauge extends GameObjects.Container {
 
-	gaugeWidth: number = HUD.gaugeWidth
-	mainScene: Scene
-	fill: Phaser.GameObjects.NineSlice
-	bg: Phaser.GameObjects.Rectangle
-	alarmOn: boolean = false
-	alarmTween?: Phaser.Tweens.Tween
-	recharging: boolean = false
-	canFire: boolean = true
-	counter: number = HUD.initialAmmo
-	quantity: Phaser.GameObjects.Text
-	color: Color
+	private gaugeWidth: number = HUD.gaugeWidth
+	private mainScene: Scene
+	private fill: Phaser.GameObjects.NineSlice
+	private bg: Phaser.GameObjects.Rectangle
+	private alarmOn: boolean = false
+	private alarmTween?: Phaser.Tweens.Tween
+	private recharging: boolean = false
+	private canFire: boolean = true
+	private counter: number = HUD.initialAmmo
+	private quantity: Phaser.GameObjects.Text
+	private color: Color
 
 	static preload(scene: Scene) {
 		scene.load.image(
@@ -89,6 +89,10 @@ export class AmmoGauge extends GameObjects.Container {
 		})
 		if (this.gaugeWidth <= 0)
 			this.recharge()
+	}
+
+	getCanFire(): boolean {
+		return this.canFire
 	}
 
 	recharge() {

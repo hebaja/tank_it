@@ -49,7 +49,7 @@ export class Tank extends Physics.Arcade.Sprite {
 		scene.load.image(Color.red, 'sprites/tank_red.png')
 		scene.load.image(Color.green, 'sprites/tank_green.png')
 		scene.load.image(Color.dark, 'sprites/tank_dark.png')
-		scene.load.image('spark', 'sprites/shotOrange.png')
+		scene.load.image('spark', 'sprites/shot_orange.png')
 	}
 
 	constructor(scene: Scene, x: number, y: number, color: Color, index: number, group: Phaser.Physics.Arcade.Group) {
@@ -185,7 +185,7 @@ export class Tank extends Physics.Arcade.Sprite {
 	}
 
 	fire() {
-		if (!this.ammoGauge.canFire)
+		if (!this.ammoGauge.getCanFire())
 			return;
 
 		const tip = this.getTipTank(20)

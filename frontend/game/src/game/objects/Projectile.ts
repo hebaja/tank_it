@@ -4,10 +4,10 @@ import { Color } from "../config/color.ts";
 export class Projectile extends Physics.Arcade.Sprite {
 
 	static preload(scene: Scene) {
-		scene.load.image(`projectile_${Color.blue}`, 'sprites/bulletBlue1_outline.png')
-		scene.load.image(`projectile_${Color.red}`, 'sprites/bulletRed1_outline.png')
-		scene.load.image(`projectile_${Color.green}`, 'sprites/bulletGreen1_outline.png')
-		scene.load.image(`projectile_${Color.dark}`, 'sprites/bulletDark1_outline.png')
+		scene.load.image(`projectile_${Color.blue}`, 'sprites/bullet_blue_outline.png')
+		scene.load.image(`projectile_${Color.red}`, 'sprites/bullet_red_outline.png')
+		scene.load.image(`projectile_${Color.green}`, 'sprites/bullet_green_outline.png')
+		scene.load.image(`projectile_${Color.dark}`, 'sprites/bullet_dark_outline.png')
 	}
 
 	constructor(scene: Scene, x: number, y: number, angle: number, color: Color, group: Phaser.Physics.Arcade.Group) {

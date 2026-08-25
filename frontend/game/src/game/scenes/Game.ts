@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Scene, Tilemaps } from 'phaser';
 import { Tank } from '../objects/Tank';
 import { Projectile } from '../objects/Projectile';
 import { ExplosionManager } from '../managers/ExplosionManager';
@@ -6,6 +6,7 @@ import { Barrel } from '../objects/Barrel';
 import { Oil } from '../objects/Oil';
 import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
+import { DeathWallManager } from '../managers/DeathWallManager';
 
 export class Game extends Scene {
 	tanks: Tank[] = []
@@ -13,7 +14,6 @@ export class Game extends Scene {
 	barrelGroup: Phaser.Physics.Arcade.Group
 	tankGroup: Phaser.Physics.Arcade.Group
 	projectileGroup: Phaser.Physics.Arcade.Group
-	//ammoGauge: AmmoGauge
 
 	constructor() {
 		super('Game');
@@ -23,23 +23,9 @@ export class Game extends Scene {
 		this.load.setPath('assets');
 		this.load.tilemapTiledJSON('level', 'map/tanks_map.json')
 		this.load.image(
-			'terrain_tileset',
-			'map/terrainTiles_default.png'
+			'main_tileset',
+			'map/main_tileset.png'
 		)
-		this.load.image(
-			'corner',
-			'map/corner.png'
-		)
-		this.load.image(
-			'stone',
-			'map/stone.png'
-		)
-		this.load.image(
-			'rock',
-			'map/rock.png'
-		)
-
-
 
 		Tank.preload(this)
 		Projectile.preload(this)
@@ -61,43 +47,34 @@ export class Game extends Scene {
 
 		this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
 
-		// this.ammoGauge = new AmmoGauge(this, 160, 32, 'blue', -HORIZONTAL_MARGIN)
-
-
-
-
 		const em = new ExplosionManager(this)
 
 		const terrainTileset = map.addTilesetImage(
-			'terrain_tileset',
-			'terrain_tileset'
-		)
-		const cornerTileset = map.addTilesetImage(
-			'corner',
-			'corner'
+			'main_tileset',
+			'main_tileset'
 		)
 		const blocksTileset = map.addTilesetImage(
-			'stone',
-			'stone'
+			'main_tileset',
+			'main_tileset'
 		)
 		const blocksHardTileset = map.addTilesetImage(
-			'rock',
-			'rock'
+			'main_tileset',
+			'main_tileset'
 		)
 
-		if (!terrainTileset || !cornerTileset || !blocksTileset || !blocksHardTileset) {
+		if (!terrainTileset || !blocksTileset || !blocksHardTileset) {
 			throw new Error("Tileset not found");
 		}
 		const backgroundLayer = map.createLayer(
-			"background",
-			[terrainTileset, cornerTileset]
+			'background',
+			[terrainTileset]
 		)
 		const blocksLayer = map.createLayer(
-			"blocks",
+			'blocks',
 			[blocksTileset]
 		)
 		const blocksHardLayer = map.createLayer(
-			"blocks_hard",
+			'blocks_hard',
 			[blocksHardTileset]
 		)
 
@@ -109,15 +86,12 @@ export class Game extends Scene {
 		this.projectileGroup = this.physics.add.group()
 		this.barrelGroup = this.physics.add.group()
 
-		// 25, 25, Color.blue
-		// 25, 925, Color.red
-		// 925, 925, Color.green
-		// 925, 25, Color.dark
-		
 		new Tank(this, 25, 25, Color.blue, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 925, 25, Color.dark, Tank.tankIndex++, this.tankGroup)
+		
+		const dwm = new DeathWallManager(this, map, this.tankGroup)
 
 		blocksLayer.setCollisionByExclusion([-1]);
 		blocksHardLayer.setCollisionByExclusion([-1]);
@@ -222,12 +196,29 @@ export class Game extends Scene {
 					proj2.destroy()
 				})
 		})
+
+		this.events.on('tileDestroy', (tile: Tilemaps.Tile) => {
+			this.tankGroup.getChildren().forEach(t => {
+				const tank: Tank = t as Tank
+				const body = tank.body
+				if (!body) return
+				if (tile.intersects(body.left, body.top, body.right, body.bottom))
+				{
+					this.events.emit("explosion", {
+						x: tank.x,
+						y: tank.y,
+						type: "explosion"
+					})
+					tank.destroy()
+				}
+			})
+		})
 	}
 
 	update() {
 		this.tankGroup.getChildren().forEach(t => {
 		let onOil = false
-		const tank : Tank = t as Tank
+		const tank: Tank = t as Tank
 
 		for (let i = 0; i < this.oils.length; i++)
 			this.physics.world.overlap(tank, this.oils[i], () => onOil = true )
