@@ -7,7 +7,7 @@ import { Oil } from '../objects/Oil';
 import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
 import { DeathWallManager } from '../managers/DeathWallManager';
-import { MatchManager } from '../managers/MatchManager';
+import { MatchManager, MatchPlacement, MatchResult } from '../managers/MatchManager';
 
 export class Game extends Scene {
 	oils: Oil[] = []
@@ -15,7 +15,9 @@ export class Game extends Scene {
 	tankGroup: Phaser.Physics.Arcade.Group
 	projectileGroup: Phaser.Physics.Arcade.Group
 	matchManager: MatchManager
-	deathOrder: Tank[] = []
+	matchPlacements: MatchPlacement[] = []
+	matchPlace: number = 3
+	matchPoints: number = 0
 
 	constructor() {
 		super('Game');
@@ -55,6 +57,8 @@ export class Game extends Scene {
 		this.matchManager = new MatchManager(this)
 
 		const em = new ExplosionManager(this)
+
+		// const dwm = new DeathWallManager(this, map, this.tankGroup)
 
 		const terrainTileset = map.addTilesetImage(
 			'main_tileset',
@@ -176,7 +180,11 @@ export class Game extends Scene {
 						type: "explosion"
 					})
 
-					if (tank.active) this.deathOrder.push(tank)
+					if (tank.active) this.matchPlacements.push({
+						color: tank.getColor(),
+						points: this.matchPoints++,
+						place: this.matchPlace--
+					})
 
 					proj.destroy()
 					tank.destroy()
@@ -213,6 +221,11 @@ export class Game extends Scene {
 						y: tank.y,
 						type: "explosion"
 					})
+					if (tank.active) this.matchPlacements.push({
+						color: tank.getColor(),
+						points: this.matchPoints++,
+						place: this.matchPlace--
+					})
 					tank.destroy()
 				}
 			})
@@ -230,13 +243,23 @@ export class Game extends Scene {
 		})
 
 		if(this.tankGroup.getLength() == 1) {
-			const winner = this.tankGroup.getChildren().find(t => !this.deathOrder.includes(t as Tank))
+			const winner = this.tankGroup.getChildren().find(t => {
+				const tank = t as Tank
+				return tank.getColor()
+			}) as Tank | undefined
 			
 			if (winner) {
-				this.events.emit('match_end', {
-					deathOrder: this.deathOrder,
-					winner: winner
-				})
+				if (this.matchPlacements.length < 4)
+				{
+					this.matchPlacements.push({
+						color: winner.getColor(),
+						points: this.matchPoints++,
+						place: this.matchPlace--
+					})
+					this.events.emit('match_end', {
+						placements: this.matchPlacements,
+					})
+				}
 			}
 		}
 	}
