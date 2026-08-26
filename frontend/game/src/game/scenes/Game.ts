@@ -58,7 +58,7 @@ export class Game extends Scene {
 
 		const em = new ExplosionManager(this)
 
-		// const dwm = new DeathWallManager(this, map, this.tankGroup)
+		const dwm = new DeathWallManager(this, map, this.tankGroup)
 
 		const terrainTileset = map.addTilesetImage(
 			'main_tileset',
@@ -183,7 +183,8 @@ export class Game extends Scene {
 					if (tank.active) this.matchPlacements.push({
 						color: tank.getColor(),
 						points: this.matchPoints++,
-						place: this.matchPlace--
+						place: this.matchPlace--,
+						timestamp: Date.now()
 					})
 
 					proj.destroy()
@@ -224,7 +225,8 @@ export class Game extends Scene {
 					if (tank.active) this.matchPlacements.push({
 						color: tank.getColor(),
 						points: this.matchPoints++,
-						place: this.matchPlace--
+						place: this.matchPlace--,
+						timestamp: Date.now()
 					})
 					tank.destroy()
 				}
@@ -254,7 +256,8 @@ export class Game extends Scene {
 					this.matchPlacements.push({
 						color: winner.getColor(),
 						points: this.matchPoints++,
-						place: this.matchPlace--
+						place: this.matchPlace--,
+						timestamp: Date.now()
 					})
 					this.events.emit('match_end', {
 						placements: this.matchPlacements,
