@@ -7,7 +7,7 @@ import { Oil } from '../objects/Oil';
 import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
 import { DeathWallManager } from '../managers/DeathWallManager';
-import { MatchManager, MatchPlacement, MatchResult } from '../managers/MatchManager';
+import { MatchManager, MatchPlacement } from '../managers/MatchManager';
 
 export class Game extends Scene {
 	oils: Oil[] = []
@@ -51,6 +51,9 @@ export class Game extends Scene {
 
 		this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
 
+		this.matchPlace = 3
+		this.matchPoints = 0
+
 		// this.ammoGauge = new AmmoGauge(this, 160, 32, 'blue', -HORIZONTAL_MARGIN)
 
 
@@ -58,7 +61,7 @@ export class Game extends Scene {
 
 		const em = new ExplosionManager(this)
 
-		const dwm = new DeathWallManager(this, map, this.tankGroup)
+		this.matchPlacements = []
 
 		const terrainTileset = map.addTilesetImage(
 			'main_tileset',
@@ -98,6 +101,8 @@ export class Game extends Scene {
 
 		
 		this.initTanks()
+
+		const dwm = new DeathWallManager(this, map, this.tankGroup)
 
 		blocksLayer.setCollisionByExclusion([-1]);
 		blocksHardLayer.setCollisionByExclusion([-1]);
@@ -179,14 +184,7 @@ export class Game extends Scene {
 						y: tank.y,
 						type: "explosion"
 					})
-
-					if (tank.active) this.matchPlacements.push({
-						color: tank.getColor(),
-						points: this.matchPoints++,
-						place: this.matchPlace--,
-						timestamp: Date.now()
-					})
-
+					this.placeTankInMatch(tank)
 					proj.destroy()
 					tank.destroy()
 				})
@@ -222,12 +220,7 @@ export class Game extends Scene {
 						y: tank.y,
 						type: "explosion"
 					})
-					if (tank.active) this.matchPlacements.push({
-						color: tank.getColor(),
-						points: this.matchPoints++,
-						place: this.matchPlace--,
-						timestamp: Date.now()
-					})
+					this.placeTankInMatch(tank)
 					tank.destroy()
 				}
 			})
@@ -265,6 +258,12 @@ export class Game extends Scene {
 				}
 			}
 		}
+		if (this.tankGroup.getLength() == 0) {
+			console.log('here')
+				this.events.emit('match_end', {
+					placements: this.matchPlacements,
+				})
+		}
 	}
 	
 	initTanks() {
@@ -278,5 +277,20 @@ export class Game extends Scene {
 		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup)
 		new Tank(this, 925, 25, Color.dark, Tank.tankIndex++, this.tankGroup)
+	}
+
+	placeTankInMatch(tank: Tank) {
+		if (tank.active) this.matchPlacements.push({
+			color: tank.getColor(),
+			points: this.matchPoints++,
+			place: this.matchPlace--,
+			timestamp: Date.now()
+		})
+		if (this.matchPlacements.length >= 1)
+			for (let index = this.matchPlacements.length - 1; index > 0; index--) {
+				if (index - 1 == -1) break
+				if (Math.abs(this.matchPlacements[index - 1].timestamp - this.matchPlacements[index].timestamp) <= 1)
+					this.matchPlacements[index - 1].points = this.matchPlacements[index].points
+			}
 	}
 }
