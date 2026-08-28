@@ -1,5 +1,16 @@
 import { Scene } from "phaser";
-import { Tank } from "../objects/Tank";
+import { Color } from "../config/color";
+
+export interface MatchPlacement {
+	color: Color
+	points: number
+	place: number
+	timestamp: number
+}
+
+export interface MatchResult {
+	placements: MatchPlacement[]
+}
 
 export class MatchManager {
 
@@ -16,14 +27,12 @@ export class MatchManager {
 	}
 
 	handleMatchEnd(data : {
-		deathOrder: Tank[],
-		winner: Tank
+		placements: MatchResult
 	}) {
 		this.scene.time.delayedCall(1000, () => {
 			this.scene.scene.pause()
 			this.scene.scene.launch('Overlay')
-			console.log(data.deathOrder)
-			console.log(data.winner)
+			console.log(data)
 		})
 	}
 

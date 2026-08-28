@@ -205,4 +205,8 @@ export class Tank extends Physics.Arcade.Sprite {
 		})
 		this.ammoGauge.consumeGauge()
 	}
+
+	getColor() : Color {
+		return this.color
+	}
 }
