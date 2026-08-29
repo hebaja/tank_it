@@ -11,6 +11,8 @@ export class DeathWallManager {
 	private dangerLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
 	private effect: Phaser.Tweens.Tween[] = []
 	private destroyed: Set<Tilemaps.Tile> = new Set()
+	private deathWallTimer?: Phaser.Time.TimerEvent
+	private ringTimer?: Phaser.Time.TimerEvent
 
 	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group) {
 		this.scene = scene
@@ -28,9 +30,9 @@ export class DeathWallManager {
 
 		scene.physics.add.collider(this.dangerLayer, tankGroup)
 
-		const deathWallTimer = scene.time.delayedCall(GAME_CONFIG.timing.deathWallStartTime, () => {
+		this.deathWallTimer = scene.time.delayedCall(GAME_CONFIG.timing.deathWallStartTime, () => {
 			this.start()
-			scene.time.addEvent(({
+			this.ringTimer = scene.time.addEvent(({
 				delay: GAME_CONFIG.timing.deathWallRingInterval,
 				loop: true,
 				callback: () => {
@@ -65,10 +67,23 @@ export class DeathWallManager {
 					this.step++
 					this.start()
 					if (this.step == 6)
-						deathWallTimer.remove()
+						this.stopTimers()
 				}
 			}))
 		})
+	}
+
+	destroy(): void {
+		this.stopTimers();
+		this.effect.forEach(e => { e.stop(); e.remove(); });
+		this.effect = [];
+	}
+
+	private stopTimers(): void {
+		this.deathWallTimer?.remove();
+		this.ringTimer?.remove();
+		this.deathWallTimer = undefined;
+		this.ringTimer = undefined;
 	}
 
 	private start() {

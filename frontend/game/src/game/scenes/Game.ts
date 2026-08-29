@@ -22,6 +22,8 @@ export class Game extends Scene {
 	projectileGroup: Phaser.Physics.Arcade.Group;
 	matchManager: MatchManager;
 	speedSystem: SpeedSystem;
+	private explosionManager: ExplosionManager;
+	private deathWallManager: DeathWallManager;
 
 	constructor() {
 		super('Game');
@@ -90,8 +92,8 @@ export class Game extends Scene {
 	private createManagers(map: Tilemaps.Tilemap) {
 		this.matchManager = new MatchManager(this);
 		this.matchManager.reset();
-		new ExplosionManager(this);
-		new DeathWallManager(this, map, this.tankGroup);
+		this.explosionManager = new ExplosionManager(this);
+		this.deathWallManager = new DeathWallManager(this, map, this.tankGroup);
 		this.speedSystem = new SpeedSystem(this, this.tankGroup);
 	}
 
@@ -227,6 +229,14 @@ export class Game extends Scene {
 			: undefined;
 
 		this.matchManager.checkEnd(this.tankGroup.getLength(), winner);
+	}
+
+	shutdown() {
+		this.explosionManager.destroy();
+		this.deathWallManager.destroy();
+		this.matchManager.destroy();
+		this.speedSystem.destroy();
+		this.events.off(GameEvent.TileDestroy);
 	}
 	
 	initTanks() {

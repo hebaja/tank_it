@@ -38,6 +38,10 @@ export class MatchManager {
 		this.placements = [];
 	}
 
+	destroy() {
+		this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this);
+	}
+
 	recordPlacement(tank: Tank) {
 		if (tank.active) {
 			this.placements.push({
