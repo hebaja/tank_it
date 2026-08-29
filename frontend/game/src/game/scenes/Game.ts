@@ -7,7 +7,7 @@ import { Oil } from '../objects/Oil';
 import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
 import { DeathWallManager } from '../managers/DeathWallManager';
-import { MatchManager, MatchPlacement } from '../managers/MatchManager';
+import { MatchManager } from '../managers/MatchManager';
 import { GameEvent } from '../config/events';
 
 type MapLayers = {
@@ -21,9 +21,6 @@ export class Game extends Scene {
 	tankGroup: Phaser.Physics.Arcade.Group;
 	projectileGroup: Phaser.Physics.Arcade.Group;
 	matchManager: MatchManager;
-	matchPlacements: MatchPlacement[] = [];
-	matchPlace: number = 3;
-	matchPoints: number = 0;
 
 	constructor() {
 		super('Game');
@@ -43,7 +40,6 @@ export class Game extends Scene {
 	}
 
 	create() {
-		this.initMatchState();
 		const map = this.createMap();
 		this.createGroups();
 		this.initTanks();
@@ -51,12 +47,6 @@ export class Game extends Scene {
 		this.createBarrels(map);
 		this.createCollisions(map.blocksLayer, map.blocksHardLayer);
 		this.registerSceneEvents();
-	}
-
-	private initMatchState() {
-		this.matchPlace = 3;
-		this.matchPoints = 0;
-		this.matchPlacements = [];
 	}
 
 	private createMap(): Tilemaps.Tilemap & MapLayers {
@@ -98,6 +88,7 @@ export class Game extends Scene {
 
 	private createManagers(map: Tilemaps.Tilemap) {
 		this.matchManager = new MatchManager(this);
+		this.matchManager.reset();
 		new ExplosionManager(this);
 		new DeathWallManager(this, map, this.tankGroup);
 	}
@@ -175,7 +166,7 @@ export class Game extends Scene {
 					y: tank.y,
 					type: 'explosion',
 				});
-				this.placeTankInMatch(tank);
+				this.matchManager.recordPlacement(tank);
 				proj.destroy();
 				tank.destroy();
 			});
@@ -208,7 +199,7 @@ export class Game extends Scene {
 						y: tank.y,
 						type: GameEvent.Explosion,
 					});
-					this.placeTankInMatch(tank);
+					this.matchManager.recordPlacement(tank);
 					tank.destroy();
 				}
 			});
@@ -224,32 +215,11 @@ export class Game extends Scene {
 			tank.slowDown(onOil);
 		});
 
-		if (this.tankGroup.getLength() == 1) {
-			const winner = this.tankGroup.getChildren().find(t => {
-				const tank = t as Tank;
-				return tank.getColor();
-			}) as Tank | undefined;
-			
-			if (winner) {
-				if (this.matchPlacements.length < 4)
-				{
-					this.matchPlacements.push({
-						color: winner.getColor(),
-						points: this.matchPoints++,
-						place: this.matchPlace--,
-						timestamp: Date.now(),
-					});
-					this.events.emit(GameEvent.MatchEnd, {
-						placements: this.matchPlacements,
-					});
-				}
-			}
-		}
-		if (this.tankGroup.getLength() == 0) {
-			this.events.emit(GameEvent.MatchEnd, {
-				placements: this.matchPlacements,
-			});
-		}
+		const winner = this.tankGroup.getLength() === 1
+			? this.tankGroup.getChildren().find(t => (t as Tank).getColor()) as Tank | undefined
+			: undefined;
+
+		this.matchManager.checkEnd(this.tankGroup.getLength(), winner);
 	}
 	
 	initTanks() {
@@ -259,20 +229,5 @@ export class Game extends Scene {
 		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup);
 		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup);
 		new Tank(this, 925, 25, Color.dark, Tank.tankIndex++, this.tankGroup);
-	}
-
-	placeTankInMatch(tank: Tank) {
-		if (tank.active) this.matchPlacements.push({
-			color: tank.getColor(),
-			points: this.matchPoints++,
-			place: this.matchPlace--,
-			timestamp: Date.now(),
-		});
-		if (this.matchPlacements.length >= 1)
-			for (let index = this.matchPlacements.length - 1; index > 0; index--) {
-				if (index - 1 == -1) break;
-				if (Math.abs(this.matchPlacements[index - 1].timestamp - this.matchPlacements[index].timestamp) <= 1)
-					this.matchPlacements[index - 1].points = this.matchPlacements[index].points;
-			}
 	}
 }
