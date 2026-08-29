@@ -1,4 +1,4 @@
-import { Scene, Tilemaps } from 'phaser';
+import { Scene, Scenes, Tilemaps } from 'phaser';
 import { Tank } from '../objects/Tank';
 import { Projectile } from '../objects/Projectile';
 import { ExplosionManager } from '../managers/ExplosionManager';
@@ -204,6 +204,7 @@ export class Game extends Scene {
 	}
 
 	private registerSceneEvents() {
+		this.events.once(Scenes.Events.SHUTDOWN, this.shutdown, this);
 		this.events.on(GameEvent.TileDestroy, (tile: Tilemaps.Tile) => {
 			this.tankGroup.getChildren().forEach(t => {
 				const tank: Tank = t as Tank;
