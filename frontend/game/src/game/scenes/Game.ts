@@ -11,11 +11,6 @@ import { SpeedSystem } from '../systems/SpeedSystem';
 import { GAME_CONFIG } from '../config/game';
 import { GameEvent } from '../config/events';
 
-type MapLayers = {
-	blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
-	blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
-}
-
 export class Game extends Scene {
 	barrelGroup: Phaser.Physics.Arcade.Group;
 	tankGroup: Phaser.Physics.Arcade.Group;
@@ -43,16 +38,16 @@ export class Game extends Scene {
 	}
 
 	create() {
-		const map = this.createMap();
+		const { map, blocksLayer, blocksHardLayer } = this.createMap();
 		this.createGroups();
 		this.initTanks();
 		this.createManagers(map);
-		this.createBarrels(map);
-		this.createCollisions(map.blocksLayer, map.blocksHardLayer);
+		this.createBarrels(map, blocksLayer, blocksHardLayer);
+		this.createCollisions(blocksLayer, blocksHardLayer);
 		this.registerSceneEvents();
 	}
 
-	private createMap(): Tilemaps.Tilemap & MapLayers {
+	private createMap() {
 		const map = this.make.tilemap({ key: 'level' });
 
 		if (!map)
@@ -81,7 +76,7 @@ export class Game extends Scene {
 		blocksLayer.setCollisionByExclusion([-1]);
 		blocksHardLayer.setCollisionByExclusion([-1]);
 
-		return Object.assign(map, { blocksLayer, blocksHardLayer });
+		return { map, blocksLayer, blocksHardLayer };
 	}
 
 	private createGroups() {
@@ -97,10 +92,14 @@ export class Game extends Scene {
 		this.speedSystem = new SpeedSystem(this, this.tankGroup);
 	}
 
-	private createBarrels(map: Tilemaps.Tilemap & MapLayers) {
+	private createBarrels(
+		map: Tilemaps.Tilemap,
+		blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
+		blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
+	) {
 		const randomPos = Barrel.generateRandomPositions(
 			map.width, map.height, GAME_CONFIG.barrel.count,
-			map.blocksLayer, map.blocksHardLayer,
+			blocksLayer, blocksHardLayer,
 		);
 		const barrels = Barrel.generateRandomBarrels(this, randomPos, map);
 		for (let i = 0; i < barrels.length; i++)
