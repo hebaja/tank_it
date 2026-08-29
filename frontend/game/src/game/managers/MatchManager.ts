@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { Tank } from "../objects/Tank";
 import { Color } from "../config/color";
+import { GAME_CONFIG } from "../config/game";
 import { GameEvent } from "../config/events";
 
 export interface MatchPlacement {
@@ -72,7 +73,7 @@ export class MatchManager {
 	}
 
 	private handleMatchEnd(data: MatchResult): void {
-		this.scene.time.delayedCall(1000, () => {
+		this.scene.time.delayedCall(GAME_CONFIG.timing.matchEndOverlayDelay, () => {
 			this.scene.scene.pause();
 			this.scene.scene.launch('Overlay');
 			console.log(data);

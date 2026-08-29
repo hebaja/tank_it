@@ -4,6 +4,7 @@ import { Projectile } from './Projectile'
 import { AmmoGauge } from './AmmoGauge'
 import { Color } from '../config/color'
 import { SPAWN_CORNERS, TANK_CONFIG } from '../config/layout'
+import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 
 type TankControlsA = {
@@ -32,8 +33,8 @@ export class Tank extends Physics.Arcade.Sprite {
 	private projectile: Projectile | null = null
 	private ammoGauge: AmmoGauge
 	private sparkShot?: Phaser.GameObjects.Sprite
-	private speed: number = 150
-	private turnSpeed: number = 2
+	private speed: number = GAME_CONFIG.tank.speed
+	private turnSpeed: number = GAME_CONFIG.tank.turnSpeed
 	private isSlow: boolean = false
 	private color: Color
 	private playerIndex: number
@@ -58,7 +59,7 @@ export class Tank extends Physics.Arcade.Sprite {
 		group.add(this)
 		scene.events.on(Scenes.Events.UPDATE, this.update, this);
 		this.setCollideWorldBounds(true)
-		this.depth = 30
+		this.depth = GAME_CONFIG.depth.tank
 		this.color = color
 		this.playerIndex = index
 		this.projectileGroup = projectileGroup
@@ -98,11 +99,11 @@ export class Tank extends Physics.Arcade.Sprite {
 		if (this.body)
 			this.setVelocity(0, 0)
 		if (this.isSlow) {
-			this.turnSpeed = 1
-			this.speed = 50
+			this.turnSpeed = GAME_CONFIG.tank.turnSpeedSlow
+			this.speed = GAME_CONFIG.tank.speedSlow
 		} else {
-			this.turnSpeed = 2
-			this.speed = 150
+			this.turnSpeed = GAME_CONFIG.tank.turnSpeed
+			this.speed = GAME_CONFIG.tank.speed
 		}
 
 		if (this.playerIndex == 0 && this.body)
@@ -174,7 +175,7 @@ export class Tank extends Physics.Arcade.Sprite {
 		const tips = this.getTipTank(36)
 		this.sparkShot = this.scene.add.sprite(tips[0], tips[1], 'spark')
 		this.sparkShot.angle = this.angle
-		this.sparkShot.depth = 31
+		this.sparkShot.depth = GAME_CONFIG.depth.spark
 	}
 
 	setSlow(value: boolean) {
@@ -187,13 +188,13 @@ export class Tank extends Physics.Arcade.Sprite {
 
 		const tip = this.getTipTank(20)
 		this.setSparkShot()
-		this.scene.time.delayedCall(100, () => {
+		this.scene.time.delayedCall(GAME_CONFIG.timing.sparkLifetime, () => {
 			this.sparkShot?.destroy()
 			this.sparkShot = undefined
 		})
 
 		this.projectile = new Projectile(this.scene, tip[0], tip[1], this.angle, this.color, this.projectileGroup, this)
-		this.projectile.depth = 5
+		this.projectile.depth = GAME_CONFIG.depth.projectile
 
 		this.scene.events.emit(GameEvent.ProjectileFired, this.projectile)
 

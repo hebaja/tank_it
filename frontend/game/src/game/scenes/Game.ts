@@ -8,6 +8,7 @@ import { Color } from '../config/color';
 import { DeathWallManager } from '../managers/DeathWallManager';
 import { MatchManager } from '../managers/MatchManager';
 import { SpeedSystem } from '../systems/SpeedSystem';
+import { GAME_CONFIG } from '../config/game';
 import { GameEvent } from '../config/events';
 
 type MapLayers = {
@@ -71,9 +72,9 @@ export class Game extends Scene {
 		const blocksLayer = map.createLayer('blocks', [blocksTileset]);
 		const blocksHardLayer = map.createLayer('blocks_hard', [blocksHardTileset]);
 
-		backgroundLayer.depth = 0;
-		blocksLayer.depth = 10;
-		blocksHardLayer.depth = 10;
+		backgroundLayer.depth = GAME_CONFIG.depth.background;
+		blocksLayer.depth = GAME_CONFIG.depth.blocks;
+		blocksHardLayer.depth = GAME_CONFIG.depth.blocks;
 
 		blocksLayer.setCollisionByExclusion([-1]);
 		blocksHardLayer.setCollisionByExclusion([-1]);
@@ -96,7 +97,7 @@ export class Game extends Scene {
 
 	private createBarrels(map: Tilemaps.Tilemap & MapLayers) {
 		const randomPos = Barrel.generateRandomPositions(
-			map.width, map.height, 10,
+			map.width, map.height, GAME_CONFIG.barrel.count,
 			map.blocksLayer, map.blocksHardLayer,
 		);
 		const barrels = Barrel.generateRandomBarrels(this, randomPos, map);
@@ -165,7 +166,7 @@ export class Game extends Scene {
 				});
 				proj.destroy();
 				barrel.destroy();
-				this.time.delayedCall(400, () => {
+				this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
 					this.speedSystem.addOil(bx, by);
 				});
 			});
@@ -230,9 +231,10 @@ export class Game extends Scene {
 	
 	initTanks() {
 		this.tankGroup = this.physics.add.group();
-		new Tank(this, 25, 25, Color.blue, 0, this.tankGroup, this.projectileGroup);
-		new Tank(this, 25, 925, Color.red, 1, this.tankGroup, this.projectileGroup);
-		new Tank(this, 925, 925, Color.green, 2, this.tankGroup, this.projectileGroup);
-		new Tank(this, 925, 25, Color.dark, 3, this.tankGroup, this.projectileGroup);
+		const spawns = GAME_CONFIG.spawn;
+		new Tank(this, spawns[Color.blue].x, spawns[Color.blue].y, Color.blue, 0, this.tankGroup, this.projectileGroup);
+		new Tank(this, spawns[Color.red].x, spawns[Color.red].y, Color.red, 1, this.tankGroup, this.projectileGroup);
+		new Tank(this, spawns[Color.green].x, spawns[Color.green].y, Color.green, 2, this.tankGroup, this.projectileGroup);
+		new Tank(this, spawns[Color.dark].x, spawns[Color.dark].y, Color.dark, 3, this.tankGroup, this.projectileGroup);
 	}
 }

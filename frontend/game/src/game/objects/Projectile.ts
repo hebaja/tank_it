@@ -1,5 +1,6 @@
 import { Physics, Scene } from "phaser";
 import { Color } from "../config/color.ts";
+import { GAME_CONFIG } from "../config/game";
 import type { Tank } from "./Tank"
 
 export class Projectile extends Physics.Arcade.Sprite {
@@ -30,7 +31,7 @@ export class Projectile extends Physics.Arcade.Sprite {
 
 		this.angle = angle - 180;
 
-		const velocity = this.scene.physics.velocityFromAngle(this.angle - 90, 400)
+		const velocity = this.scene.physics.velocityFromAngle(this.angle - 90, GAME_CONFIG.projectile.speed)
 		this.setVelocity(velocity.x, velocity.y)
 	}
 

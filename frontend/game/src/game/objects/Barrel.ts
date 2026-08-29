@@ -1,4 +1,5 @@
 import { Physics, Scene, Utils } from "phaser";
+import { GAME_CONFIG } from "../config/game";
 
 const BARREL_TEXTURES = [
 	"barrel_black",
@@ -30,11 +31,12 @@ export class Barrel extends Physics.Arcade.Sprite {
 
 		const validPositions: BarrelPos[] = []
 		const randomPositions: BarrelPos[] = []
+		const exclude = GAME_CONFIG.barrel.excludeCorners
 
 		for (let ty = 0; ty < mapHeight; ty++) {
 			for (let tx = 0; tx < mapWidth; tx++) {
 				if (blocksLayer.getTileAt(tx, ty) || blocksHardLayer.getTileAt(tx, ty)
-					|| tx == 0 && ty == 0 || tx == 0 && ty == 14 || tx == 14 && ty == 0 || tx == 14 && ty == 14)
+					|| exclude.some(e => e.tx === tx && e.ty === ty))
 					continue
 				validPositions.push({ x: tx, y: ty })
 			}

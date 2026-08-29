@@ -1,4 +1,5 @@
 import { Scene } from "phaser"
+import { GAME_CONFIG } from "../config/game"
 import { GameEvent } from "../config/events"
 
 export class ExplosionManager {
@@ -81,7 +82,7 @@ export class ExplosionManager {
 		switch (data.type) {
 			case GameEvent.Explosion:
 				sprite = this.scene.add.sprite(data.x, data.y, 'explosion_1')
-				sprite.depth = 100
+				sprite.depth = GAME_CONFIG.depth.explosion
 				sprite.play(GameEvent.Explosion)
 				sprite.once('animationcomplete-explosion', () => {
 					sprite.destroy()
@@ -90,7 +91,7 @@ export class ExplosionManager {
 				break
 			case 'explosion_smoke':
 				sprite = this.scene.add.sprite(data.x, data.y, 'explosion_smoke_1')
-				sprite.depth = 100
+				sprite.depth = GAME_CONFIG.depth.explosion
 				sprite.play(GameEvent.ExplosionSmoke)
 				sprite.once('animationcomplete-explosion_smoke', () => {
 					sprite.destroy()
