@@ -25,16 +25,10 @@ type TankControlsB = {
 
 type Pair = [x: number, y: number];
 
-// 25, 25, Color.blue
-// 25, 925, Color.red
-// 925, 925, Color.green
-// 925, 25, Color.dark
-
 export class Tank extends Physics.Arcade.Sprite {
 	private controlsA: TankControlsA
 	private controlsB: TankControlsB
 	private keyboard: any
-	private mainScene: Scene
 	private projectile: Projectile | null = null
 	private ammoGauge: AmmoGauge
 	private sparkShot?: Phaser.GameObjects.Sprite
@@ -43,7 +37,7 @@ export class Tank extends Physics.Arcade.Sprite {
 	private isSlow: boolean = false
 	private color: Color
 	private playerIndex: number
-	static	tankIndex: number = 0
+	private projectileGroup: Phaser.Physics.Arcade.Group
 
 	static preload(scene: Scene) {
 		scene.load.image(Color.blue, 'sprites/tank_blue.png')
@@ -53,7 +47,7 @@ export class Tank extends Physics.Arcade.Sprite {
 		scene.load.image('spark', 'sprites/shot_orange.png')
 	}
 
-	constructor(scene: Scene, x: number, y: number, color: Color, index: number, group: Phaser.Physics.Arcade.Group) {
+	constructor(scene: Scene, x: number, y: number, color: Color, index: number, group: Phaser.Physics.Arcade.Group, projectileGroup: Phaser.Physics.Arcade.Group) {
 		super(scene, x, y, color)
 		this.keyboard = scene.input.keyboard
 		if (!this.keyboard) {
@@ -65,9 +59,9 @@ export class Tank extends Physics.Arcade.Sprite {
 		scene.events.on(Scenes.Events.UPDATE, this.update, this);
 		this.setCollideWorldBounds(true)
 		this.depth = 30
-		this.mainScene = scene
 		this.color = color
 		this.playerIndex = index
+		this.projectileGroup = projectileGroup
 
 		if (this.playerIndex == 0)
 			this.controlsA = this.keyboard?.addKeys({
@@ -95,6 +89,8 @@ export class Tank extends Physics.Arcade.Sprite {
 
 	destroy(fromScene?: boolean): void {
 		this.scene?.events.off(Scenes.Events.UPDATE, this.update, this)
+		this.ammoGauge?.destroy()
+		this.sparkShot?.destroy()
 		super.destroy(fromScene)
 	}
 
@@ -196,10 +192,10 @@ export class Tank extends Physics.Arcade.Sprite {
 			this.sparkShot = undefined
 		})
 
-		this.projectile = new Projectile(this.mainScene, tip[0], tip[1], this.angle, this.color, (this.mainScene as any).projectileGroup, this)
+		this.projectile = new Projectile(this.scene, tip[0], tip[1], this.angle, this.color, this.projectileGroup, this)
 		this.projectile.depth = 5
 
-		this.mainScene.events.emit(GameEvent.ProjectileFired, this.projectile)
+		this.scene.events.emit(GameEvent.ProjectileFired, this.projectile)
 
 		this.projectile.once('destroy', () => {
 			this.projectile = null

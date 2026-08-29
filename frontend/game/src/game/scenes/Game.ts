@@ -223,11 +223,10 @@ export class Game extends Scene {
 	}
 	
 	initTanks() {
-		Tank.tankIndex = 0;
 		this.tankGroup = this.physics.add.group();
-		new Tank(this, 25, 25, Color.blue, Tank.tankIndex++, this.tankGroup);
-		new Tank(this, 25, 925, Color.red, Tank.tankIndex++, this.tankGroup);
-		new Tank(this, 925, 925, Color.green, Tank.tankIndex++, this.tankGroup);
-		new Tank(this, 925, 25, Color.dark, Tank.tankIndex++, this.tankGroup);
+		new Tank(this, 25, 25, Color.blue, 0, this.tankGroup, this.projectileGroup);
+		new Tank(this, 25, 925, Color.red, 1, this.tankGroup, this.projectileGroup);
+		new Tank(this, 925, 925, Color.green, 2, this.tankGroup, this.projectileGroup);
+		new Tank(this, 925, 25, Color.dark, 3, this.tankGroup, this.projectileGroup);
 	}
 }
