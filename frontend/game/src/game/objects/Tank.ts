@@ -8,23 +8,23 @@ import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 
 type TankControlsA = {
-	A: Input.Keyboard.Key;
-	D: Input.Keyboard.Key;
-	W: Input.Keyboard.Key;
-	S: Input.Keyboard.Key;
-	J: Input.Keyboard.Key;
+	A: Input.Keyboard.Key
+	D: Input.Keyboard.Key
+	W: Input.Keyboard.Key
+	S: Input.Keyboard.Key
+	J: Input.Keyboard.Key
 }
 
 type TankControlsB = {
-	left: Input.Keyboard.Key;
-	right: Input.Keyboard.Key;
-	up: Input.Keyboard.Key;
-	down: Input.Keyboard.Key;
-	enter: Input.Keyboard.Key;
+	left: Input.Keyboard.Key
+	right: Input.Keyboard.Key
+	up: Input.Keyboard.Key
+	down: Input.Keyboard.Key
+	enter: Input.Keyboard.Key
 }
 
 
-type Pair = [x: number, y: number];
+type Pair = [x: number, y: number]
 
 export class Tank extends Physics.Arcade.Sprite {
 	private controlsA: TankControlsA
@@ -57,7 +57,7 @@ export class Tank extends Physics.Arcade.Sprite {
 		scene.physics.add.existing(this)
 		scene.add.existing(this)
 		group.add(this)
-		scene.events.on(Scenes.Events.UPDATE, this.update, this);
+		scene.events.on(Scenes.Events.UPDATE, this.update, this)
 		this.setCollideWorldBounds(true)
 		this.depth = GAME_CONFIG.depth.tank
 		this.color = color
@@ -153,7 +153,7 @@ export class Tank extends Physics.Arcade.Sprite {
 			this.sparkShot.setPosition(
 				tips[0],
 				tips[1]
-			);
+			)
 		}
 	}
 
@@ -184,7 +184,7 @@ export class Tank extends Physics.Arcade.Sprite {
 
 	fire() {
 		if (!this.ammoGauge.getCanFire())
-			return;
+			return
 
 		const tip = this.getTipTank(20)
 		this.setSparkShot()

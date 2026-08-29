@@ -1,12 +1,12 @@
-import { Physics, Scene, Utils } from "phaser";
-import { GAME_CONFIG } from "../config/game";
+import { Physics, Scene, Utils } from "phaser"
+import { GAME_CONFIG } from "../config/game"
 
 const BARREL_TEXTURES = [
 	"barrel_black",
 	"barrel_green",
 	"barrel_red",
 	"barrel_rust"
-];
+]
 
 type BarrelPos = {
 	x: number,

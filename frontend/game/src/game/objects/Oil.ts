@@ -1,4 +1,4 @@
-import { GameObjects, Scene } from "phaser";
+import { GameObjects, Scene } from "phaser"
 
 export class Oil extends GameObjects.Sprite {
 

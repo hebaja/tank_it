@@ -20,7 +20,7 @@ export class DeathWallManager {
 			'main_tileset',
 			'main_tileset'
 		)
-		if (!dangerTileset) throw new Error("Tileset not found");
+		if (!dangerTileset) throw new Error("Tileset not found")
 		this.dangerLayer = map.createLayer(
 			'danger_layer',
 			[dangerTileset]
@@ -74,16 +74,16 @@ export class DeathWallManager {
 	}
 
 	destroy(): void {
-		this.stopTimers();
-		this.effect.forEach(e => { e.stop(); e.remove(); });
-		this.effect = [];
+		this.stopTimers()
+		this.effect.forEach(e => { e.stop(); e.remove() })
+		this.effect = []
 	}
 
 	private stopTimers(): void {
-		this.deathWallTimer?.remove();
-		this.ringTimer?.remove();
-		this.deathWallTimer = undefined;
-		this.ringTimer = undefined;
+		this.deathWallTimer?.remove()
+		this.ringTimer?.remove()
+		this.deathWallTimer = undefined
+		this.ringTimer = undefined
 	}
 
 	private start() {

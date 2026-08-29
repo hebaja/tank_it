@@ -71,8 +71,8 @@ export class ExplosionManager {
 	}
 
 	destroy(): void {
-		this.scene.events.off(GameEvent.Explosion, this.handleExplosion, this);
-		this.scene.events.off(GameEvent.ExplosionSmoke, this.handleExplosion, this);
+		this.scene.events.off(GameEvent.Explosion, this.handleExplosion, this)
+		this.scene.events.off(GameEvent.ExplosionSmoke, this.handleExplosion, this)
 	}
 
 	private handleExplosion(data: {

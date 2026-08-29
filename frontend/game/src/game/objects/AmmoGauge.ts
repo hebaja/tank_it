@@ -1,6 +1,6 @@
-import { Display, GameObjects, Scene, Scenes } from "phaser";
-import { Color } from "../config/color.ts";
-import { type Corner, HUD } from "../config/layout.ts";
+import { Display, GameObjects, Scene, Scenes } from "phaser"
+import { Color } from "../config/color.ts"
+import { type Corner, HUD } from "../config/layout.ts"
 
 export class AmmoGauge extends GameObjects.Container {
 
@@ -74,8 +74,8 @@ export class AmmoGauge extends GameObjects.Container {
 	}
 
 	destroy(fromScene?: boolean): void {
-		this.scene?.events.off(Scenes.Events.UPDATE, this.update, this);
-		super.destroy(fromScene);
+		this.scene?.events.off(Scenes.Events.UPDATE, this.update, this)
+		super.destroy(fromScene)
 	}
 
 	consumeGauge() {
