@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { Color } from "../config/color";
+import { GameEvent } from "../config/events";
 
 export interface MatchPlacement {
 	color: Color
@@ -20,7 +21,7 @@ export class MatchManager {
 		this.scene = scene
 
 		this.scene.events.once(
-			'match_end',
+			GameEvent.MatchEnd,
 			this.handleMatchEnd,
 			this
 		)

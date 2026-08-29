@@ -8,6 +8,7 @@ import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
 import { DeathWallManager } from '../managers/DeathWallManager';
 import { MatchManager, MatchPlacement } from '../managers/MatchManager';
+import { GameEvent } from '../config/events';
 
 export class Game extends Scene {
 	oils: Oil[] = []
@@ -120,8 +121,8 @@ export class Game extends Scene {
 
 		this.physics.add.collider(this.tankGroup, this.barrelGroup)
 
-		this.events.off('projectileFired')
-		this.events.on('projectileFired', (projectile: Projectile) => {
+		this.events.off(GameEvent.ProjectileFired)
+		this.events.on(GameEvent.ProjectileFired, (projectile: Projectile) => {
 
 			this.physics.add.collider(
 				projectile,
@@ -129,10 +130,10 @@ export class Game extends Scene {
 				(p, b) => {
 					const blockTile = b as Phaser.Tilemaps.Tile
 					const proj = p as Projectile
-					this.events.emit("explosion", {
+					this.events.emit(GameEvent.Explosion, {
 						x: blockTile.getCenterX(),
 						y: blockTile.getCenterY(),
-						type: "explosion"
+						type: GameEvent.Explosion
 					})
 					blocksLayer.removeTileAt(blockTile.x, blockTile.y)
 					proj.destroy()
@@ -143,10 +144,10 @@ export class Game extends Scene {
 				(p) => {
 					const proj = p as Projectile
 
-					this.events.emit("explosion_smoke", {
+					this.events.emit(GameEvent.ExplosionSmoke, {
 						x: proj.x,
 						y: proj.y,
-						type: "explosion_smoke"
+						type: GameEvent.ExplosionSmoke
 					})
 					proj.destroy()
 				})
@@ -159,10 +160,10 @@ export class Game extends Scene {
 					const barrelX = barrel.x
 					const barrelY = barrel.y
 
-					this.events.emit("explosion", {
+					this.events.emit(GameEvent.Explosion, {
 						x: barrelX,
 						y: barrelY,
-						type: "explosion"
+						type: GameEvent.Explosion
 					})
 					proj.destroy()
 					barrel.destroy()
@@ -179,10 +180,10 @@ export class Game extends Scene {
 
 					if (tank.getProjectile() === proj) return
 
-					this.events.emit("explosion", {
+					this.events.emit(GameEvent.Explosion, {
 						x: tank.x,
 						y: tank.y,
-						type: "explosion"
+						type: GameEvent.Explosion
 					})
 					this.placeTankInMatch(tank)
 					proj.destroy()
@@ -197,10 +198,10 @@ export class Game extends Scene {
 
 					if (!proj1.active || !proj2.active) return
 
-					this.events.emit("explosion", {
+					this.events.emit(GameEvent.Explosion, {
 						x: (proj1.x + proj2.x) / 2,
 						y: (proj1.y + proj2.y) / 2,
-						type: "explosion"
+						type: GameEvent.Explosion
 					})
 
 					proj1.destroy()
@@ -208,17 +209,17 @@ export class Game extends Scene {
 				})
 		})
 
-		this.events.on('tileDestroy', (tile: Tilemaps.Tile) => {
+		this.events.on(GameEvent.TileDestroy, (tile: Tilemaps.Tile) => {
 			this.tankGroup.getChildren().forEach(t => {
 				const tank: Tank = t as Tank
 				const body = tank.body
 				if (!body) return
 				if (tile.intersects(body.left, body.top, body.right, body.bottom))
 				{
-					this.events.emit("explosion", {
+					this.events.emit(GameEvent.Explosion, {
 						x: tank.x,
 						y: tank.y,
-						type: "explosion"
+						type: GameEvent.Explosion
 					})
 					this.placeTankInMatch(tank)
 					tank.destroy()
@@ -252,15 +253,14 @@ export class Game extends Scene {
 						place: this.matchPlace--,
 						timestamp: Date.now()
 					})
-					this.events.emit('match_end', {
+					this.events.emit(GameEvent.MatchEnd, {
 						placements: this.matchPlacements,
 					})
 				}
 			}
 		}
 		if (this.tankGroup.getLength() == 0) {
-			console.log('here')
-				this.events.emit('match_end', {
+				this.events.emit(GameEvent.MatchEnd, {
 					placements: this.matchPlacements,
 				})
 		}

@@ -1,4 +1,5 @@
 import { Physics, Scene, Tilemaps } from "phaser"
+import { GameEvent } from "../config/events"
 
 export class DeathWallManager {
 
@@ -47,12 +48,12 @@ export class DeathWallManager {
 						this.effect = this.effect.filter((e) => {
 							if (e === effect) return false })
 						
-						this.mainScene.events.emit('tileDestroy', tile)
+						this.mainScene.events.emit(GameEvent.TileDestroy, tile)
 
-						scene.events.emit("explosion", {
+						scene.events.emit(GameEvent.Explosion, {
 							x: tile.pixelX + tile.width / 2,
 							y: tile.pixelY + tile.width / 2,
-							type: "explosion",
+							type: GameEvent.Explosion,
 							onComplete: () => {
 								tile.index = dangerTileset.firstgid + 42
 								tile.setCollision(true)

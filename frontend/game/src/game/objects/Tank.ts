@@ -4,6 +4,7 @@ import { Projectile } from './Projectile'
 import { AmmoGauge } from './AmmoGauge'
 import { Color } from '../config/color'
 import { SPAWN_CORNERS, TANK_CONFIG } from '../config/layout'
+import { GameEvent } from '../config/events'
 
 type TankControlsA = {
 	A: Input.Keyboard.Key;
@@ -198,7 +199,7 @@ export class Tank extends Physics.Arcade.Sprite {
 		this.projectile = new Projectile(this.mainScene, tip[0], tip[1], this.angle, this.color, (this.mainScene as any).projectileGroup)
 		this.projectile.depth = 5
 
-		this.mainScene.events.emit('projectileFired', this.projectile)
+		this.mainScene.events.emit(GameEvent.ProjectileFired, this.projectile)
 
 		this.projectile.once('destroy', () => {
 			this.projectile = null
