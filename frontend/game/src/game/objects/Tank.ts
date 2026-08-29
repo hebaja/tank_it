@@ -177,8 +177,8 @@ export class Tank extends Physics.Arcade.Sprite {
 		this.sparkShot.depth = 31
 	}
 
-	slowDown(onOil: boolean) {
-		this.isSlow = onOil
+	setSlow(value: boolean) {
+		this.isSlow = value
 	}
 
 	fire() {

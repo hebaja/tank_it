@@ -3,11 +3,11 @@ import { Tank } from '../objects/Tank';
 import { Projectile } from '../objects/Projectile';
 import { ExplosionManager } from '../managers/ExplosionManager';
 import { Barrel } from '../objects/Barrel';
-import { Oil } from '../objects/Oil';
 import { AmmoGauge } from '../objects/AmmoGauge';
 import { Color } from '../config/color';
 import { DeathWallManager } from '../managers/DeathWallManager';
 import { MatchManager } from '../managers/MatchManager';
+import { SpeedSystem } from '../systems/SpeedSystem';
 import { GameEvent } from '../config/events';
 
 type MapLayers = {
@@ -16,11 +16,11 @@ type MapLayers = {
 }
 
 export class Game extends Scene {
-	oils: Oil[] = [];
 	barrelGroup: Phaser.Physics.Arcade.Group;
 	tankGroup: Phaser.Physics.Arcade.Group;
 	projectileGroup: Phaser.Physics.Arcade.Group;
 	matchManager: MatchManager;
+	speedSystem: SpeedSystem;
 
 	constructor() {
 		super('Game');
@@ -35,7 +35,7 @@ export class Game extends Scene {
 		Projectile.preload(this);
 		ExplosionManager.preload(this);
 		Barrel.preload(this);
-		Oil.preload(this);
+		SpeedSystem.preload(this);
 		AmmoGauge.preload(this);
 	}
 
@@ -91,6 +91,7 @@ export class Game extends Scene {
 		this.matchManager.reset();
 		new ExplosionManager(this);
 		new DeathWallManager(this, map, this.tankGroup);
+		this.speedSystem = new SpeedSystem(this, this.tankGroup);
 	}
 
 	private createBarrels(map: Tilemaps.Tilemap & MapLayers) {
@@ -165,7 +166,7 @@ export class Game extends Scene {
 				proj.destroy();
 				barrel.destroy();
 				this.time.delayedCall(400, () => {
-					this.oils.push(new Oil(this, bx, by));
+					this.speedSystem.addOil(bx, by);
 				});
 			});
 
@@ -220,14 +221,6 @@ export class Game extends Scene {
 	}
 
 	update() {
-		this.tankGroup.getChildren().forEach(t => {
-			let onOil = false;
-			const tank: Tank = t as Tank;
-			for (let i = 0; i < this.oils.length; i++)
-				this.physics.world.overlap(tank, this.oils[i], () => onOil = true);
-			tank.slowDown(onOil);
-		});
-
 		const winner = this.tankGroup.getLength() === 1
 			? this.tankGroup.getChildren().find(t => (t as Tank).getColor()) as Tank | undefined
 			: undefined;
