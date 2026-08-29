@@ -196,7 +196,7 @@ export class Tank extends Physics.Arcade.Sprite {
 			this.sparkShot = undefined
 		})
 
-		this.projectile = new Projectile(this.mainScene, tip[0], tip[1], this.angle, this.color, (this.mainScene as any).projectileGroup)
+		this.projectile = new Projectile(this.mainScene, tip[0], tip[1], this.angle, this.color, (this.mainScene as any).projectileGroup, this)
 		this.projectile.depth = 5
 
 		this.mainScene.events.emit(GameEvent.ProjectileFired, this.projectile)

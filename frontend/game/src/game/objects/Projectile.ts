@@ -1,7 +1,10 @@
 import { Physics, Scene } from "phaser";
 import { Color } from "../config/color.ts";
+import type { Tank } from "./Tank"
 
 export class Projectile extends Physics.Arcade.Sprite {
+
+	owner: Tank | null = null
 
 	static preload(scene: Scene) {
 		scene.load.image(`projectile_${Color.blue}`, 'sprites/bullet_blue_outline.png')
@@ -10,7 +13,7 @@ export class Projectile extends Physics.Arcade.Sprite {
 		scene.load.image(`projectile_${Color.dark}`, 'sprites/bullet_dark_outline.png')
 	}
 
-	constructor(scene: Scene, x: number, y: number, angle: number, color: Color, group: Phaser.Physics.Arcade.Group) {
+	constructor(scene: Scene, x: number, y: number, angle: number, color: Color, group: Phaser.Physics.Arcade.Group, owner: Tank | null = null) {
 		super(scene, x, y, `projectile_${color}`)
 
 		scene.add.existing(this)
@@ -18,6 +21,7 @@ export class Projectile extends Physics.Arcade.Sprite {
 
 		group.add(this)
 
+		this.owner = owner
 		this.setCollideWorldBounds(true, 0, 0, true)
 		this.scene.physics.world.on('worldbounds', (body: Physics.Arcade.Body) => {
 			if (body.gameObject === this)

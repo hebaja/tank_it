@@ -41,28 +41,19 @@ export class Game extends Scene {
 	}
 
 	create() {
+		this.matchPlace = 3
+		this.matchPoints = 0
+		this.matchPlacements = []
 		const map = this.make.tilemap({ key: 'level' })
+		const HORIZONTAL_MARGIN = (this.scale.width - map.widthInPixels) / 2
 
 		if (!map)
 			throw new Error('Map could not be initialized')
 
-		const HORIZONTAL_MARGIN = (this.scale.width - map.widthInPixels) / 2
-
 		this.cameras.main.setScroll(-HORIZONTAL_MARGIN, 0)
-
 		this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
-
-		this.matchPlace = 3
-		this.matchPoints = 0
-
-		// this.ammoGauge = new AmmoGauge(this, 160, 32, 'blue', -HORIZONTAL_MARGIN)
-
-
 		this.matchManager = new MatchManager(this)
-
 		const em = new ExplosionManager(this)
-
-		this.matchPlacements = []
 
 		const terrainTileset = map.addTilesetImage(
 			'main_tileset',
@@ -99,10 +90,7 @@ export class Game extends Scene {
 
 		this.projectileGroup = this.physics.add.group()
 		this.barrelGroup = this.physics.add.group()
-
-		
 		this.initTanks()
-
 		const dwm = new DeathWallManager(this, map, this.tankGroup)
 
 		blocksLayer.setCollisionByExclusion([-1]);
@@ -121,94 +109,76 @@ export class Game extends Scene {
 
 		this.physics.add.collider(this.tankGroup, this.barrelGroup)
 
-		this.events.off(GameEvent.ProjectileFired)
-		this.events.on(GameEvent.ProjectileFired, (projectile: Projectile) => {
-
-			this.physics.add.collider(
-				projectile,
-				blocksLayer,
-				(p, b) => {
-					const blockTile = b as Phaser.Tilemaps.Tile
-					const proj = p as Projectile
-					this.events.emit(GameEvent.Explosion, {
-						x: blockTile.getCenterX(),
-						y: blockTile.getCenterY(),
-						type: GameEvent.Explosion
-					})
-					blocksLayer.removeTileAt(blockTile.x, blockTile.y)
-					proj.destroy()
+		this.physics.add.collider(this.projectileGroup, blocksLayer,
+			(p, b) => {
+				const proj = p as Projectile
+				const tile = b as Phaser.Tilemaps.Tile
+				this.events.emit(GameEvent.Explosion, {
+					x: tile.getCenterX(),
+					y: tile.getCenterY(),
+					type: 'explosion',
 				})
-			this.physics.add.collider(
-				projectile,
-				blocksHardLayer,
-				(p) => {
-					const proj = p as Projectile
+				blocksLayer.removeTileAt(tile.x, tile.y)
+				proj.destroy()
+			})
 
-					this.events.emit(GameEvent.ExplosionSmoke, {
-						x: proj.x,
-						y: proj.y,
-						type: GameEvent.ExplosionSmoke
-					})
-					proj.destroy()
+		this.physics.add.collider(this.projectileGroup, blocksHardLayer,
+			(p) => {
+				const proj = p as Projectile
+				this.events.emit(GameEvent.ExplosionSmoke, {
+					x: proj.x,
+					y: proj.y,
+					type: 'explosion_smoke',
 				})
-			this.physics.add.collider(
-				projectile,
-				this.barrelGroup,
-				(p, b) => {
-					const proj = p as Projectile
-					const barrel = b as Barrel
-					const barrelX = barrel.x
-					const barrelY = barrel.y
+				proj.destroy()
+			})
 
-					this.events.emit(GameEvent.Explosion, {
-						x: barrelX,
-						y: barrelY,
-						type: GameEvent.Explosion
-					})
-					proj.destroy()
-					barrel.destroy()
-					this.time.delayedCall(400, () => {
-						this.oils.push(new Oil(this, barrelX, barrelY))
-					})
+		this.physics.add.collider(this.projectileGroup, this.barrelGroup,
+			(p, b) => {
+				const proj = p as Projectile
+				const barrel = b as Barrel
+				const bx = barrel.x
+				const by = barrel.y
+				this.events.emit(GameEvent.Explosion, {
+					x: bx,
+					y: by,
+					type: 'explosion',
 				})
-			this.physics.add.collider(
-				projectile,
-				this.tankGroup,
-				(p, t) => {
-					const proj = p as Projectile
-					const tank = t as Tank
-
-					if (tank.getProjectile() === proj) return
-
-					this.events.emit(GameEvent.Explosion, {
-						x: tank.x,
-						y: tank.y,
-						type: GameEvent.Explosion
-					})
-					this.placeTankInMatch(tank)
-					proj.destroy()
-					tank.destroy()
+				proj.destroy()
+				barrel.destroy()
+				this.time.delayedCall(400, () => {
+					this.oils.push(new Oil(this, bx, by))
 				})
-			this.physics.add.collider(
-				this.projectileGroup,
-				this.projectileGroup,
-				(p1, p2) => {
-					const proj1 = p1 as Projectile
-					const proj2 = p2 as Projectile
+			})
 
-					if (!proj1.active || !proj2.active) return
-
-					this.events.emit(GameEvent.Explosion, {
-						x: (proj1.x + proj2.x) / 2,
-						y: (proj1.y + proj2.y) / 2,
-						type: GameEvent.Explosion
-					})
-
-					proj1.destroy()
-					proj2.destroy()
+		this.physics.add.collider(this.projectileGroup, this.tankGroup,
+			(p, t) => {
+				const proj = p as Projectile
+				const tank = t as Tank
+				if (proj.owner === tank) return
+				this.events.emit(GameEvent.Explosion, {
+					x: tank.x,
+					y: tank.y,
+					type: 'explosion',
 				})
-		})
+				this.placeTankInMatch(tank)
+				proj.destroy()
+				tank.destroy()
+			})
 
+		this.physics.add.collider(this.projectileGroup, this.projectileGroup,
+			(p1, p2) => {
+				const proj1 = p1 as Projectile
+				const proj2 = p2 as Projectile
+				if (!proj1.active || !proj2.active) return
+				this.events.emit(GameEvent.Explosion, {
+					x: (proj1.x + proj2.x) / 2,
+					y: (proj1.y + proj2.y) / 2,
+					type: 'explosion',
+				})
+				proj1.destroy()
+				proj2.destroy()
+			})
 		this.events.on(GameEvent.TileDestroy, (tile: Tilemaps.Tile) => {
 			this.tankGroup.getChildren().forEach(t => {
 				const tank: Tank = t as Tank
