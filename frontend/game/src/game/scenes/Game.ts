@@ -109,11 +109,24 @@ export class Game extends Scene {
 		blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
 		blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
 	) {
+		this.registerPassiveColliders(blocksLayer, blocksHardLayer);
+		this.registerActiveColliders(blocksLayer, blocksHardLayer);
+	}
+
+	private registerPassiveColliders(
+		blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
+		blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
+	) {
 		this.physics.add.collider(this.tankGroup, blocksLayer);
 		this.physics.add.collider(this.tankGroup, blocksHardLayer);
 		this.physics.add.collider(this.tankGroup, this.tankGroup);
 		this.physics.add.collider(this.tankGroup, this.barrelGroup);
+	}
 
+	private registerActiveColliders(
+		blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
+		blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
+	) {
 		this.physics.add.collider(this.projectileGroup, blocksLayer,
 			(p, b) => {
 				const proj = p as Projectile;
