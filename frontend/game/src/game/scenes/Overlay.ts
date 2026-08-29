@@ -1,4 +1,4 @@
-import { Scene } from "phaser";
+import { Scene } from "phaser"
 
 export class Overlay extends Scene {
 

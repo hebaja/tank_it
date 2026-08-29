@@ -1,4 +1,6 @@
 import { Scene } from "phaser"
+import { GAME_CONFIG } from "../config/game"
+import { GameEvent } from "../config/events"
 
 export class ExplosionManager {
 
@@ -26,26 +28,21 @@ export class ExplosionManager {
 
 	private registerEvent(): void {
 		this.scene.events.on(
-			"explosion",
+			GameEvent.Explosion,
 			this.handleExplosion,
 			this
 		)
 		this.scene.events.on(
-			"explosion_smoke",
-			this.handleExplosion,
-			this
-		)
-		this.scene.events.on(
-			"explosion_barrel",
+			GameEvent.ExplosionSmoke,
 			this.handleExplosion,
 			this
 		)
 	}
 
 	createAnims() {
-		if (!this.scene.anims.exists('explosion')) {
+		if (!this.scene.anims.exists(GameEvent.Explosion)) {
 			this.scene.anims.create({
-				key: 'explosion',
+				key: GameEvent.Explosion,
 				frames: [
 					{ key: 'explosion_1' },
 					{ key: 'explosion_2' },
@@ -57,9 +54,9 @@ export class ExplosionManager {
 				repeat: 0
 			})
 		}
-		if (!this.scene.anims.exists('explosion_smoke')) {
+		if (!this.scene.anims.exists(GameEvent.ExplosionSmoke)) {
 			this.scene.anims.create({
-				key: 'explosion_smoke',
+				key: GameEvent.ExplosionSmoke,
 				frames: [
 					{ key: 'explosion_smoke_1' },
 					{ key: 'explosion_smoke_2' },
@@ -73,6 +70,11 @@ export class ExplosionManager {
 		}
 	}
 
+	destroy(): void {
+		this.scene.events.off(GameEvent.Explosion, this.handleExplosion, this)
+		this.scene.events.off(GameEvent.ExplosionSmoke, this.handleExplosion, this)
+	}
+
 	private handleExplosion(data: {
 		x: number,
 		y: number,
@@ -83,10 +85,10 @@ export class ExplosionManager {
 		var sprite: Phaser.GameObjects.Sprite
 
 		switch (data.type) {
-			case 'explosion':
+			case GameEvent.Explosion:
 				sprite = this.scene.add.sprite(data.x, data.y, 'explosion_1')
-				sprite.depth = 100
-				sprite.play("explosion")
+				sprite.depth = GAME_CONFIG.depth.explosion
+				sprite.play(GameEvent.Explosion)
 				sprite.once('animationcomplete-explosion', () => {
 					sprite.destroy()
 					data.onComplete?.()
@@ -94,8 +96,8 @@ export class ExplosionManager {
 				break
 			case 'explosion_smoke':
 				sprite = this.scene.add.sprite(data.x, data.y, 'explosion_smoke_1')
-				sprite.depth = 100
-				sprite.play("explosion_smoke")
+				sprite.depth = GAME_CONFIG.depth.explosion
+				sprite.play(GameEvent.ExplosionSmoke)
 				sprite.once('animationcomplete-explosion_smoke', () => {
 					sprite.destroy()
 					data.onComplete?.()

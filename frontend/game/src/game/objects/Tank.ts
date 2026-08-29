@@ -4,45 +4,41 @@ import { Projectile } from './Projectile'
 import { AmmoGauge } from './AmmoGauge'
 import { Color } from '../config/color'
 import { SPAWN_CORNERS, TANK_CONFIG } from '../config/layout'
+import { GAME_CONFIG } from '../config/game'
+import { GameEvent } from '../config/events'
 
 type TankControlsA = {
-	A: Input.Keyboard.Key;
-	D: Input.Keyboard.Key;
-	W: Input.Keyboard.Key;
-	S: Input.Keyboard.Key;
-	J: Input.Keyboard.Key;
+	A: Input.Keyboard.Key
+	D: Input.Keyboard.Key
+	W: Input.Keyboard.Key
+	S: Input.Keyboard.Key
+	J: Input.Keyboard.Key
 }
 
 type TankControlsB = {
-	left: Input.Keyboard.Key;
-	right: Input.Keyboard.Key;
-	up: Input.Keyboard.Key;
-	down: Input.Keyboard.Key;
-	enter: Input.Keyboard.Key;
+	left: Input.Keyboard.Key
+	right: Input.Keyboard.Key
+	up: Input.Keyboard.Key
+	down: Input.Keyboard.Key
+	enter: Input.Keyboard.Key
 }
 
 
-type Pair = [x: number, y: number];
-
-// 25, 25, Color.blue
-// 25, 925, Color.red
-// 925, 925, Color.green
-// 925, 25, Color.dark
+type Pair = [x: number, y: number]
 
 export class Tank extends Physics.Arcade.Sprite {
 	private controlsA: TankControlsA
 	private controlsB: TankControlsB
 	private keyboard: any
-	private mainScene: Scene
 	private projectile: Projectile | null = null
 	private ammoGauge: AmmoGauge
 	private sparkShot?: Phaser.GameObjects.Sprite
-	private speed: number = 150
-	private turnSpeed: number = 2
+	private speed: number = GAME_CONFIG.tank.speed
+	private turnSpeed: number = GAME_CONFIG.tank.turnSpeed
 	private isSlow: boolean = false
 	private color: Color
 	private playerIndex: number
-	static	tankIndex: number = 0
+	private projectileGroup: Phaser.Physics.Arcade.Group
 
 	static preload(scene: Scene) {
 		scene.load.image(Color.blue, 'sprites/tank_blue.png')
@@ -52,7 +48,7 @@ export class Tank extends Physics.Arcade.Sprite {
 		scene.load.image('spark', 'sprites/shot_orange.png')
 	}
 
-	constructor(scene: Scene, x: number, y: number, color: Color, index: number, group: Phaser.Physics.Arcade.Group) {
+	constructor(scene: Scene, x: number, y: number, color: Color, index: number, group: Phaser.Physics.Arcade.Group, projectileGroup: Phaser.Physics.Arcade.Group) {
 		super(scene, x, y, color)
 		this.keyboard = scene.input.keyboard
 		if (!this.keyboard) {
@@ -61,12 +57,12 @@ export class Tank extends Physics.Arcade.Sprite {
 		scene.physics.add.existing(this)
 		scene.add.existing(this)
 		group.add(this)
-		scene.events.on(Scenes.Events.UPDATE, this.update, this);
+		scene.events.on(Scenes.Events.UPDATE, this.update, this)
 		this.setCollideWorldBounds(true)
-		this.depth = 30
-		this.mainScene = scene
+		this.depth = GAME_CONFIG.depth.tank
 		this.color = color
 		this.playerIndex = index
+		this.projectileGroup = projectileGroup
 
 		if (this.playerIndex == 0)
 			this.controlsA = this.keyboard?.addKeys({
@@ -94,6 +90,8 @@ export class Tank extends Physics.Arcade.Sprite {
 
 	destroy(fromScene?: boolean): void {
 		this.scene?.events.off(Scenes.Events.UPDATE, this.update, this)
+		this.ammoGauge?.destroy()
+		this.sparkShot?.destroy()
 		super.destroy(fromScene)
 	}
 
@@ -101,11 +99,11 @@ export class Tank extends Physics.Arcade.Sprite {
 		if (this.body)
 			this.setVelocity(0, 0)
 		if (this.isSlow) {
-			this.turnSpeed = 1
-			this.speed = 50
+			this.turnSpeed = GAME_CONFIG.tank.turnSpeedSlow
+			this.speed = GAME_CONFIG.tank.speedSlow
 		} else {
-			this.turnSpeed = 2
-			this.speed = 150
+			this.turnSpeed = GAME_CONFIG.tank.turnSpeed
+			this.speed = GAME_CONFIG.tank.speed
 		}
 
 		if (this.playerIndex == 0 && this.body)
@@ -155,7 +153,7 @@ export class Tank extends Physics.Arcade.Sprite {
 			this.sparkShot.setPosition(
 				tips[0],
 				tips[1]
-			);
+			)
 		}
 	}
 
@@ -177,28 +175,28 @@ export class Tank extends Physics.Arcade.Sprite {
 		const tips = this.getTipTank(36)
 		this.sparkShot = this.scene.add.sprite(tips[0], tips[1], 'spark')
 		this.sparkShot.angle = this.angle
-		this.sparkShot.depth = 31
+		this.sparkShot.depth = GAME_CONFIG.depth.spark
 	}
 
-	slowDown(onOil: boolean) {
-		this.isSlow = onOil
+	setSlow(value: boolean) {
+		this.isSlow = value
 	}
 
 	fire() {
 		if (!this.ammoGauge.getCanFire())
-			return;
+			return
 
 		const tip = this.getTipTank(20)
 		this.setSparkShot()
-		this.scene.time.delayedCall(100, () => {
+		this.scene.time.delayedCall(GAME_CONFIG.timing.sparkLifetime, () => {
 			this.sparkShot?.destroy()
 			this.sparkShot = undefined
 		})
 
-		this.projectile = new Projectile(this.mainScene, tip[0], tip[1], this.angle, this.color, (this.mainScene as any).projectileGroup)
-		this.projectile.depth = 5
+		this.projectile = new Projectile(this.scene, tip[0], tip[1], this.angle, this.color, this.projectileGroup, this)
+		this.projectile.depth = GAME_CONFIG.depth.projectile
 
-		this.mainScene.events.emit('projectileFired', this.projectile)
+		this.scene.events.emit(GameEvent.ProjectileFired, this.projectile)
 
 		this.projectile.once('destroy', () => {
 			this.projectile = null

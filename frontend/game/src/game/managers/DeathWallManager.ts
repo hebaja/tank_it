@@ -1,37 +1,39 @@
 import { Physics, Scene, Tilemaps } from "phaser"
+import { GAME_CONFIG } from "../config/game"
+import { GameEvent } from "../config/events"
 
 export class DeathWallManager {
 
-	private mainScene: Scene
+	private scene: Scene
 	private ringStart: number = 0
 	private ringEnd: number = 0
 	private step: number = 0
 	private dangerLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
 	private effect: Phaser.Tweens.Tween[] = []
 	private destroyed: Set<Tilemaps.Tile> = new Set()
-	private startTime: number = 7000
-	private destroyRingTime: number = 8000
+	private deathWallTimer?: Phaser.Time.TimerEvent
+	private ringTimer?: Phaser.Time.TimerEvent
 
 	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group) {
-		this.mainScene = scene	
+		this.scene = scene
 		const dangerTileset = map.addTilesetImage(
 			'main_tileset',
 			'main_tileset'
 		)
-		if (!dangerTileset) throw new Error("Tileset not found");
+		if (!dangerTileset) throw new Error("Tileset not found")
 		this.dangerLayer = map.createLayer(
 			'danger_layer',
 			[dangerTileset]
-		).setDepth(20)
+		).setDepth(GAME_CONFIG.depth.dangerLayer)
 		this.ringEnd = (this.dangerLayer.width / 64) - 1
 		this.dangerLayer.forEachTile((tile) => tile.setAlpha(0.0))
 
 		scene.physics.add.collider(this.dangerLayer, tankGroup)
 
-		const deathWallTimer = scene.time.delayedCall(this.startTime, () => {
+		this.deathWallTimer = scene.time.delayedCall(GAME_CONFIG.timing.deathWallStartTime, () => {
 			this.start()
-			scene.time.addEvent(({
-				delay: this.destroyRingTime,
+			this.ringTimer = scene.time.addEvent(({
+				delay: GAME_CONFIG.timing.deathWallRingInterval,
 				loop: true,
 				callback: () => {
 					
@@ -47,12 +49,12 @@ export class DeathWallManager {
 						this.effect = this.effect.filter((e) => {
 							if (e === effect) return false })
 						
-						this.mainScene.events.emit('tileDestroy', tile)
+						this.scene.events.emit(GameEvent.TileDestroy, tile)
 
-						scene.events.emit("explosion", {
+						scene.events.emit(GameEvent.Explosion, {
 							x: tile.pixelX + tile.width / 2,
 							y: tile.pixelY + tile.width / 2,
-							type: "explosion",
+							type: GameEvent.Explosion,
 							onComplete: () => {
 								tile.index = dangerTileset.firstgid + 42
 								tile.setCollision(true)
@@ -65,10 +67,23 @@ export class DeathWallManager {
 					this.step++
 					this.start()
 					if (this.step == 6)
-						deathWallTimer.remove()
+						this.stopTimers()
 				}
 			}))
 		})
+	}
+
+	destroy(): void {
+		this.stopTimers()
+		this.effect.forEach(e => { e.stop(); e.remove() })
+		this.effect = []
+	}
+
+	private stopTimers(): void {
+		this.deathWallTimer?.remove()
+		this.ringTimer?.remove()
+		this.deathWallTimer = undefined
+		this.ringTimer = undefined
 	}
 
 	private start() {
@@ -85,7 +100,7 @@ export class DeathWallManager {
 	private triggerDangerEffect(tile: Phaser.Tilemaps.Tile) {
 		if (this.destroyed.has(tile)) return
 		tile.setAlpha(0.5)
-		this.effect.push(this.mainScene.tweens.add({
+		this.effect.push(this.scene.tweens.add({
 			targets: tile,
 			alpha: 0.1,
 			duration: 500,

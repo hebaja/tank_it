@@ -1,11 +1,10 @@
-import { Display, GameObjects, Scene, Scenes } from "phaser";
-import { Color } from "../config/color.ts";
-import { type Corner, HUD } from "../config/layout.ts";
+import { Display, GameObjects, Scene, Scenes } from "phaser"
+import { Color } from "../config/color.ts"
+import { type Corner, HUD } from "../config/layout.ts"
 
 export class AmmoGauge extends GameObjects.Container {
 
 	private gaugeWidth: number = HUD.gaugeWidth
-	private mainScene: Scene
 	private fill: Phaser.GameObjects.NineSlice
 	private bg: Phaser.GameObjects.Rectangle
 	private alarmOn: boolean = false
@@ -53,7 +52,6 @@ export class AmmoGauge extends GameObjects.Container {
 
 		super(scene, x, y)
 
-		this.mainScene = scene
 		this.color = color
 
 		const frame = scene.add.nineslice(0, 0, 'panel', undefined, HUD.frameWidth, HUD.frameHeight, 6, 6, 6, 6).setDepth(HUD.depthFrame)
@@ -75,13 +73,18 @@ export class AmmoGauge extends GameObjects.Container {
 		scene.events.on(Scenes.Events.UPDATE, this.update, this)
 	}
 
+	destroy(fromScene?: boolean): void {
+		this.scene?.events.off(Scenes.Events.UPDATE, this.update, this)
+		super.destroy(fromScene)
+	}
+
 	consumeGauge() {
 		if (this.recharging || this.gaugeWidth <= 0)
 			return
 		this.gaugeWidth -= HUD.drainPerShot
 		if (this.counter > 0)
 			this.quantity.setText(`x${--this.counter}`)
-		this.mainScene.tweens.add({
+		this.scene.tweens.add({
 			targets: this.fill,
 			width: this.gaugeWidth,
 			duration: 200,
@@ -102,7 +105,7 @@ export class AmmoGauge extends GameObjects.Container {
 		this.bg.setFillStyle(0x000000)
 		this.canFire = false
 
-		this.mainScene.tweens.add({
+		this.scene.tweens.add({
 			targets: this,
 			gaugeWidth: HUD.gaugeWidth,
 			duration: HUD.rechargeMs,
@@ -122,7 +125,7 @@ export class AmmoGauge extends GameObjects.Container {
 			const from = Display.Color.ValueToColor(0x000000)
 			const to = Display.Color.ValueToColor(0xFF0000)
 			this.alarmOn = true
-			this.alarmTween = this.mainScene.tweens.addCounter({
+			this.alarmTween = this.scene.tweens.addCounter({
 				from: 0,
 				to: 1,
 				duration: 500,
