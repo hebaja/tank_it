@@ -24,13 +24,38 @@ Once both are in place:
 
 ```bash
 cp .env.example .env   # adjust secrets
-docker compose up --build
+docker compose --profile prod up --build
 ```
 
-Until then, run pieces individually:
+### Game core — Docker (with hot reload)
+
+The Phaser game frontend supports hot reload via Docker Compose profiles. This starts the
+database, backend, and the Vite dev server with live file watching:
 
 ```bash
-# Game core (playable today, local-only, no network sync)
+docker compose --profile dev up
+```
+
+Access the game at `http://localhost:5173`. Changes to files in `frontend/game/src/` are
+automatically detected and trigger a hot reload — no rebuild or restart required.
+
+To run in the background:
+
+```bash
+docker compose --profile dev up -d
+docker compose --profile dev logs -f   # follow logs
+```
+
+Or using the Makefile shortcuts:
+
+```bash
+make dev       # foreground
+make dev-d     # detached
+```
+
+### Game core — local (without Docker)
+
+```bash
 cd frontend/game && yarn install && yarn dev
 ```
 

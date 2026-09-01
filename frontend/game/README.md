@@ -33,6 +33,19 @@ Angular, or Vue — TBD, see `frontend/app/README.md`).
 | `src/game/managers` | `ExplosionManager` and other cross-cutting systems. |
 | `src/game/config` | Static config: colors, layout constants. |
 
+## Docker (with hot reload)
+
+The game can be run through Docker Compose with automatic hot reload. From the repo root:
+
+```bash
+docker compose --profile dev up
+```
+
+This starts the database, backend, and the Vite dev server. The source code is mounted as a
+volume, so changes to `src/` are detected instantly and trigger a hot reload in the browser.
+
+The dev server is accessible at `http://localhost:5173`.
+
 ## Status
 
 Local-only, 2–4 tanks on one map, no network sync yet. See `docs/GDD.md` at the repo root for
