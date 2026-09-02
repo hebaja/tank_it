@@ -12,12 +12,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
            .UseSnakeCaseNamingConvention()); // keeps EF Core migrations aligned with
                                              // db/init/schema.sql's snake_case columns
 
-// Frontend dev server origin; tighten/parameterize per environment once
+// Frontend dev server origin(s); tighten/parameterize per environment once
 // frontend/app's framework (and its dev port) is chosen.
+var frontendOrigins = builder.Configuration.GetSection("FrontendOrigins").Get<string[]>()
+    ?? (builder.Configuration["FrontendOrigin"] ?? "http://localhost:5173").Split(',');
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
-        policy.WithOrigins(builder.Configuration["FrontendOrigin"] ?? "http://localhost:5173")
+        policy.WithOrigins(frontendOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials());
