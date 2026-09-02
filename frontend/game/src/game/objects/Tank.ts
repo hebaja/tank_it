@@ -9,29 +9,18 @@ import { GameEvent } from '../config/events'
 import { sessionConfig } from '../../net/sessionConfig'
 import { TankMovedPayload, TankMovePayload } from '../../net/contracts'
 
-type TankControlsA = {
+type TankControls = {
   A: Input.Keyboard.Key
   D: Input.Keyboard.Key
   W: Input.Keyboard.Key
   S: Input.Keyboard.Key
-  J: Input.Keyboard.Key
+  SPACE: Input.Keyboard.Key
 }
-
-/*
-type TankControlsB = {
-  left: Input.Keyboard.Key
-  right: Input.Keyboard.Key
-  up: Input.Keyboard.Key
-  down: Input.Keyboard.Key
-  enter: Input.Keyboard.Key
-}
-*/
 
 type Pair = [x: number, y: number]
 
 export class Tank extends Physics.Arcade.Sprite {
-  private controlsA: TankControlsA
-  // private controlsB: TankControlsB
+  private controlsA: TankControls
   private keyboard: any
   private projectile: Projectile | null = null
   private ammoGauge: AmmoGauge
@@ -40,7 +29,6 @@ export class Tank extends Physics.Arcade.Sprite {
   private turnSpeed: number = GAME_CONFIG.tank.turnSpeed
   private isSlow: boolean = false
   private color: Color
-  //private playerIndex: number
   private isLocal: boolean
   private projectileGroup: Phaser.Physics.Arcade.Group
   private lastSentAt = 0
@@ -53,7 +41,6 @@ export class Tank extends Physics.Arcade.Sprite {
   private static readonly ANGLE_EPSILON = 0.5
 
   private pendingRemote?: { x: number; y: number; angle: number }
-
 
   static preload(scene: Scene) {
     scene.load.image(Color.blue, 'sprites/tank_blue.png')
@@ -84,7 +71,6 @@ export class Tank extends Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true)
     this.depth = GAME_CONFIG.depth.tank
     this.color = color
-    // this.playerIndex = index
     this.projectileGroup = projectileGroup
     this.isLocal = isLocal
 
@@ -94,18 +80,8 @@ export class Tank extends Physics.Arcade.Sprite {
         D: Input.Keyboard.KeyCodes.D,
         W: Input.Keyboard.KeyCodes.W,
         S: Input.Keyboard.KeyCodes.S,
-        J: Input.Keyboard.KeyCodes.J
+        SPACE: Input.Keyboard.KeyCodes.SPACE
       })
-    /*
-    if (this.playerIndex != 0)
-      this.controlsB = this.keyboard?.addKeys({
-        left: Input.Keyboard.KeyCodes.LEFT,
-        right: Input.Keyboard.KeyCodes.RIGHT,
-        up: Input.Keyboard.KeyCodes.UP,
-        down: Input.Keyboard.KeyCodes.DOWN,
-        enter: Input.Keyboard.KeyCodes.ENTER
-      })
-      */
     if (SPAWN_CORNERS[color] == 'top-left' || SPAWN_CORNERS[color] == 'top-right')
       this.angle = TANK_CONFIG.faceDown
     else
@@ -150,35 +126,13 @@ export class Tank extends Physics.Arcade.Sprite {
       }
       this.maybeSendTankMove()
 
-      if (Input.Keyboard.JustDown(this.controlsA.J)) {
+      if (Input.Keyboard.JustDown(this.controlsA.SPACE)) {
         this.fire()
       }
     } else {
       this.applyRemoteState()
     }
 
-    /*
-    if (this.playerIndex == 1 && this.body)
-    {
-      if (this.controlsB.left.isDown) {
-        this.angle -= this.turnSpeed
-      }
-      if (this.controlsB.right.isDown) {
-        this.angle += this.turnSpeed
-      }
-      if (this.controlsB.down.isDown) {
-        const velocity = this.scene.physics.velocityFromAngle(this.angle - 90, this.speed)
-        this.setVelocity(velocity.x, velocity.y)
-      }
-      if (this.controlsB.up.isDown) {
-        const velocity = this.scene.physics.velocityFromAngle(this.angle - 90 + 180, this.speed)
-        this.setVelocity(velocity.x, velocity.y)
-      }
-      */
-
-    // if (Input.Keyboard.JustDown(this.controlsB.enter)) {
-    //   this.fire()
-    // }
     if (this.sparkShot) {
       const tips = this.getTipTank(36)
       this.sparkShot.setPosition(
