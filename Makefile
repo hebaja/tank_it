@@ -1,4 +1,4 @@
-COMPOSE = docker compose -f docker-compose.yml 
+COMPOSE = docker compose -f docker-compose.yml
 
 all: up
 
@@ -23,4 +23,4 @@ clean:
 phaser-dev:
 	$(COMPOSE) -f docker-compose.dev.yml up -d frontend
 
-.PHONY: all up down build rebuild logs clean dev
+.PHONY: all up down build rebuild logs clean phaser-dev
