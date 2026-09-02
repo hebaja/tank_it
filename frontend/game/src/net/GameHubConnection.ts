@@ -1,7 +1,7 @@
 import * as signalR from '@microsoft/signalr'
 import type { TankMovePayload, TankMovedPayload } from './contracts'
 
-const DEFAULT_HUB_URL = 'http://100.65.10.225:8080/hubs/game'
+const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game'
 
 export class GameHubConnection {
   private conn: signalR.HubConnection
