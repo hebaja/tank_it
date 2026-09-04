@@ -46,11 +46,10 @@ docker compose --profile dev up -d
 docker compose --profile dev logs -f   # follow logs
 ```
 
-Or using the Makefile shortcuts:
+Or using the Makefile shortcut:
 
 ```bash
-make dev       # foreground
-make dev-d     # detached
+make dev       # runs detached
 ```
 
 ### Game core — local (without Docker)
