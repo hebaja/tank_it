@@ -23,10 +23,7 @@ clean:
 dev:
 	$(COMPOSE) --profile dev up
 
-dev-d:
-	$(COMPOSE) --profile dev up -d
-
 prod:
 	$(COMPOSE) --profile prod up -d
 
-.PHONY: all up down build rebuild logs clean dev dev-d prod
+.PHONY: all up down build rebuild logs clean dev prod
