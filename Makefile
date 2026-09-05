@@ -21,7 +21,7 @@ clean:
 	$(COMPOSE) down -v
 
 dev:
-	$(COMPOSE) --profile dev up
+	$(COMPOSE) --profile dev up -d
 
 prod:
 	$(COMPOSE) --profile prod up -d
