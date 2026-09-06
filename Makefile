@@ -20,10 +20,16 @@ logs:
 clean:
 	$(COMPOSE) down -v
 
+fclean:
+	$(COMPOSE) --profile dev --profile prod down -v --rmi local --remove-orphans
+
+ps:
+	$(COMPOSE) ps
+
 dev:
 	$(COMPOSE) --profile dev up -d
 
 prod:
 	$(COMPOSE) --profile prod up -d
 
-.PHONY: all up down build rebuild logs clean dev prod
+.PHONY: all up down build rebuild logs clean fclean ps dev prod
