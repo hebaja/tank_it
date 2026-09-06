@@ -20,7 +20,10 @@ logs:
 clean:
 	$(COMPOSE) down -v
 
-phaser-dev:
-	$(COMPOSE) -f docker-compose.dev.yml up -d frontend
+dev:
+	$(COMPOSE) --profile dev up -d
 
-.PHONY: all up down build rebuild logs clean phaser-dev
+prod:
+	$(COMPOSE) --profile prod up -d
+
+.PHONY: all up down build rebuild logs clean dev prod

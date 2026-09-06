@@ -36,11 +36,33 @@ services:
       - "${BACKEND_PORT:-8080}:8080"
 
   frontend:
+    profiles: ["prod"]
     build:
       context: ./frontend/game
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-5173}:80"
+
+  frontend-dev:
+    profiles: ["dev"]
+    build:
+      context: ./frontend/game
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    volumes:
+      - ./frontend/game/src:/app/src
+      - ./frontend/game/index.html:/app/index.html
+      - ./frontend/game/public:/app/public
+      - ./frontend/game/vite:/app/vite
+      - ./frontend/game/tsconfig.json:/app/tsconfig.json
+      - ./frontend/game/log.js:/app/log.js
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - "${FRONTEND_PORT:-5173}:8080"
+    depends_on:
+      - backend
 
   # frontend:
   #   Uncomment once frontend/app/ has a chosen framework + Dockerfile
