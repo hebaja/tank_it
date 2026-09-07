@@ -16,41 +16,39 @@ Original discussion draft (superseded by the GDD, kept for history): [`PROPOSAL.
 
 ## Running the stack
 
-The full monorepo isn't buildable end-to-end yet — the backend needs a `dotnet` SDK to restore
-and its first EF Core migration (see [`backend/README.md`](backend/README.md)), and the
-frontend SPA shell hasn't been scaffolded yet (see [`frontend/app/README.md`](frontend/app/README.md)).
-
-Once both are in place:
-
 ```bash
 cp .env.example .env   # adjust secrets
-docker compose --profile prod up --build
 ```
 
-### Game core — Docker (with hot reload)
-
-The Phaser game frontend supports hot reload via Docker Compose profiles. This starts the
-database, backend, and the Vite dev server with live file watching:
+### Development (hot reload)
 
 ```bash
-docker compose --profile dev up
+make dev
 ```
 
-Access the game at `http://localhost:5173`. Changes to files in `frontend/game/src/` are
-automatically detected and trigger a hot reload — no rebuild or restart required.
+Starts the database, backend, and Vite dev server with live file watching.
+Access the game at `http://localhost:5173`.
 
-To run in the background:
+### Production
 
 ```bash
-docker compose --profile dev up -d
-docker compose --profile dev logs -f   # follow logs
+make prod
 ```
 
-Or using the Makefile shortcut:
+### Makefile commands
 
-```bash
-make dev       # runs detached
-```
+| Command | Description |
+|---------|-------------|
+| `make up` | Start default services in background |
+| `make down` | Stop default services |
+| `make build` | Build all images |
+| `make rebuild` | Rebuild and restart in background |
+| `make logs` | Follow logs |
+| `make clean` | Stop services and remove volumes |
+| `make fclean` | Full cleanup: containers, volumes, images, orphans |
+| `make ps` | Show running project containers |
+| `make dev` | Start dev profile (hot reload) |
+| `make prod` | Start prod profile |
 
 ### Game core — local (without Docker)
 
