@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TankIt.Api.Data;
 using TankIt.Api.Hubs;
+using TankIt.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
            .UseSnakeCaseNamingConvention()); // keeps EF Core migrations aligned with
                                              // db/init/schema.sql's snake_case columns
+											 
+builder.Services.AddSingleton<MapService>();
 
 // Frontend dev server origin(s); tighten/parameterize per environment once
 // frontend/app's framework (and its dev port) is chosen.
