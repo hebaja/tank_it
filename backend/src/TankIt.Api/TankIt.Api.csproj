@@ -24,9 +24,9 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <Content Update="Data/Map/tanks_map.json">
+    <EmbeddedResource Update="Data/Map/tanks_map.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
