@@ -30,11 +30,6 @@ export const HUD = {
 	bottomMargin: 32
 }
 
-export const TANK_CONFIG = {
-	faceDown: 0,
-	faceUp: 180
-}
-
 export const SPAWN_CORNERS: Record<Color, Corner> = {
 	[Color.blue]: 'top-left',
 	[Color.red]: 'bottom-left',

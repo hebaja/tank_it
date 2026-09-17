@@ -43,9 +43,9 @@ export class Game extends Scene {
   }
 
   create() {
-    const { map, blocksLayer, blocksHardLayer } = this.createMap()
+    const { map, blocksLayer, blocksHardLayer, tanksSpawnLayer } = this.createMap()
     this.createGroups()
-    this.initTanks()
+    this.initTanks(tanksSpawnLayer)
     this.createManagers(map)
     this.createBarrels(map, blocksLayer, blocksHardLayer)
     this.createCollisions(blocksLayer, blocksHardLayer)
@@ -76,6 +76,8 @@ export class Game extends Scene {
     const backgroundLayer = map.createLayer('background', [terrainTileset])
     const blocksLayer = map.createLayer('blocks', [blocksTileset])
     const blocksHardLayer = map.createLayer('blocks_hard', [blocksHardTileset])
+	const tanksSpawnLayer = map.getObjectLayer('tanks_spawn')
+
 
     backgroundLayer.depth = GAME_CONFIG.depth.background
     blocksLayer.depth = GAME_CONFIG.depth.blocks
@@ -84,7 +86,7 @@ export class Game extends Scene {
     blocksLayer.setCollisionByExclusion([-1])
     blocksHardLayer.setCollisionByExclusion([-1])
 
-    return { map, blocksLayer, blocksHardLayer }
+    return { map, blocksLayer, blocksHardLayer, tanksSpawnLayer }
   }
 
   private createGroups() {
@@ -96,7 +98,7 @@ export class Game extends Scene {
     this.matchManager = new MatchManager(this)
     this.matchManager.reset()
     this.explosionManager = new ExplosionManager(this)
-    this.deathWallManager = new DeathWallManager(this, map, this.tankGroup)
+    // this.deathWallManager = new DeathWallManager(this, map, this.tankGroup)
     this.speedSystem = new SpeedSystem(this, this.tankGroup)
   }
 
@@ -249,22 +251,17 @@ export class Game extends Scene {
     this.events.off(GameEvent.TankMoved, this.handleTankMoved, this)
   }
 
-  initTanks() {
+  initTanks(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
     this.tankGroup = this.physics.add.group()
     this.tankRoster = new Map()
-    const spawns = GAME_CONFIG.spawn
-    const colors = [Color.blue, Color.red, Color.green, Color.dark]
 
-    colors.forEach(color => {
-      const isLocal = color === sessionConfig.localColor
-      const tank = new Tank(this, spawns[color].x, spawns[color].y, color,
-        this.tankGroup, this.projectileGroup, isLocal)
-      this.tankRoster.set(color, tank)
-    })
-    // new Tank(this, spawns[Color.blue].x, spawns[Color.blue].y, Color.blue, 0, this.tankGroup, this.projectileGroup, true)
-    // new Tank(this, spawns[Color.red].x, spawns[Color.red].y, Color.red, 1, this.tankGroup, this.projectileGroup, true)
-    // new Tank(this, spawns[Color.green].x, spawns[Color.green].y, Color.green, 2, this.tankGroup, this.projectileGroup, true)
-    // new Tank(this, spawns[Color.dark].x, spawns[Color.dark].y, Color.dark, 3, this.tankGroup, this.projectileGroup, true)
+	tanksSpawnLayer?.objects.forEach(obj => {
+		const color = obj.properties.find((e: any) => e.name === 'type_color').value
+		const angle = obj.properties.find((e: any) => e.name === 'angle').value
+		const isLocal = color === sessionConfig.localColor
+		const tank = new Tank(this, obj.x ?? 0, obj.y ?? 0, angle, color, this.tankGroup, this.projectileGroup, isLocal)
+		this.tankRoster.set(color, tank)
+	})
   }
 
   private handleTankMoved = (payload: TankMovedPayload) =>

@@ -3,7 +3,7 @@ import { Math as PhaserMath } from 'phaser'
 import { Projectile } from './Projectile'
 import { AmmoGauge } from './AmmoGauge'
 import { Color } from '../config/color'
-import { SPAWN_CORNERS, TANK_CONFIG } from '../config/layout'
+import { SPAWN_CORNERS } from '../config/layout'
 import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { sessionConfig } from '../../net/sessionConfig'
@@ -54,6 +54,7 @@ export class Tank extends Physics.Arcade.Sprite {
     scene: Scene,
     x: number,
     y: number,
+	angle: number,
     color: Color,
     group: Phaser.Physics.Arcade.Group,
     projectileGroup: Phaser.Physics.Arcade.Group,
@@ -73,6 +74,7 @@ export class Tank extends Physics.Arcade.Sprite {
     this.color = color
     this.projectileGroup = projectileGroup
     this.isLocal = isLocal
+	this.angle = angle
 
     if (this.isLocal)
       this.controlsA = this.keyboard?.addKeys({
@@ -82,11 +84,6 @@ export class Tank extends Physics.Arcade.Sprite {
         S: Input.Keyboard.KeyCodes.S,
         SPACE: Input.Keyboard.KeyCodes.SPACE
       })
-    if (SPAWN_CORNERS[color] == 'top-left' || SPAWN_CORNERS[color] == 'top-right')
-      this.angle = TANK_CONFIG.faceDown
-    else
-      this.angle = TANK_CONFIG.faceUp
-
     this.ammoGauge = new AmmoGauge(scene, color, SPAWN_CORNERS[color])
   }
 
