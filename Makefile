@@ -6,7 +6,7 @@ up:
 	$(COMPOSE) up -d
 
 down:
-	$(COMPOSE) down
+	$(COMPOSE) --profile dev --profile prod down --remove-orphans
 
 build:
 	$(COMPOSE) build
@@ -18,7 +18,7 @@ logs:
 	$(COMPOSE) logs -f
 
 clean:
-	$(COMPOSE) down -v
+	$(COMPOSE) --profile dev --profile prod down -v --remove-orphans
 
 fclean:
 	$(COMPOSE) --profile dev --profile prod down -v --rmi local --remove-orphans
