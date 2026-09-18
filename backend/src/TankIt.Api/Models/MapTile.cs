@@ -16,3 +16,5 @@ public class MapTile(TileType type, int tileId)
 	public TileType Type { get; } = type;
 	public int TileId { get; } = tileId;
 }
+
+public record TankSpawn(double X, double Y);

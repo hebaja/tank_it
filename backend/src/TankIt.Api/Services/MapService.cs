@@ -7,17 +7,12 @@ using TankIt.Api.Models;
 public class MapService
 {
 	private const int TILE_EMPTY = 0;
-    private const int TILE_BASE = 21;
-    private const int TILE_PLAYER_SPAWN_1 = 52;
-    private const int TILE_PLAYER_SPAWN_2 = 53;
-    private const int TILE_PLAYER_SPAWN_3 = 65;
-    private const int TILE_PLAYER_SPAWN_4 = 64;
 
-    public MapTile[,] Background { get; }
-    public MapTile[,] Blocks { get; }
-    public MapTile[,] BlocksHard { get; }
-    public MapTile[,] DangerZone { get; }
-
+	// public MapTile[,] Background { get; }
+	public MapTile[,] Blocks { get; }
+	public MapTile[,] BlocksHard { get; }
+   public MapTile[,] TanksSpawn { get; }
+		
 	public MapService()
 	{
 		var assembly = Assembly.GetExecutingAssembly();
@@ -26,25 +21,27 @@ public class MapService
 		using var reader = new StreamReader(stream);
 		var json = reader.ReadToEnd();
 
-		var mapData = JsonSerializer.Deserialize<MapFileData>(json)
+		var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+		var mapData = JsonSerializer.Deserialize<MapFileData>(json, options)
 			?? throw new InvalidOperationException("Failed to deserialize map data");
 
-		Background = ParseLayer(mapData, "background");
+		// Background = ParseLayer(mapData, "background");
 		Blocks = ParseLayer(mapData, "blocks");
 		BlocksHard = ParseLayer(mapData, "blocks_hard");
-		DangerZone = ParseLayer(mapData, "danger_layer");
+		TanksSpawn = ParseObjectLayer(mapData, "tanks_spawn");
 	}
 
 	private static MapTile[,] ParseLayer(MapFileData mapData, string layerName)
 	{
-		var layer = mapData.Layers.First(l => l.Name == layerName);
+		var layer = mapData.Layers.FirstOrDefault(l => l.Name == layerName)
+			?? throw new InvalidOperationException($"Layer '{layerName}' not found. Available: {string.Join(", ", mapData.Layers.Select(l => l.Name))}");
 		var result = new MapTile[layer.Height, layer.Width];
 
 		for (int y = 0; y < layer.Height; y++)
 		{
 			for (int x = 0; x < layer.Width; x++)
 			{
-				var tileId = layer.Data[y * layer.Width + x];
+				var tileId = (int)layer.Data[y * layer.Width + x];
 				result[y, x] = new MapTile(MapTileType(tileId), tileId);
 			}
 		}
@@ -52,14 +49,36 @@ public class MapService
 		return result;
 	}
 
+	private static MapTile[,] ParseObjectLayer(MapFileData mapData, string layerName)
+	{
+		int width = 15;
+		int	height = 15;
+
+		var layer = mapData.Layers.FirstOrDefault(l => l.Name == layerName)
+			?? throw new InvalidOperationException($"Layer '{layerName}' not found. Available: {string.Join(", ", mapData.Layers.Select(l => l.Name))}");
+		var result = new MapTile[width, height];
+		
+		for (int y = 0; y < height; y++)
+		{
+			for (int x = 0; x < width; x++)
+				result[y, x] = new MapTile(TileType.Empty, TILE_EMPTY);
+		}
+		
+		foreach (var obj in layer.Objects)
+		{
+			var tileX = (int)(obj.X / 64);
+			var tileY = (int)(obj.Y / 64);
+			result[tileX, tileY] = new MapTile(TileType.PlayerSpawn, obj.Id);
+		}
+		
+		return result;
+	}
+
 	private static TileType MapTileType(int id) => id switch
 	{
 		TILE_EMPTY => TileType.Empty,
-		>= 98 and <= 108 => TileType.Block,
-		>= 63 and <= 74 => TileType.BlockHard,
-		42 => TileType.Danger,
-		TILE_PLAYER_SPAWN_1 or TILE_PLAYER_SPAWN_2 or TILE_PLAYER_SPAWN_3 or TILE_PLAYER_SPAWN_4 => TileType.PlayerSpawn,
-		TILE_BASE => TileType.Base,
+		>= 98 and <= 109 => TileType.Block,
+		>= 52 and <= 74 => TileType.BlockHard,
 		_ => TileType.Background
 	};
 }
