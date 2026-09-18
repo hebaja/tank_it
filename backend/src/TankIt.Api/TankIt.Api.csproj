@@ -24,8 +24,8 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <EmbeddedResource Update="Data/Map/tanks_map.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <EmbeddedResource Include="../../../frontend/game/public/assets/map/tanks_map.json" Link="Data/Map/tanks_map.json">
+      <LogicalName>TankIt.Api.Data.Map.tanks_map.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
