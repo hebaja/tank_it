@@ -14,6 +14,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                                              // db/init/schema.sql's snake_case columns
 											 
 builder.Services.AddSingleton<MapService>();
+builder.Services.AddSingleton<RoomService>();
 
 // Frontend dev server origin(s); tighten/parameterize per environment once
 // frontend/app's framework (and its dev port) is chosen.
