@@ -2,6 +2,7 @@ namespace TankIt.Api.Services;
 
 using System.Reflection;
 using System.Text.Json;
+using TankIt.Api.Hubs.Dtos;
 using TankIt.Api.Models;
 
 public class MapService
@@ -11,10 +12,12 @@ public class MapService
 	// public MapTile[,] Background { get; }
 	public MapTile[,] Blocks { get; }
 	public MapTile[,] BlocksHard { get; }
-   public MapTile[,] TanksSpawn { get; }
-		
-	public MapService()
+	public MapTile[,] TanksSpawn { get; }
+	public List<(int x, int y)> FreeTilePositions { get; }
+
+	public MapService(ILogger<MapService> logger)
 	{
+
 		var assembly = Assembly.GetExecutingAssembly();
 		using var stream = assembly.GetManifestResourceStream("TankIt.Api.Data.Map.tanks_map.json")
 			?? throw new FileNotFoundException("Embedded resource tanks_map.json was not found");
@@ -29,6 +32,37 @@ public class MapService
 		Blocks = ParseLayer(mapData, "blocks");
 		BlocksHard = ParseLayer(mapData, "blocks_hard");
 		TanksSpawn = ParseObjectLayer(mapData, "tanks_spawn");
+		FreeTilePositions = GenerateRandomPositions(Blocks, BlocksHard, TanksSpawn);
+	}
+
+	public BarrelPositionsDto[] GetRandomPositions()
+	{
+		Random random = new();
+
+		var positions = FreeTilePositions.OrderBy(pos => random.Next())
+			.Take(10)
+			.Select(pos => new BarrelPositionsDto(pos.x, pos.y))
+			.ToArray();
+
+		return positions;
+	}
+
+	private static List<(int x, int y)> GenerateRandomPositions(MapTile[,] blocks, MapTile[,] blocksHard, MapTile[,] tanksSpawn)
+	{
+		int mapSize = 15;
+
+		var positions = new List<(int x, int y)>();
+
+		for (int y = 0; y < mapSize; y++)
+		{
+			for (int x = 0; x < mapSize; x++)
+			{
+				if (blocks[x, y].Type == TileType.Empty && blocksHard[x, y].Type == TileType.Empty && tanksSpawn[x, y].Type == TileType.Empty)
+					positions.Add((x, y));
+			}
+		}
+
+		return positions;	
 	}
 
 	private static MapTile[,] ParseLayer(MapFileData mapData, string layerName)

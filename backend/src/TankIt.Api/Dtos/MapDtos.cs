@@ -19,5 +19,7 @@ public record MapResponse(
 	int Height,
 	LayerDto Blocks,
 	LayerDto BlocksHard,
-	LayerDto TanksSpawn
+	LayerDto FreeTilePositions
 );
+
+public record PositionDto(int X, int Y);
