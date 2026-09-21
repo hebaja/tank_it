@@ -35,14 +35,14 @@ public class MapService
 	{
 		var layer = mapData.Layers.FirstOrDefault(l => l.Name == layerName)
 			?? throw new InvalidOperationException($"Layer '{layerName}' not found. Available: {string.Join(", ", mapData.Layers.Select(l => l.Name))}");
-		var result = new MapTile[layer.Height, layer.Width];
+		var result = new MapTile[layer.Width, layer.Height];
 
 		for (int y = 0; y < layer.Height; y++)
 		{
 			for (int x = 0; x < layer.Width; x++)
 			{
 				var tileId = (int)layer.Data[y * layer.Width + x];
-				result[y, x] = new MapTile(MapTileType(tileId), tileId);
+				result[x, y] = new MapTile(MapTileType(tileId), tileId);
 			}
 		}
 
@@ -61,7 +61,7 @@ public class MapService
 		for (int y = 0; y < height; y++)
 		{
 			for (int x = 0; x < width; x++)
-				result[y, x] = new MapTile(TileType.Empty, TILE_EMPTY);
+				result[x, y] = new MapTile(TileType.Empty, TILE_EMPTY);
 		}
 		
 		foreach (var obj in layer.Objects)

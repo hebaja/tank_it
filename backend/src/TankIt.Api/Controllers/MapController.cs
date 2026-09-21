@@ -16,8 +16,8 @@ public class MapController(MapService _map, ILogger<MapController> _logger) : Co
 	[ProducesResponseType<MapResponse>(StatusCodes.Status200OK)]
 	public IActionResult Get()
 	{
-		int width = map.Blocks.GetLength(1);
-		int height = map.Blocks.GetLength(0);
+		int width = map.Blocks.GetLength(0);
+		int height = map.Blocks.GetLength(1);
 
 		return Ok(new MapResponse(
 		width,
