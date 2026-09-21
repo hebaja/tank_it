@@ -4,7 +4,6 @@ import { Projectile } from '../objects/Projectile'
 import { ExplosionManager } from '../managers/ExplosionManager'
 import { Barrel } from '../objects/Barrel'
 import { AmmoGauge } from '../objects/AmmoGauge'
-import { Color } from '../config/color'
 import { DeathWallManager } from '../managers/DeathWallManager'
 import { MatchManager } from '../managers/MatchManager'
 import { SpeedSystem } from '../systems/SpeedSystem'
@@ -12,7 +11,7 @@ import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { TankMovedPayload } from '../../net/contracts'
+import type { BarrelPos, RoomJoinedPayload, TankMovedPayload } from '../../net/contracts'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -24,6 +23,9 @@ export class Game extends Scene {
   private deathWallManager: DeathWallManager
   private networkManager: NetworkManager
   private tankRoster: Map<string, Tank>
+  private roomId: string
+  private barrelPos: BarrelPos[] = []
+  private map: Tilemaps.Tilemap
 
   constructor() {
     super('Game')
@@ -44,15 +46,19 @@ export class Game extends Scene {
 
   create() {
     const { map, blocksLayer, blocksHardLayer, tanksSpawnLayer } = this.createMap()
+	this.map = map
     this.createGroups()
     this.initTanks(tanksSpawnLayer)
     this.createManagers(map)
-    this.createBarrels(map, blocksLayer, blocksHardLayer)
     this.createCollisions(blocksLayer, blocksHardLayer)
     this.registerSceneEvents()
 
-    this.networkManager = new NetworkManager(this)
     this.events.on(GameEvent.TankMoved, this.handleTankMoved, this)
+	this.events.on(GameEvent.RoomJoined, this.handleRoomJoined, this)
+    this.networkManager = new NetworkManager(this)
+
+	
+	
   }
 
   private createMap() {
@@ -91,7 +97,7 @@ export class Game extends Scene {
 
   private createGroups() {
     this.projectileGroup = this.physics.add.group()
-    this.barrelGroup = this.physics.add.group()
+    // this.barrelGroup = this.physics.add.group()
   }
 
   private createManagers(map: Tilemaps.Tilemap) {
@@ -102,16 +108,11 @@ export class Game extends Scene {
     this.speedSystem = new SpeedSystem(this, this.tankGroup)
   }
 
-  private createBarrels(
-    map: Tilemaps.Tilemap,
-    blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-    blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-  ) {
-    const randomPos = Barrel.generateRandomPositions(
-      map.width, map.height, GAME_CONFIG.barrel.count,
-      blocksLayer, blocksHardLayer,
-    )
-    const barrels = Barrel.generateRandomBarrels(this, randomPos, map)
+  private createBarrels(map: Tilemaps.Tilemap) {
+	if (this.barrelGroup) this.barrelGroup.clear(true, true)
+	else this.barrelGroup = this.physics.add.group()
+
+    const barrels = Barrel.generateRandomBarrels(this, this.barrelPos, map)
     for (let i = 0; i < barrels.length; i++)
       this.barrelGroup.add(barrels[i])
 
@@ -249,6 +250,8 @@ export class Game extends Scene {
     this.events.off(GameEvent.TileDestroy)
     this.networkManager.destroy()
     this.events.off(GameEvent.TankMoved, this.handleTankMoved, this)
+	this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this)
+	this.barrelGroup?.clear(true, true)
   }
 
   initTanks(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
@@ -266,4 +269,11 @@ export class Game extends Scene {
 
   private handleTankMoved = (payload: TankMovedPayload) =>
     this.tankRoster.get(payload.playerId)?.receiveRemoteState(payload)
+
+  private handleRoomJoined = (payload: RoomJoinedPayload) => {
+	  this.roomId = payload.roomId
+	  this.barrelPos = payload.randomBarrelPositions
+	  if (this.map)
+		this.createBarrels(this.map)
+	}
 }

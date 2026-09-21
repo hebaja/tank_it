@@ -7,4 +7,14 @@ export interface TankMovePayload {
   sequence: number
 }
 
+export interface RoomJoinedPayload {
+  roomId: string
+  randomBarrelPositions: BarrelPos[]
+}
+
 export type TankMovedPayload = TankMovePayload
+
+export type BarrelPos = {
+	x: number,
+	y: number
+}

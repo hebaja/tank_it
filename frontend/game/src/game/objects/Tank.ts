@@ -141,12 +141,18 @@ export class Tank extends Physics.Arcade.Sprite {
 
   private maybeSendTankMove() {
     const now = this.scene.time.now
+
     if (now - this.lastSentAt < Tank.SEND_INTERVAL_MS) return
+
     const dx = Math.abs(this.x - this.lastSentX), dy = Math.abs(this.y - this.lastSentY)
     const da = Math.abs(this.angle - this.lastSentAngle)
+
     if (dx < Tank.POS_EPSILON && dy < Tank.POS_EPSILON && da < Tank.ANGLE_EPSILON) return
+
     this.lastSentAt = now
-    this.lastSentX = this.x; this.lastSentY = this.y; this.lastSentAngle = this.angle
+    this.lastSentX = this.x;
+	this.lastSentY = this.y;
+	this.lastSentAngle = this.angle
     this.scene.events.emit(GameEvent.TankMove, {
       roomId: sessionConfig.roomId,
       playerId: this.color,
@@ -206,7 +212,9 @@ export class Tank extends Physics.Arcade.Sprite {
 
   private applyRemoteState() {
     if (!this.pendingRemote) return
-    this.x = this.pendingRemote.x; this.y = this.pendingRemote.y; this.angle = this.pendingRemote.angle
+    this.x = this.pendingRemote.x
+	this.y = this.pendingRemote.y
+	this.angle = this.pendingRemote.angle
   }
 
   receiveRemoteState(payload: TankMovedPayload) {

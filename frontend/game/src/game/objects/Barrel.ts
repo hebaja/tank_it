@@ -22,6 +22,7 @@ export class Barrel extends Physics.Arcade.Sprite {
 		scene.load.image('barrel_rust', 'barrels/barrel_rust.png')
 	}
 
+	/*
 	static generateRandomPositions(
 		mapWidth: number,
 		mapHeight: number,
@@ -49,6 +50,7 @@ export class Barrel extends Physics.Arcade.Sprite {
 		}
 		return randomPositions
 	}
+	*/
 
 	static generateRandomBarrels(scene: Scene, randomPositions: BarrelPos[], map: Phaser.Tilemaps.Tilemap): Barrel[] {
 		const barrels: Barrel[] = []

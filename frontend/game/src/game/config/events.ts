@@ -6,6 +6,7 @@ export const GameEvent = {
 	MatchEnd: 'match_end',
   TankMove: 'tankMove',
   TankMoved: 'tankMoved',
+  RoomJoined: 'roomJoined'
 }
 
 export type GameEventKey = typeof GameEvent[keyof typeof GameEvent]
