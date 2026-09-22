@@ -1,6 +1,7 @@
+namespace TankIt.Api.Services;
+
 using System.Collections.Concurrent;
 using TankIt.Api.Hubs.Dtos;
-using TankIt.Api.Services;
 
 public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 {

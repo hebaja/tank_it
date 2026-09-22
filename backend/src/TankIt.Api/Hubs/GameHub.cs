@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using TankIt.Api.Hubs.Dtos;
+using TankIt.Api.Services;
 
 namespace TankIt.Api.Hubs;
 
