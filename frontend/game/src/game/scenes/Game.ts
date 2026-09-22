@@ -49,16 +49,13 @@ export class Game extends Scene {
 	this.map = map
     this.createGroups()
     this.initTanks(tanksSpawnLayer)
-    this.createManagers(map)
+    this.createManagers()
     this.createCollisions(blocksLayer, blocksHardLayer)
     this.registerSceneEvents()
 
     this.events.on(GameEvent.TankMoved, this.handleTankMoved, this)
 	this.events.on(GameEvent.RoomJoined, this.handleRoomJoined, this)
     this.networkManager = new NetworkManager(this)
-
-	
-	
   }
 
   private createMap() {
@@ -97,10 +94,10 @@ export class Game extends Scene {
 
   private createGroups() {
     this.projectileGroup = this.physics.add.group()
-    // this.barrelGroup = this.physics.add.group()
+    this.barrelGroup = this.physics.add.group()
   }
 
-  private createManagers(map: Tilemaps.Tilemap) {
+  private createManagers() {
     this.matchManager = new MatchManager(this)
     this.matchManager.reset()
     this.explosionManager = new ExplosionManager(this)
@@ -109,8 +106,7 @@ export class Game extends Scene {
   }
 
   private createBarrels(map: Tilemaps.Tilemap) {
-	if (this.barrelGroup) this.barrelGroup.clear(true, true)
-	else this.barrelGroup = this.physics.add.group()
+	this.barrelGroup.clear(true, true)
 
     const barrels = Barrel.generateRandomBarrels(this, this.barrelPos, map)
     for (let i = 0; i < barrels.length; i++)
