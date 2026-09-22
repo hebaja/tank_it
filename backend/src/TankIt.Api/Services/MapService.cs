@@ -8,16 +8,12 @@ using TankIt.Api.Models;
 public class MapService
 {
 	private const int TILE_EMPTY = 0;
+	private const int MAP_SIZE = 15;
 
-	// public MapTile[,] Background { get; }
-	public MapTile[,] Blocks { get; }
-	public MapTile[,] BlocksHard { get; }
-	public MapTile[,] TanksSpawn { get; }
-	public List<(int x, int y)> FreeTilePositions { get; }
+	private List<(int x, int y)> FreeTilePositions { get; }
 
-	public MapService(ILogger<MapService> logger)
+	public MapService()
 	{
-
 		var assembly = Assembly.GetExecutingAssembly();
 		using var stream = assembly.GetManifestResourceStream("TankIt.Api.Data.Map.tanks_map.json")
 			?? throw new FileNotFoundException("Embedded resource tanks_map.json was not found");
@@ -28,10 +24,9 @@ public class MapService
 		var mapData = JsonSerializer.Deserialize<MapFileData>(json, options)
 			?? throw new InvalidOperationException("Failed to deserialize map data");
 
-		// Background = ParseLayer(mapData, "background");
-		Blocks = ParseLayer(mapData, "blocks");
-		BlocksHard = ParseLayer(mapData, "blocks_hard");
-		TanksSpawn = ParseObjectLayer(mapData, "tanks_spawn");
+		var Blocks = ParseLayer(mapData, "blocks");
+		var BlocksHard = ParseLayer(mapData, "blocks_hard");
+		var TanksSpawn = ParseObjectLayer(mapData, "tanks_spawn");
 		FreeTilePositions = GenerateRandomPositions(Blocks, BlocksHard, TanksSpawn);
 	}
 
@@ -49,13 +44,11 @@ public class MapService
 
 	private static List<(int x, int y)> GenerateRandomPositions(MapTile[,] blocks, MapTile[,] blocksHard, MapTile[,] tanksSpawn)
 	{
-		int mapSize = 15;
-
 		var positions = new List<(int x, int y)>();
 
-		for (int y = 0; y < mapSize; y++)
+		for (int y = 0; y < MAP_SIZE; y++)
 		{
-			for (int x = 0; x < mapSize; x++)
+			for (int x = 0; x < MAP_SIZE; x++)
 			{
 				if (blocks[x, y].Type == TileType.Empty && blocksHard[x, y].Type == TileType.Empty && tanksSpawn[x, y].Type == TileType.Empty)
 					positions.Add((x, y));

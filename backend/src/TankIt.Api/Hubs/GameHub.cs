@@ -39,12 +39,10 @@ public class GameHub : Hub<IGameClient>
 
 		var barrels = _rooms.GetOrCreateBarrels(roomId);
 
-		_logger.LogInformation("Barrels: {barrels}", barrels);
-
 		return new RoomJoinedDto
 		{
 			RoomId = roomId,
-			RandomBarrelPositions = barrels	
+			RandomBarrelPositions = barrels
 		};
     }
 

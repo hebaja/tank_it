@@ -20,7 +20,10 @@ export class NetworkManager {
 	    this.scene.events.emit(GameEvent.RoomJoined, dto)
 	    return dto
 	  })
-	  .catch((err): never => { console.warn('[NetworkManager] connect/join failed', err); throw err })
+	  .catch((err): never => { 
+		console.warn('[NetworkManager] connect/join failed', err);
+		throw err
+	  })
   }
 
   private handleLocalTankMove = (payload: TankMovePayload) => this.hub.sendTankMove(payload)

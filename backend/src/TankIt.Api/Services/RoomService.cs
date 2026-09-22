@@ -13,7 +13,6 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 	{
 		return _barrelsByRoom.GetOrAdd(roomId, id => {
 			var barrels = _map.GetRandomPositions();
-			_logger.LogInformation("Room {RoomId} created with {Count} barrels", id, barrels.Length);
 			return barrels;
 		});
 	}
