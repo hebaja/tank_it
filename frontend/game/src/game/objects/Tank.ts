@@ -36,7 +36,7 @@ export class Tank extends Physics.Arcade.Sprite {
   private lastSentY = 0
   private lastSentAngle = 0
   private sequence = 0
-  private static readonly SEND_INTERVAL_MS = 50
+  private static readonly SEND_INTERVAL_MS = 5
   private static readonly POS_EPSILON = 0.5
   private static readonly ANGLE_EPSILON = 0.5
 
