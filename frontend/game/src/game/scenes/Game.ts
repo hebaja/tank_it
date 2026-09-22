@@ -101,7 +101,7 @@ export class Game extends Scene {
     this.matchManager = new MatchManager(this)
     this.matchManager.reset()
     this.explosionManager = new ExplosionManager(this)
-    // this.deathWallManager = new DeathWallManager(this, map, this.tankGroup)
+    this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup)
     this.speedSystem = new SpeedSystem(this, this.tankGroup)
   }
 
