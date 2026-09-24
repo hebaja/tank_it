@@ -1,5 +1,5 @@
 import { Physics, Scene, Utils } from "phaser"
-import { GAME_CONFIG } from "../config/game"
+import { BarrelPos } from "../../net/contracts"
 
 const BARREL_TEXTURES = [
 	"barrel_black",
@@ -8,11 +8,6 @@ const BARREL_TEXTURES = [
 	"barrel_rust"
 ]
 
-type BarrelPos = {
-	x: number,
-	y: number
-}
-
 export class Barrel extends Physics.Arcade.Sprite {
 
 	static preload(scene: Scene) {
@@ -20,34 +15,6 @@ export class Barrel extends Physics.Arcade.Sprite {
 		scene.load.image('barrel_green', 'barrels/barrel_green.png')
 		scene.load.image('barrel_red', 'barrels/barrel_red.png')
 		scene.load.image('barrel_rust', 'barrels/barrel_rust.png')
-	}
-
-	static generateRandomPositions(
-		mapWidth: number,
-		mapHeight: number,
-		quantity: number,
-		blocksLayer: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer,
-		blocksHardLayer: Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer): BarrelPos[] {
-
-		const validPositions: BarrelPos[] = []
-		const randomPositions: BarrelPos[] = []
-		const exclude = GAME_CONFIG.barrel.excludeCorners
-
-		for (let ty = 0; ty < mapHeight; ty++) {
-			for (let tx = 0; tx < mapWidth; tx++) {
-				if (blocksLayer.getTileAt(tx, ty) || blocksHardLayer.getTileAt(tx, ty)
-					|| exclude.some(e => e.tx === tx && e.ty === ty))
-					continue
-				validPositions.push({ x: tx, y: ty })
-			}
-		}
-
-		for (let i = 0; i < quantity; i++) {
-			const randomIndex = Math.floor(Math.random() * validPositions.length)
-			randomPositions.push(validPositions[randomIndex])
-			validPositions.splice(randomIndex, 1)
-		}
-		return randomPositions
 	}
 
 	static generateRandomBarrels(scene: Scene, randomPositions: BarrelPos[], map: Phaser.Tilemaps.Tilemap): Barrel[] {

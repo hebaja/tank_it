@@ -2,19 +2,28 @@ import { Scene } from 'phaser'
 import { GameHubConnection } from '../../net/GameHubConnection'
 import { GameEvent } from '../config/events'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { TankMovePayload, TankMovedPayload } from '../../net/contracts'
+import type { RoomJoinedPayload, TankMovePayload, TankMovedPayload } from '../../net/contracts'
 
 export class NetworkManager {
   private scene: Scene
   private hub: GameHubConnection
+  public readonly ready: Promise<RoomJoinedPayload>
 
   constructor(scene: Scene) {
     this.scene = scene
     this.hub = new GameHubConnection(sessionConfig.hubUrl)
     this.hub.onTankMoved(this.handleTankMoved)
     this.scene.events.on(GameEvent.TankMove, this.handleLocalTankMove, this)
-    this.hub.start().then(() => this.hub.joinRoom(sessionConfig.roomId))
-      .catch(err => console.warn('[NetworkManager] connect/join failed', err))
+    this.ready = this.hub.start()
+	  .then(() => this.hub.joinRoom(sessionConfig.roomId))
+	  .then(dto => {
+	    this.scene.events.emit(GameEvent.RoomJoined, dto)
+	    return dto
+	  })
+	  .catch((err): never => { 
+		console.warn('[NetworkManager] connect/join failed', err);
+		throw err
+	  })
   }
 
   private handleLocalTankMove = (payload: TankMovePayload) => this.hub.sendTankMove(payload)

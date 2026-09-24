@@ -3,7 +3,7 @@ import { Math as PhaserMath } from 'phaser'
 import { Projectile } from './Projectile'
 import { AmmoGauge } from './AmmoGauge'
 import { Color } from '../config/color'
-import { SPAWN_CORNERS, TANK_CONFIG } from '../config/layout'
+import { SPAWN_CORNERS } from '../config/layout'
 import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { sessionConfig } from '../../net/sessionConfig'
@@ -36,7 +36,7 @@ export class Tank extends Physics.Arcade.Sprite {
   private lastSentY = 0
   private lastSentAngle = 0
   private sequence = 0
-  private static readonly SEND_INTERVAL_MS = 50
+  private static readonly SEND_INTERVAL_MS = 5
   private static readonly POS_EPSILON = 0.5
   private static readonly ANGLE_EPSILON = 0.5
 
@@ -54,6 +54,7 @@ export class Tank extends Physics.Arcade.Sprite {
     scene: Scene,
     x: number,
     y: number,
+	angle: number,
     color: Color,
     group: Phaser.Physics.Arcade.Group,
     projectileGroup: Phaser.Physics.Arcade.Group,
@@ -73,6 +74,7 @@ export class Tank extends Physics.Arcade.Sprite {
     this.color = color
     this.projectileGroup = projectileGroup
     this.isLocal = isLocal
+	this.angle = angle
 
     if (this.isLocal)
       this.controlsA = this.keyboard?.addKeys({
@@ -82,11 +84,6 @@ export class Tank extends Physics.Arcade.Sprite {
         S: Input.Keyboard.KeyCodes.S,
         SPACE: Input.Keyboard.KeyCodes.SPACE
       })
-    if (SPAWN_CORNERS[color] == 'top-left' || SPAWN_CORNERS[color] == 'top-right')
-      this.angle = TANK_CONFIG.faceDown
-    else
-      this.angle = TANK_CONFIG.faceUp
-
     this.ammoGauge = new AmmoGauge(scene, color, SPAWN_CORNERS[color])
   }
 
@@ -144,12 +141,18 @@ export class Tank extends Physics.Arcade.Sprite {
 
   private maybeSendTankMove() {
     const now = this.scene.time.now
+
     if (now - this.lastSentAt < Tank.SEND_INTERVAL_MS) return
+
     const dx = Math.abs(this.x - this.lastSentX), dy = Math.abs(this.y - this.lastSentY)
     const da = Math.abs(this.angle - this.lastSentAngle)
+
     if (dx < Tank.POS_EPSILON && dy < Tank.POS_EPSILON && da < Tank.ANGLE_EPSILON) return
+
     this.lastSentAt = now
-    this.lastSentX = this.x; this.lastSentY = this.y; this.lastSentAngle = this.angle
+    this.lastSentX = this.x;
+	this.lastSentY = this.y;
+	this.lastSentAngle = this.angle
     this.scene.events.emit(GameEvent.TankMove, {
       roomId: sessionConfig.roomId,
       playerId: this.color,
@@ -209,7 +212,9 @@ export class Tank extends Physics.Arcade.Sprite {
 
   private applyRemoteState() {
     if (!this.pendingRemote) return
-    this.x = this.pendingRemote.x; this.y = this.pendingRemote.y; this.angle = this.pendingRemote.angle
+    this.x = this.pendingRemote.x
+	this.y = this.pendingRemote.y
+	this.angle = this.pendingRemote.angle
   }
 
   receiveRemoteState(payload: TankMovedPayload) {

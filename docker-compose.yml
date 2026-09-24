@@ -21,7 +21,8 @@ services:
 
   backend:
     build:
-      context: ./backend/src/TankIt.Api
+      context: .
+      dockerfile: backend/src/TankIt.Api/Dockerfile
     restart: unless-stopped
     depends_on:
       db:

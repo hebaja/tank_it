@@ -56,7 +56,7 @@ export class DeathWallManager {
 							y: tile.pixelY + tile.width / 2,
 							type: GameEvent.Explosion,
 							onComplete: () => {
-								tile.index = dangerTileset.firstgid + 42
+								tile.index = dangerTileset.firstgid + 45
 								tile.setCollision(true)
 								tile.setAlpha(1.0)
 								this.destroyed.add(tile)

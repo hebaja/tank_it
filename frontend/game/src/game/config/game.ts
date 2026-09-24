@@ -1,13 +1,4 @@
-import { Color } from './color'
-
 export const GAME_CONFIG = {
-  spawn: {
-    [Color.blue]: { x: 25, y: 25 },
-    [Color.red]: { x: 25, y: 925 },
-    [Color.green]: { x: 925, y: 925 },
-    [Color.dark]: { x: 925, y: 25 },
-  },
-
   depth: {
     background: 0,
     blocks: 10,

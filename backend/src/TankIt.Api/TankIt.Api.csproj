@@ -20,7 +20,13 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!-- Makes EF Core migrations emit snake_case columns/tables, matching db/init/schema.sql
          (idiomatic Postgres naming) instead of the default PascalCase. -->
-    <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+	<PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <EmbeddedResource Include="../../../frontend/game/public/assets/map/tanks_map.json" Link="Data/Map/tanks_map.json">
+      <LogicalName>TankIt.Api.Data.Map.tanks_map.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

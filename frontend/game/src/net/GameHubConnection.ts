@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr'
-import type { TankMovePayload, TankMovedPayload } from './contracts'
+import type { RoomJoinedPayload, TankMovePayload, TankMovedPayload } from './contracts'
 
 const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game'
 
@@ -24,7 +24,9 @@ export class GameHubConnection {
     await this.conn.stop()
   }
 
-  async joinRoom(roomId: string): Promise<void> { await this.conn.invoke('JoinRoom', roomId) }
+  async joinRoom(roomId: string): Promise<RoomJoinedPayload> {
+	  return await this.conn.invoke<RoomJoinedPayload>('JoinRoom', roomId)
+	}
   async leaveRoom(roomId: string): Promise<void> { await this.conn.invoke('LeaveRoom', roomId) }
 
   sendTankMove(payload: TankMovePayload): void {
