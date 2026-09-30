@@ -24,6 +24,7 @@ export class Game extends Scene {
   private networkManager: NetworkManager
   private tankRoster: Map<string, Tank>
   private roomId: string
+  private roomCreatedAt: number
   private barrelPos: BarrelPos[] = []
   private map: Tilemaps.Tilemap
 
@@ -269,6 +270,7 @@ export class Game extends Scene {
   private handleRoomJoined = (payload: RoomJoinedPayload) => {
 	  this.roomId = payload.roomId
 	  this.barrelPos = payload.randomBarrelPositions
+	  this.roomCreatedAt = payload.roomCreatedAt
 	  if (this.map)
 		this.createBarrels(this.map)
 	}

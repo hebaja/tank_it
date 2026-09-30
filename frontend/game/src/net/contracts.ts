@@ -10,6 +10,7 @@ export interface TankMovePayload {
 export interface RoomJoinedPayload {
   roomId: string
   randomBarrelPositions: BarrelPos[]
+  roomCreatedAt: number
 }
 
 export type TankMovedPayload = TankMovePayload
