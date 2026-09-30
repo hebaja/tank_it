@@ -6,5 +6,5 @@ public sealed class RoomJoinedDto
 {
 	public string RoomId { get; init; } = "";
 	public BarrelPositionsDto[] RandomBarrelPositions { get; init; } = [];
-	public long RoomCreatedAt = 0;
+	public long RoomCreatedAt { get; init; } = 0;
 }
