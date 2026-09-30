@@ -37,13 +37,15 @@ public class GameHub : Hub<IGameClient>
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId);
+		_rooms.TrackRoomCreation(roomId);
 
 		var barrels = _rooms.GetOrCreateBarrels(roomId);
 
 		return new RoomJoinedDto
 		{
 			RoomId = roomId,
-			RandomBarrelPositions = barrels
+			RandomBarrelPositions = barrels,
+			RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId)
 		};
     }
 
