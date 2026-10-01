@@ -13,8 +13,9 @@ export class DeathWallManager {
 	private destroyed: Set<Tilemaps.Tile> = new Set()
 	private deathWallTimer?: Phaser.Time.TimerEvent
 	private ringTimer?: Phaser.Time.TimerEvent
+	private delay: number = 0
 
-	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group) {
+	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group, roomCreatedAt: number = 0) {
 		this.scene = scene
 		const dangerTileset = map.addTilesetImage(
 			'main_tileset',
@@ -30,7 +31,12 @@ export class DeathWallManager {
 
 		scene.physics.add.collider(this.dangerLayer, tankGroup)
 
-		this.deathWallTimer = scene.time.delayedCall(GAME_CONFIG.timing.deathWallStartTime, () => {
+		this.delay = roomCreatedAt ? Math.max(
+			0, 
+			(roomCreatedAt + GAME_CONFIG.timing.deathWallStartTime - Date.now()))
+			: GAME_CONFIG.timing.deathWallStartTime
+
+		this.deathWallTimer = scene.time.delayedCall(this.delay, () => {
 			this.start()
 			this.ringTimer = scene.time.addEvent(({
 				delay: GAME_CONFIG.timing.deathWallRingInterval,

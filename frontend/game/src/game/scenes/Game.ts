@@ -102,7 +102,7 @@ export class Game extends Scene {
     this.matchManager = new MatchManager(this)
     this.matchManager.reset()
     this.explosionManager = new ExplosionManager(this)
-    this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup)
+    // this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup)
     this.speedSystem = new SpeedSystem(this, this.tankGroup)
   }
 
@@ -271,7 +271,9 @@ export class Game extends Scene {
 	  this.roomId = payload.roomId
 	  this.barrelPos = payload.randomBarrelPositions
 	  this.roomCreatedAt = payload.roomCreatedAt
-	  if (this.map)
+	  if (this.map) {
 		this.createBarrels(this.map)
+		this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup, this.roomCreatedAt)
+	  }
 	}
 }
