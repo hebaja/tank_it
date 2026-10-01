@@ -16,7 +16,7 @@ public sealed class ProjectileSpawnedPayload
     public string RoomId { get; init; } = "";
     public string ProjectileId { get; init; } = "";
     public string OwnerId { get; init; } = "";
-    public PositionDto Position { get; init; } = new();
+    public PositionDto Origin { get; init; } = new();
     public double Angle { get; init; }
     public long Timestamp { get; init; }
 }
@@ -25,6 +25,7 @@ public sealed class ProjectileHitRequest
 {
     public string RoomId { get; init; } = "";
     public string ProjectileId { get; init; } = "";
+    public string OwnerId { get; init; } = "";
     public HitInfoDto Hit { get; init; } = new();
     public PositionDto Position { get; init; } = new();
     public long Timestamp { get; init; }
@@ -35,6 +36,7 @@ public sealed class ProjectileDestroyedPayload
 {
     public string RoomId { get; init; } = "";
     public string ProjectileId { get; init; } = "";
+    public string OwnerId { get; init; } = "";
     public HitInfoDto Hit { get; init; } = new();
     public PositionDto Position { get; init; } = new();
     public long Timestamp { get; init; }
