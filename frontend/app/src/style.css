@@ -1,0 +1,39 @@
+:root {
+    color-scheme: dark;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #101418;
+    color: #f2f4f6;
+    font-family: system-ui, sans-serif;
+}
+
+.landing {
+    text-align: center;
+}
+
+.subtitle {
+    opacity: 0.7;
+}
+
+#play-btn {
+    font-size: 1.25rem;
+    padding: 0.75rem 3rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: #4caf50;
+    color: #fff;
+    cursor: pointer;
+}
+
+#play-btn:hover {
+    background: #43a047;
+}
