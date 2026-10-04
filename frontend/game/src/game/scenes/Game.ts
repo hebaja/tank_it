@@ -271,6 +271,9 @@ export class Game extends Scene {
 	  this.roomId = payload.roomId
 	  this.barrelPos = payload.randomBarrelPositions
 	  this.roomCreatedAt = payload.roomCreatedAt
+
+		console.log(payload)
+
 	  if (this.map) {
 		this.createBarrels(this.map)
 		this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup, this.roomCreatedAt)

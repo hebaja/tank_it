@@ -7,10 +7,16 @@ export interface TankMovePayload {
   sequence: number
 }
 
+export interface PlayerInfo {
+  connectionId: string
+  color: string
+}
+
 export interface RoomJoinedPayload {
   roomId: string
   randomBarrelPositions: BarrelPos[]
   roomCreatedAt: number
+  players: PlayerInfo[]
 }
 
 export type TankMovedPayload = TankMovePayload

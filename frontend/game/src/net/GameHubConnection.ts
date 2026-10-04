@@ -24,8 +24,8 @@ export class GameHubConnection {
     await this.conn.stop()
   }
 
-  async joinRoom(roomId: string): Promise<RoomJoinedPayload> {
-	  return await this.conn.invoke<RoomJoinedPayload>('JoinRoom', roomId)
+  async joinRoom(roomId: string, color: string): Promise<RoomJoinedPayload> {
+	  return await this.conn.invoke<RoomJoinedPayload>('JoinRoom', roomId, color)
 	}
   async leaveRoom(roomId: string): Promise<void> { await this.conn.invoke('LeaveRoom', roomId) }
 

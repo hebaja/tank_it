@@ -15,7 +15,7 @@ export class NetworkManager {
     this.hub.onTankMoved(this.handleTankMoved)
     this.scene.events.on(GameEvent.TankMove, this.handleLocalTankMove, this)
     this.ready = this.hub.start()
-	  .then(() => this.hub.joinRoom(sessionConfig.roomId))
+	  .then(() => this.hub.joinRoom(sessionConfig.roomId, sessionConfig.localColor))
 	  .then(dto => {
 	    this.scene.events.emit(GameEvent.RoomJoined, dto)
 	    return dto

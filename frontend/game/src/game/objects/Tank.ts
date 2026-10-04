@@ -218,6 +218,7 @@ export class Tank extends Physics.Arcade.Sprite {
   }
 
   receiveRemoteState(payload: TankMovedPayload) {
+		console.log(payload)
     this.pendingRemote = { x: payload.position.x, y: payload.position.y, angle: payload.rotation }
   }
 

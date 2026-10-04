@@ -31,7 +31,7 @@ services:
       ConnectionStrings__Default: >-
         Host=db;Port=5432;Database=${POSTGRES_DB:-tankit};
         Username=${POSTGRES_USER:-tankit};Password=${POSTGRES_PASSWORD:-tankit_dev}
-      FrontendOrigin: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      FrontendOrigin: ${FRONTEND_ORIGIN:-http://localhost:5173,http://localhost:3000}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     healthcheck:
