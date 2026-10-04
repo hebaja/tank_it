@@ -24,35 +24,64 @@ public class GameHub : Hub<IGameClient>
         else
             _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
 
+		var roomIds = _rooms.GetRoomIdsForConnection(Context.ConnectionId);
+
 		_rooms.TrackDisconnect(Context.ConnectionId);
+
+		foreach (var roomId in roomIds)
+		{
+			await Clients.OthersInGroup(roomId).PlayerLeft(new PlayerLeftDto
+			{
+				ConnectionId = Context.ConnectionId
+			});
+		}
+
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task<RoomJoinedDto> JoinRoom(string roomId)
+    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color)
     {
 		if (string.IsNullOrWhiteSpace(roomId))
 			throw new HubException("roomId is required");
+		if (string.IsNullOrWhiteSpace(color))
+			throw new HubException("color is required");
 
-        _logger.LogInformation("Client joined: {roomId}", roomId);
+        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId}", roomId, color, Context.ConnectionId);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-        _rooms.TrackJoin(roomId, Context.ConnectionId);
+        _rooms.TrackJoin(roomId, Context.ConnectionId, color);
 		_rooms.TrackRoomCreation(roomId);
 
 		var barrels = _rooms.GetOrCreateBarrels(roomId);
+		var players = _rooms.GetRoomPlayers(roomId);
+
+		await Clients.OthersInGroup(roomId).PlayerJoined(new PlayerJoinedDto
+		{
+			ConnectionId = Context.ConnectionId,
+			Color = color
+		});
 
 		return new RoomJoinedDto
 		{
 			RoomId = roomId,
 			RandomBarrelPositions = barrels,
-			RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId)
+			RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
+			Players = players
 		};
     }
 
     public async Task LeaveRoom(string roomId)
     {
+		if (string.IsNullOrWhiteSpace(roomId))
+			throw new HubException("roomId is required");
+
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
 		_rooms.TrackLeave(roomId, Context.ConnectionId);
+
+		await Clients.OthersInGroup(roomId).PlayerLeft(new PlayerLeftDto
+		{
+			ConnectionId = Context.ConnectionId
+		});
     }
 
     public async Task TankMove(TankMoveRequest request)
@@ -69,6 +98,16 @@ public class GameHub : Hub<IGameClient>
 
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
     }
+
+	public async Task StartGame(string roomId)
+	{
+		if (string.IsNullOrWhiteSpace(roomId))
+			throw new HubException("rommId is required");
+
+		 _logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
+
+		await Clients.Group(roomId).GameStarted(roomId);
+	}
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
     // TODO: OnDisconnectedAsync override -> mark player disconnected, start reconnection grace
