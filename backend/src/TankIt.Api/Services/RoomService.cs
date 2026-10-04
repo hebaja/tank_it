@@ -10,6 +10,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 	private readonly ConcurrentDictionary<string, BarrelPositionsDto[]> _barrelsByRoom = new();
 	private readonly ConcurrentDictionary<string, HashSet<string>> _members = new();
 	private readonly ConcurrentDictionary<string, long> _roomCreatedAt = new();
+	private readonly ConcurrentDictionary<string, PlayerInfo> _players = new ();
 
     public BarrelPositionsDto[] GetOrCreateBarrels(string roomId)
 	{
@@ -24,7 +25,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 	public bool TryGetBarrels(string roomId, out BarrelPositionsDto[]? barrels)
 		=> _barrelsByRoom.TryGetValue(roomId, out barrels);
 
-	public void TrackJoin(string roomId, string connectionId)
+	public void TrackJoin(string roomId, string connectionId, string color)
 	{
 		_members.AddOrUpdate(roomId, 
 			_ => [connectionId],
@@ -33,6 +34,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 				set.Add(connectionId);
 			return set; }
 		);
+		_players[connectionId] = new PlayerInfo { ConnectionId = connectionId, Color = color };
 	}
 
 	public void TrackLeave(string roomId, string connectionId)
@@ -51,6 +53,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 				}
 			}
 		}
+		_players.TryRemove(connectionId, out _);
 	}
 
 	public void TrackDisconnect(string connectionId)
@@ -67,5 +70,33 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 	public long GetRoomCreatedAt(string roomId)
 	{
 		return _roomCreatedAt.TryGetValue(roomId, out long createdAt) ? createdAt : 0;
+	}
+
+	public PlayerInfo[] GetRoomPlayers(string roomId)
+	{
+		if (!_members.TryGetValue(roomId, out var connections))
+			return [];
+
+		var players = new List<PlayerInfo>();
+		lock (connections)
+		{
+			foreach (var connId in connections)
+			{
+				if (_players.TryGetValue(connId, out var info))
+					players.Add(info);
+			}
+		}
+		return [.. players];
+	}
+
+	public string[] GetRoomIdsForConnection(string connectionId)
+	{
+		var rooms = new List<string>();
+		foreach (var kvp in _members)
+		{
+			if (kvp.Value.Contains(connectionId))
+				rooms.Add(kvp.Key);
+		}
+		return [.. rooms];
 	}
 }
