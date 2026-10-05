@@ -37,6 +37,30 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 		_players[connectionId] = new PlayerInfo { ConnectionId = connectionId, Color = color };
 	}
 
+	public void EvictRoom(string roomId, HashSet<string> connections)
+	{
+		_members.TryRemove(roomId, out _); // already empty, safe
+	    _barrelsByRoom.TryRemove(roomId, out _);
+		_roomCreatedAt.TryRemove(roomId, out _);
+
+	    foreach (var connId in connections)
+		    _players.TryRemove(connId, out _);
+
+	    _logger.LogInformation("Room {RoomId} evicted", roomId);
+	}
+
+	public bool TryEvictRoom(string roomId)
+	{
+		if (!_members.TryGetValue(roomId, out var set))
+			return false;
+
+		lock (set)
+		{
+			EvictRoom(roomId, set);
+		}
+		return true;
+	}
+
 	public void TrackLeave(string roomId, string connectionId)
 	{
 		if (_members.TryGetValue(roomId, out var set))
@@ -45,12 +69,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 			{
 				set.Remove(connectionId);
 				if (set.Count == 0)
-				{
-					_members.TryRemove(roomId, out _);
-					_barrelsByRoom.TryRemove(roomId, out _);
-					_roomCreatedAt.TryRemove(roomId, out _);
-					_logger.LogInformation("Room {RoomId} evicted (empty)", roomId);
-				}
+					EvictRoom(roomId, set);
 			}
 		}
 		_players.TryRemove(connectionId, out _);
