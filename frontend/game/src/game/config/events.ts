@@ -4,9 +4,9 @@ export const GameEvent = {
 	ExplosionSmoke: 'explosion_smoke',
 	TileDestroy: 'tileDestroy',
 	MatchEnd: 'match_end',
-  TankMove: 'tankMove',
-  TankMoved: 'tankMoved',
-  RoomJoined: 'roomJoined'
+	TankMove: 'tankMove',
+	TankMoved: 'tankMoved',
+	RoomJoined: 'roomJoined'
 }
 
 export type GameEventKey = typeof GameEvent[keyof typeof GameEvent]
