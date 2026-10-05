@@ -1,3 +1,5 @@
+import { Color } from "../game/config/color"
+
 export interface TankMovePayload {
   roomId: string
   playerId: string
@@ -24,4 +26,18 @@ export type TankMovedPayload = TankMovePayload
 export type BarrelPos = {
 	x: number,
 	y: number
+}
+
+
+export interface MatchEndPayload {
+	roomId: string
+	placements: MatchPlacement[]
+}
+
+// Same interface in file MatchMananger
+export type MatchPlacement = {
+	color: Color
+	points: number
+	place: number
+	timestamp: number
 }
