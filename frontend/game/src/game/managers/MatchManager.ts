@@ -66,11 +66,13 @@ export class MatchManager {
 			if (this.placements.length < 4) {
 				this.recordPlacement(winner)
 				this.scene.events.emit(GameEvent.MatchEnd, {
+					roomId: 'local-dev-room',
 					placements: this.placements,
 				})
 			}
 		} else if (tankCount === 0) {
 			this.scene.events.emit(GameEvent.MatchEnd, {
+				roomId: 'local-dev-room',
 				placements: this.placements,
 			})
 		}
