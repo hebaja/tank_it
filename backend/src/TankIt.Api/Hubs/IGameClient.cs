@@ -8,6 +8,7 @@ public interface IGameClient
 	Task PlayerJoined(PlayerJoinedDto payload);
 	Task PlayerLeft(PlayerLeftDto payload);
 	Task GameStarted(string roomId);
+	Task GameEnded(TankPlacementRequest payload);
 }
 
 

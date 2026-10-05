@@ -102,11 +102,25 @@ public class GameHub : Hub<IGameClient>
 	public async Task StartGame(string roomId)
 	{
 		if (string.IsNullOrWhiteSpace(roomId))
-			throw new HubException("rommId is required");
+			throw new HubException("roomId is required");
 
 		 _logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
 
 		await Clients.Group(roomId).GameStarted(roomId);
+	}
+
+	public async Task MatchEnd(TankPlacementRequest request)
+	{
+		if (string.IsNullOrWhiteSpace(request.RoomId))
+			throw new HubException("roomId is required");
+
+		_logger.LogInformation("Game ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
+
+		await Clients.OthersInGroup(request.RoomId).GameEnded(request);
+
+		// TODO This evicting room must not be called when championship is activated for example;
+		// TODO We have to check how to deal with this situation
+		//_rooms.TryEvictRoom(request.RoomId);
 	}
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
