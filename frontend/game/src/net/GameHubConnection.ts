@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr'
-import type { RoomJoinedPayload, TankMovePayload, TankMovedPayload } from './contracts'
+import type { MatchEndPayload, RoomJoinedPayload, TankMovePayload, TankMovedPayload } from './contracts'
 
 const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game'
 
@@ -32,6 +32,11 @@ export class GameHubConnection {
   sendTankMove(payload: TankMovePayload): void {
     if (this.conn.state !== signalR.HubConnectionState.Connected) return
     this.conn.send('TankMove', payload).catch(err => console.warn('[GameHubConnection] TankMove send failed', err))
+  }
+
+  sendMatchEnd(payload: MatchEndPayload): void {
+	if (this.conn.state !== signalR.HubConnectionState.Connected) return
+	this.conn.send('MatchEnd', payload).catch(err => console.warn('[GameHubConnectio] MatchEnd send failed', err))
   }
 
   onTankMoved(cb: (p: TankMovedPayload) => void): void { this.conn.on('TankMoved', cb) }
