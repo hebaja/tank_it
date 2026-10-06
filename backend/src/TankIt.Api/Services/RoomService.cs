@@ -20,7 +20,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 		});
 	}
 
-	public bool TryRemoveRoom(string roomId) => _barrelsByRoom.TryRemove(roomId, out _);
+	public bool TryRemoveBarrels(string roomId) => _barrelsByRoom.TryRemove(roomId, out _);
 
 	public bool TryGetBarrels(string roomId, out BarrelPositionsDto[]? barrels)
 		=> _barrelsByRoom.TryGetValue(roomId, out barrels);
@@ -55,9 +55,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 			return false;
 
 		lock (set)
-		{
 			EvictRoom(roomId, set);
-		}
 		return true;
 	}
 
