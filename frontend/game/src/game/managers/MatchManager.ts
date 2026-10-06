@@ -21,6 +21,7 @@ export class MatchManager {
 	private placements: MatchPlacement[] = []
 	private place: number = 3
 	private points: number = 0
+	private ended: boolean = false
 
 	constructor(scene: Scene) {
 		this.scene = scene
@@ -36,6 +37,7 @@ export class MatchManager {
 		this.place = 3
 		this.points = 0
 		this.placements = []
+		this.ended = false
 	}
 
 	destroy() {
@@ -62,15 +64,18 @@ export class MatchManager {
 	}
 
 	checkEnd(tankCount: number, winner: Tank | undefined) {
+		if (this.ended) return
 		if (tankCount === 1 && winner) {
 			if (this.placements.length < 4) {
 				this.recordPlacement(winner)
+				this.ended = true
 				this.scene.events.emit(GameEvent.MatchEnd, {
 					roomId: 'local-dev-room',
 					placements: this.placements,
 				})
 			}
 		} else if (tankCount === 0) {
+			this.ended = true
 			this.scene.events.emit(GameEvent.MatchEnd, {
 				roomId: 'local-dev-room',
 				placements: this.placements,
