@@ -32,8 +32,8 @@ export class LobbyHubConnection {
 		await this.conn.invoke('LeaveRoom', roomId);
 	}
 
-	async startGame(roomId: string): Promise<void> {
-		await this.conn.invoke('StartGame', roomId)
+	async startMatch(roomId: string): Promise<void> {
+		await this.conn.invoke('StartMatch', roomId)
 	}
 
 	onPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {
@@ -52,12 +52,12 @@ export class LobbyHubConnection {
 		this.conn.off('PlayerLeft', cb)
 	}
 
-	onGameStarted(cb: (p: GameStartedPayload) => void): void {
-		this.conn.on('GameStarted', cb)
+	onMatchStarted(cb: (p: GameStartedPayload) => void): void {
+		this.conn.on('MatchStarted', cb)
 	}
 
-	offGameStarted(cb: (p: GameStartedPayload) => void): void {
-		this.conn.off('GameStarted', cb)
+	offMatchStarted(cb: (p: GameStartedPayload) => void): void {
+		this.conn.off('MatchStarted', cb)
 	}
 
 	get state(): signalR.HubConnectionState {

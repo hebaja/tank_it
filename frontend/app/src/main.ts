@@ -77,7 +77,7 @@ async function joinRoom() {
         // Subscribe to live updates
         hub.onPlayerJoined(handlePlayerJoined)
         hub.onPlayerLeft(handlePlayerLeft)
-		hub.onGameStarted(handleGameStarted)
+		hub.onMatchStarted(handleMatchStarted)
 
         // UI switch
         joinForm.classList.add('hidden')
@@ -132,7 +132,7 @@ async function leaveRoom() {
     } finally {
         hub.offPlayerJoined(handlePlayerJoined)
         hub.offPlayerLeft(handlePlayerLeft)
-		hub.offGameStarted(handleGameStarted)
+		hub.offMatchStarted(handleMatchStarted)
         await hub.stop().catch(() => {})
         hub = null
         currentRoomId = ''
@@ -145,9 +145,9 @@ async function leaveRoom() {
     }
 }
 
-function startGame() {
+function startMatch() {
 	if (!currentRoomId || !currentColor || !hub) return
-	hub.startGame(currentRoomId).catch(err => {
+	hub.startMatch(currentRoomId).catch(err => {
 		console.error('[Lobby] startGame invoke failed:', err)
 		showError('Failed to start game')
 	})
@@ -161,21 +161,21 @@ function redirectToGame() {
 	if (hub) {
 		hub.offPlayerJoined(handlePlayerJoined)
 		hub.offPlayerLeft(handlePlayerLeft)
-		hub.offGameStarted(handleGameStarted)
+		hub.offMatchStarted(handleMatchStarted)
 		hub.stop().catch(() => {})
 		hub = null
 	}
 	window.location.href = url
 }
 
-function handleGameStarted(_payload: GameStartedPayload) {
+function handleMatchStarted(_payload: GameStartedPayload) {
 	redirectToGame()
 }
 
 // Event listeners
 joinBtn.addEventListener('click', joinRoom)
 leaveBtn.addEventListener('click', leaveRoom)
-startBtn.addEventListener('click', startGame)
+startBtn.addEventListener('click', startMatch)
 
 // Enter key in inputs triggers join
 roomIdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
