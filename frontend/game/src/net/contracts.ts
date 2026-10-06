@@ -28,16 +28,19 @@ export type BarrelPos = {
 	y: number
 }
 
-
 export interface MatchEndPayload {
 	roomId: string
 	placements: MatchPlacement[]
 }
 
-// Same interface in file MatchMananger
 export type MatchPlacement = {
 	color: Color
 	points: number
 	place: number
 	timestamp: number
+}
+
+export interface MatchStartedPayload {
+	roomId: string
+	randomBarrelPositions: BarrelPos[]
 }
