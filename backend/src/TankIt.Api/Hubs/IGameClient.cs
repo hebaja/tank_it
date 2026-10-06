@@ -7,7 +7,7 @@ public interface IGameClient
     Task TankMoved(TankMoveRequest payload);
 	Task PlayerJoined(PlayerJoinedDto payload);
 	Task PlayerLeft(PlayerLeftDto payload);
-	Task GameStarted(string roomId);
+	Task MatchStarted(MatchStartedDto payload);
 	Task GameEnded(TankPlacementRequest payload);
 }
 

@@ -99,14 +99,20 @@ public class GameHub : Hub<IGameClient>
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
     }
 
-	public async Task StartGame(string roomId)
+	public async Task StartMatch(string roomId)
 	{
 		if (string.IsNullOrWhiteSpace(roomId))
 			throw new HubException("roomId is required");
 
 		 _logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
 
-		await Clients.Group(roomId).GameStarted(roomId);
+		 var barrels = _rooms.GetOrCreateBarrels(roomId);
+
+		await Clients.Group(roomId).MatchStarted(new MatchStartedDto
+		{
+			RoomId = roomId,
+			RandomBarrelPositions = barrels
+		});
 	}
 
 	public async Task MatchEnd(TankPlacementRequest request)
