@@ -12,7 +12,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
            .UseSnakeCaseNamingConvention()); // keeps EF Core migrations aligned with
                                              // db/init/schema.sql's snake_case columns
-											 
+
 builder.Services.AddSingleton<MapService>();
 builder.Services.AddSingleton<RoomService>();
 
@@ -40,6 +40,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<GameHub>("/hubs/game");
+// liveness probe, no DB hit — real check is GET /api/health.
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.Run();
