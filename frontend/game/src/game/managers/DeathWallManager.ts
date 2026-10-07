@@ -2,108 +2,95 @@ import { Physics, Scene, Tilemaps } from "phaser"
 import { GAME_CONFIG } from "../config/game"
 import { GameEvent } from "../config/events"
 
+const DEATH_WALL_RINGS = 6 // must match DeathWallTimer.MaxStep on backend
+
 export class DeathWallManager {
 
 	private scene: Scene
-	private ringStart: number = 0
 	private ringEnd: number = 0
-	private step: number = 0
+	private step: number = -1
+	private destroyedIndex: number
 	private dangerLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
 	private effect: Phaser.Tweens.Tween[] = []
 	private destroyed: Set<Tilemaps.Tile> = new Set()
-	private deathWallTimer?: Phaser.Time.TimerEvent
-	private ringTimer?: Phaser.Time.TimerEvent
-	private delay: number = 0
 
-	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group, roomCreatedAt: number = 0) {
+	// initialStep: server step at join time (-1 = wall not started yet)
+	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group, initialStep: number = -1) {
 		this.scene = scene
-		const dangerTileset = map.addTilesetImage(
-			'main_tileset',
-			'main_tileset'
-		)
+		const dangerTileset = map.addTilesetImage('main_tileset','main_tileset')
 		if (!dangerTileset) throw new Error("Tileset not found")
-		this.dangerLayer = map.createLayer(
-			'danger_layer',
-			[dangerTileset]
-		).setDepth(GAME_CONFIG.depth.dangerLayer)
+		this.destroyedIndex = dangerTileset.firstgid + 45
+		this.dangerLayer = map.createLayer('danger_layer', [dangerTileset]).setDepth(GAME_CONFIG.depth.dangerLayer)
 		this.ringEnd = (this.dangerLayer.width / 64) - 1
 		this.dangerLayer.forEachTile((tile) => tile.setAlpha(0.0))
 
 		scene.physics.add.collider(this.dangerLayer, tankGroup)
 
-		this.delay = roomCreatedAt ? Math.max(
-			0, 
-			(roomCreatedAt + GAME_CONFIG.timing.deathWallStartTime - Date.now()))
-			: GAME_CONFIG.timing.deathWallStartTime
+		if (initialStep >= 0) this.catchUp(initialStep)
+	}
 
-		this.deathWallTimer = scene.time.delayedCall(this.delay, () => {
-			this.start()
-			this.ringTimer = scene.time.addEvent(({
-				delay: GAME_CONFIG.timing.deathWallRingInterval,
-				loop: true,
-				callback: () => {
-					
-					this.dangerLayer.forEachTile((tile) => {
-						if (!this.destroyed.has(tile)) tile.setAlpha(0.0)
-					})
-
-					this.effect.forEach((effect) => {
-						const tile = effect.targets[0] as Tilemaps.Tile
-
-						effect.stop()
-						effect.remove()
-						this.effect = this.effect.filter((e) => {
-							if (e === effect) return false })
-						
-						this.scene.events.emit(GameEvent.TileDestroy, tile)
-
-						scene.events.emit(GameEvent.Explosion, {
-							x: tile.pixelX + tile.width / 2,
-							y: tile.pixelY + tile.width / 2,
-							type: GameEvent.Explosion,
-							onComplete: () => {
-								tile.index = dangerTileset.firstgid + 45
-								tile.setCollision(true)
-								tile.setAlpha(1.0)
-								this.destroyed.add(tile)
-							}
-						})
-					})
-
-					this.step++
-					this.start()
-					if (this.step == 6)
-						this.stopTimers()
-				}
-			}))
-		})
+	// Called on each server DeathWallStep event.
+	applyStep(step: number): void {
+		if (step <= this.step) return // ignore duplicate/stale
+		this.explodeWarned()
+		this.step = step
+		if (step < DEATH_WALL_RINGS)
+			this.forEachRingTile(step, (tile) => this.triggerDangerEffect(tile))
 	}
 
 	destroy(): void {
-		this.stopTimers()
 		this.effect.forEach(e => { e.stop(); e.remove() })
 		this.effect = []
 	}
 
-	private stopTimers(): void {
-		this.deathWallTimer?.remove()
-		this.ringTimer?.remove()
-		this.deathWallTimer = undefined
-		this.ringTimer = undefined
+	// Late join: rings before `step` already exploded -> place walls silently.
+	private catchUp(step: number) {
+		for (let ring = 0; ring < Math.min(step, DEATH_WALL_RINGS); ring++)
+			this.forEachRingTile(ring, (tile) => this.markDestroyed(tile))
+		this.step = step
+		if (step < DEATH_WALL_RINGS)
+			this.forEachRingTile(step, (tile) => this.triggerDangerEffect(tile))
 	}
 
-	private start() {
-		this.dangerLayer.forEachTile((tile) => {
-			if ((tile.x == this.ringStart + this.step && tile.y >= this.step && tile.y <= this.ringEnd - this.step)
-			|| (tile.y == this.ringStart + this.step && tile.x >= this.step && tile.x <= this.ringEnd - this.step))
-				this.triggerDangerEffect(tile)
-			if ((tile.x == this.ringEnd - this.step && tile.y >= this.step && tile.y <= this.ringEnd - this.step)
-			|| tile.y == this.ringEnd - this.step && tile.x >= this.step && tile.x <= this.ringEnd - this.step)
-				this.triggerDangerEffect(tile)
+	private explodeWarned() {
+		const tweens = this.effect
+		this.effect = []
+		tweens.forEach((effect) => {
+			const tile = effect.targets[0] as Tilemaps.Tile
+			effect.stop()
+			effect.remove()
+			tile.setAlpha(0.0)
+
+			this.scene.events.emit(GameEvent.TileDestroy, tile)
+			this.scene.events.emit(GameEvent.Explosion, {
+				x: tile.pixelX + tile.width / 2,
+				y: tile.pixelY + tile.width / 2,
+				type: GameEvent.Explosion,
+				onComplete: () => this.markDestroyed(tile)
+			})
 		})
 	}
-	
-	private triggerDangerEffect(tile: Phaser.Tilemaps.Tile) {
+
+	private markDestroyed(tile: Tilemaps.Tile) {
+		tile.index = this.destroyedIndex
+		tile.setCollision(true)
+		tile.setAlpha(1.0)
+		this.destroyed.add(tile)
+	}
+
+	// Same selection as the old start(): border of square [ring, ringEnd - ring].
+	private forEachRingTile(ring: number, fn: (tile: Tilemaps.Tile) => void)
+	{
+		const min = ring
+		const max = this.ringEnd - ring
+		this.dangerLayer.forEachTile((tile) => {
+			const inside = tile.x >= min && tile.x <= max && tile.y >= min && tile.y <= max
+			const onEdge = tile.x === min || tile.x === max || tile.y === min || tile.y === max
+			if (inside && onEdge) fn(tile)
+		})
+	}
+
+	private triggerDangerEffect(tile: Tilemaps.Tile) {
 		if (this.destroyed.has(tile)) return
 		tile.setAlpha(0.5)
 		this.effect.push(this.scene.tweens.add({
