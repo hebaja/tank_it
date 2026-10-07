@@ -8,8 +8,10 @@ public class GameHub : Hub<IGameClient>
 {
     private readonly ILogger<GameHub> _logger;
 	private readonly RoomService _rooms;
+	private readonly DeathWallService _deathWall;
 
-    public GameHub(ILogger<GameHub> logger, RoomService rooms) => (_logger, _rooms) = (logger, rooms);
+    public GameHub(ILogger<GameHub> logger, RoomService rooms, DeathWallService deathWall) 
+		=> (_logger, _rooms, _deathWall) = (logger, rooms, deathWall);
 
     public override async Task OnConnectedAsync()
     {
@@ -51,6 +53,7 @@ public class GameHub : Hub<IGameClient>
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId, color);
 		_rooms.TrackRoomCreation(roomId);
+		_deathWall.EnsureStarted(roomId);
 
 		var barrels = _rooms.GetOrCreateBarrels(roomId);
 		var players = _rooms.GetRoomPlayers(roomId);
@@ -66,7 +69,8 @@ public class GameHub : Hub<IGameClient>
 			RoomId = roomId,
 			RandomBarrelPositions = barrels,
 			RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
-			Players = players
+			Players = players,
+			DeathWallStep = _deathWall.GetStep(roomId)
 		};
     }
 
@@ -104,9 +108,11 @@ public class GameHub : Hub<IGameClient>
 		if (string.IsNullOrWhiteSpace(roomId))
 			throw new HubException("roomId is required");
 
-		 _logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
+		_logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
 
-		 var barrels = _rooms.GetOrCreateBarrels(roomId);
+		var barrels = _rooms.GetOrCreateBarrels(roomId);
+
+		_deathWall.Restart(roomId);
 
 		await Clients.Group(roomId).MatchStarted(new MatchStartedDto
 		{
@@ -123,6 +129,8 @@ public class GameHub : Hub<IGameClient>
 		_logger.LogInformation("Game ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
 
 		await Clients.OthersInGroup(request.RoomId).GameEnded(request);
+
+		_deathWall.Stop(request.RoomId);
 
 		// TODO This evicting room must not be called when championship is activated for example;
 		// TODO We have to check how to deal with this situation
