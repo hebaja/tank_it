@@ -34,7 +34,5 @@ export const GAME_CONFIG = {
     oilSpawnDelay: 400,
     sparkLifetime: 100,
     matchEndOverlayDelay: 1000,
-    deathWallStartTime: 10000,
-    deathWallRingInterval: 8000,
   },
 }
