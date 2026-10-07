@@ -15,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddSingleton<MapService>();
 builder.Services.AddSingleton<RoomService>();
+builder.Services.AddSingleton<DeathWallService>();
 
 // Frontend dev server origin(s); tighten/parameterize per environment once
 // frontend/app's framework (and its dev port) is chosen.

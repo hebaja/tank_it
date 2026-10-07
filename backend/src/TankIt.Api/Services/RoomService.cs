@@ -3,7 +3,7 @@ namespace TankIt.Api.Services;
 using System.Collections.Concurrent;
 using TankIt.Api.Hubs.Dtos;
 
-public sealed class RoomService(MapService map, ILogger<RoomService> logger)
+public sealed class RoomService(MapService map, DeathWallService deathWall, ILogger<RoomService> logger)
 {
 	private readonly MapService _map = map;
 	private readonly ILogger<RoomService> _logger = logger;
@@ -11,6 +11,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 	private readonly ConcurrentDictionary<string, HashSet<string>> _members = new();
 	private readonly ConcurrentDictionary<string, long> _roomCreatedAt = new();
 	private readonly ConcurrentDictionary<string, PlayerInfo> _players = new ();
+	private readonly DeathWallService _deathWall = deathWall;
 
     public BarrelPositionsDto[] GetOrCreateBarrels(string roomId)
 	{
@@ -42,6 +43,7 @@ public sealed class RoomService(MapService map, ILogger<RoomService> logger)
 		_members.TryRemove(roomId, out _); // already empty, safe
 	    _barrelsByRoom.TryRemove(roomId, out _);
 		_roomCreatedAt.TryRemove(roomId, out _);
+		_deathWall.Stop(roomId);
 
 	    foreach (var connId in connections)
 		    _players.TryRemove(connId, out _);
