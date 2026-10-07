@@ -1,11 +1,12 @@
 # Tank It! — Game Core
 
 The Phaser 3 game engine code: tank movement/aiming, projectiles, destructible terrain, the
-ammo gauge, and (soon) the shrinking map and online sync. Built with Vite + TypeScript.
+ammo gauge, and (soon) the shrinking map and online sync. Built with Vite + TypeScript + React
+(single build: landing at `/`, game at `/play/:roomId`).
 
-This package is framework-agnostic — it mounts into a DOM element (`#game-container`) and is
-embedded as a component/route inside whichever SPA shell lives in `frontend/app/` (React,
-Angular, or Vue — TBD, see `frontend/app/README.md`).
+`StartGame()` in `src/game/main.ts` mounts the Phaser canvas into a DOM element and is
+rendered by the `Play` route (`src/pages/Play.tsx`), which passes the `roomId` route param
+as the session override.
 
 ## Requirements
 
@@ -24,9 +25,10 @@ Angular, or Vue — TBD, see `frontend/app/README.md`).
 
 | Path | Description |
 |------|-------------|
-| `index.html` | Standalone dev harness for the game canvas. |
+| `index.html` | SPA entry (`#root` → `src/main.tsx`). |
 | `public/assets` | Sprites, tilemaps, fonts. |
-| `src/main.ts` | Bootstraps the game into `#game-container`. |
+| `src/main.tsx` + `src/App.tsx` | React shell + routes (`/` landing, `/play/:roomId` game). |
+| `src/pages/Play.tsx` | Mounts the game into `#game-container`, destroys on unmount. |
 | `src/game/main.ts` | Phaser game config + entry point. |
 | `src/game/scenes` | Phaser scenes (`Game.ts` is the match scene). |
 | `src/game/objects` | `Tank`, `Projectile`, `Barrel`, `Oil`, `AmmoGauge`. |

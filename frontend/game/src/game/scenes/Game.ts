@@ -32,7 +32,7 @@ export class Game extends Scene {
   }
 
   preload() {
-    this.load.setPath('assets')
+    this.load.setPath('/assets')
     this.load.tilemapTiledJSON('level', 'map/tanks_map.json')
     this.load.image('main_tileset', 'map/main_tileset.png')
 

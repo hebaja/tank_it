@@ -7,7 +7,7 @@ export class Overlay extends Scene {
 	}
 
 	preload() {
-		this.load.setPath('assets')
+		this.load.setPath('/assets')
 		this.load.image('background', 'bars/button_background.png')
 	}
 

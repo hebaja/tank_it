@@ -28,7 +28,7 @@ const config: Types.Core.GameConfig = {
   ]
 }
 
-const StartGame = (parent: string, session: Partial<SessionConfig> = {}) => {
+const StartGame = (parent: string | HTMLElement, session: Partial<SessionConfig> = {}) => {
   configureSession(session)
   return new Game({ ...config, parent })
 }
