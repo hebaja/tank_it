@@ -43,4 +43,9 @@ app.MapHub<GameHub>("/hubs/game");
 // liveness probe, no DB hit — real check is GET /api/health.
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
+// Apply pending EF Core migrations on boot so a fresh `make up` yields a
+// working DB without manual steps (compose no longer mounts db/init).
+using (var scope = app.Services.CreateScope())
+    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+
 app.Run();

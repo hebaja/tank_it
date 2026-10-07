@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-tankit}
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
