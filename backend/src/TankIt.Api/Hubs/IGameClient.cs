@@ -9,6 +9,5 @@ public interface IGameClient
 	Task PlayerLeft(PlayerLeftDto payload);
 	Task MatchStarted(MatchStartedDto payload);
 	Task GameEnded(TankPlacementRequest payload);
+	Task DeathWallStep(DeathWallStepDto payload);
 }
-
-

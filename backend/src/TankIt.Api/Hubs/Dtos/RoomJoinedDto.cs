@@ -8,4 +8,5 @@ public sealed class RoomJoinedDto
 	public BarrelPositionsDto[] RandomBarrelPositions { get; init; } = [];
 	public long RoomCreatedAt { get; init; } = 0;
 	public PlayerInfo[] Players { get; init; } = [];
+	public int DeathWallStep { get; init; } = -1;
 }
