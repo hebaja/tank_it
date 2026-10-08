@@ -135,6 +135,18 @@ public class GameHub : Hub<IGameClient>
 		// TODO This evicting room must not be called when championship is activated for example;
 		// TODO We have to check how to deal with this situation
 		//_rooms.TryEvictRoom(request.RoomId);
+	public async Task BlockDestroy(BlockDestroyRequest request)
+	{
+        if (string.IsNullOrEmpty(request.RoomId))
+            throw new HubException("roomId is required");
+		_logger.LogInformation("Block destroyed in {RoomId} at position {Position.X}:{Positions.Y}, tile {X}:{Y}",
+			request.RoomId,
+			request.Position.X,
+			request.Position.Y,
+			request.TileX,
+			request.TileY);
+		
+		await Clients.OthersInGroup(request.RoomId).BlockDestroyed(request);
 	}
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
