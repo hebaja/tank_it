@@ -16,15 +16,22 @@ export interface PlayerInfo {
 
 export interface RoomJoinedPayload {
 	roomId: string
-	randomBarrelPositions: BarrelPos[]
 	roomCreatedAt: number
 	players: PlayerInfo[]
 	deathWallStep: number
+	randomBarrelPositions: Position[]
 }
 
 export type TankMovedPayload = TankMovePayload
 
-export type BarrelPos = {
+export interface BlockDestroyPayload {
+	roomId: string,
+	tileX: number,
+	tileY: number,
+	position: Position
+}
+
+export type Position = {
 	x: number,
 	y: number
 }
@@ -43,7 +50,7 @@ export type MatchPlacement = {
 
 export interface MatchStartedPayload {
 	roomId: string
-	randomBarrelPositions: BarrelPos[]
+	randomBarrelPositions: Position[]
 }
 
 export interface DeathWallStepPayload { 
