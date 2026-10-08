@@ -11,7 +11,7 @@ import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { BarrelPos, DeathWallStepPayload, RoomJoinedPayload, TankMovedPayload } from '../../net/contracts'
+import type { Position, BlockDestroyPayload, RoomJoinedPayload, TankMovedPayload, DeathWallStepPayload } from '../../net/contracts'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -25,8 +25,9 @@ export class Game extends Scene {
   private tankRoster: Map<string, Tank>
   private roomId: string
   private roomCreatedAt: number
-  private barrelPos: BarrelPos[] = []
+  private barrelPos: Position[] = []
   private map: Tilemaps.Tilemap
+  private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
   private isShuttinDown: boolean = false
   private matchStartedAt?: number
 
@@ -35,7 +36,7 @@ export class Game extends Scene {
   }
 
   init(data: { matchStartedAt?: number}) {
-	this.matchStartedAt = data?.matchStartedAt	
+	  this.matchStartedAt = data?.matchStartedAt	
   }
 
   preload() {
@@ -52,19 +53,19 @@ export class Game extends Scene {
   }
 
   create() {
-	this.isShuttinDown = false
-    const { map, blocksLayer, blocksHardLayer, tanksSpawnLayer } = this.createMap()
+    const { map, blocksHardLayer, tanksSpawnLayer } = this.createMap()
 	this.map = map
 	this.createGroups()
     this.initTanks(tanksSpawnLayer)
     this.createManagers()
-    this.createCollisions(blocksLayer, blocksHardLayer)
+    this.createCollisions(blocksHardLayer)
     this.registerSceneEvents()
 
     this.events.on(GameEvent.TankMoved, this.handleTankMoved, this)
 	this.events.on(GameEvent.RoomJoined, this.handleRoomJoined, this)
 	this.events.on(GameEvent.MatchStarted, this.handleMatchStarted, this)
 	this.events.on(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
+	this.events.on(GameEvent.BlockDestroyed, this.handleBlockDestroyed, this)
     this.networkManager = new NetworkManager(this)
   }
 
@@ -87,19 +88,19 @@ export class Game extends Scene {
       throw new Error("Tileset not found")
 
     const backgroundLayer = map.createLayer('background', [terrainTileset])
-    const blocksLayer = map.createLayer('blocks', [blocksTileset])
+    this.blocksLayer = map.createLayer('blocks', [blocksTileset])
     const blocksHardLayer = map.createLayer('blocks_hard', [blocksHardTileset])
 	const tanksSpawnLayer = map.getObjectLayer('tanks_spawn')
 
 
     backgroundLayer.depth = GAME_CONFIG.depth.background
-    blocksLayer.depth = GAME_CONFIG.depth.blocks
+    this.blocksLayer.depth = GAME_CONFIG.depth.blocks
     blocksHardLayer.depth = GAME_CONFIG.depth.blocks
 
-    blocksLayer.setCollisionByExclusion([-1])
+    this.blocksLayer.setCollisionByExclusion([-1])
     blocksHardLayer.setCollisionByExclusion([-1])
 
-    return { map, blocksLayer, blocksHardLayer, tanksSpawnLayer }
+    return { map, blocksHardLayer, tanksSpawnLayer }
   }
 
   private createManagers() {
@@ -126,38 +127,35 @@ export class Game extends Scene {
     this.tankGroup = this.physics.add.group()
   }
 
-  private createCollisions(
-    blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-    blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-  ) {
-    this.registerPassiveColliders(blocksLayer, blocksHardLayer)
-    this.registerActiveColliders(blocksLayer, blocksHardLayer)
+  private createCollisions(blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,) {
+    this.registerPassiveColliders(blocksHardLayer)
+    this.registerActiveColliders(blocksHardLayer)
   }
 
-  private registerPassiveColliders(
-    blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-    blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-  ) {
-    this.physics.add.collider(this.tankGroup, blocksLayer)
+  private registerPassiveColliders(blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer) {
+    this.physics.add.collider(this.tankGroup, this.blocksLayer)
     this.physics.add.collider(this.tankGroup, blocksHardLayer)
     this.physics.add.collider(this.tankGroup, this.tankGroup)
     this.physics.add.collider(this.tankGroup, this.barrelGroup)
   }
 
-  private registerActiveColliders(
-    blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-    blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,
-  ) {
-    this.physics.add.collider(this.projectileGroup, blocksLayer,
+  private registerActiveColliders(blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer) {
+    this.physics.add.collider(this.projectileGroup, this.blocksLayer,
       (p, b) => {
         const proj = p as Projectile
         const tile = b as Phaser.Tilemaps.Tile
-        this.events.emit(GameEvent.Explosion, {
-          x: tile.getCenterX(),
-          y: tile.getCenterY(),
-          type: 'explosion',
-        })
-        blocksLayer.removeTileAt(tile.x, tile.y)
+		
+		this.events.emit(GameEvent.BlockDestroy, {
+			roomId: sessionConfig.roomId,
+			tileX: tile.x,
+			tileY: tile.y,
+			position: {
+				x: tile.getCenterX(),
+				y: tile.getCenterY()
+			}
+		})
+
+		this.destroyBlock(tile.getCenterX(), tile.getCenterY(), tile.x, tile.y)
         proj.destroy()
       })
 
@@ -220,6 +218,15 @@ export class Game extends Scene {
       })
   }
 
+  private destroyBlock(x: number, y: number, tileX: number, tileY: number) {
+	this.events.emit(GameEvent.Explosion, {
+		x: x,
+		y: y,
+		type: 'explosion',
+	})
+	this.blocksLayer.removeTileAt(tileX, tileY)
+  }
+
   private registerSceneEvents() {
     this.events.once(Scenes.Events.SHUTDOWN, this.shutdown, this)
     // this.events.on
@@ -258,47 +265,50 @@ export class Game extends Scene {
     this.events.off(GameEvent.TileDestroy)
     this.networkManager.destroy()
     this.events.off(GameEvent.TankMoved, this.handleTankMoved, this)
-	this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this)
-	this.events.off(GameEvent.MatchStarted, this.handleMatchStarted, this)
-	this.events.off(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
+	  this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this)
+	  this.events.off(GameEvent.MatchStarted, this.handleMatchStarted, this)
+	  this.events.off(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
   }
 
   initTanks(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
     this.tankRoster = new Map()
 
-	tanksSpawnLayer?.objects.forEach(obj => {
-		const color = obj.properties.find((e: any) => e.name === 'type_color').value
-		const angle = obj.properties.find((e: any) => e.name === 'angle').value
-		const isLocal = color === sessionConfig.localColor
-		const tank = new Tank(this, obj.x ?? 0, obj.y ?? 0, angle, color, this.tankGroup, this.projectileGroup, isLocal)
-		this.tankRoster.set(color, tank)
-	})
+    tanksSpawnLayer?.objects.forEach(obj => {
+      const color = obj.properties.find((e: any) => e.name === 'type_color').value
+      const angle = obj.properties.find((e: any) => e.name === 'angle').value
+      const isLocal = color === sessionConfig.localColor
+      const tank = new Tank(this, obj.x ?? 0, obj.y ?? 0, angle, color, this.tankGroup, this.projectileGroup, isLocal)
+      this.tankRoster.set(color, tank)
+    })
   }
 
   private handleTankMoved = (payload: TankMovedPayload) =>
     this.tankRoster.get(payload.playerId)?.receiveRemoteState(payload)
 
-  private handleRoomJoined = (payload: RoomJoinedPayload) => {
-	this.roomId = payload.roomId
-	this.barrelPos = payload.randomBarrelPositions
-	this.roomCreatedAt = payload.roomCreatedAt
+    private handleRoomJoined = (payload: RoomJoinedPayload) => {
+    this.roomId = payload.roomId
+    this.barrelPos = payload.randomBarrelPositions
+    this.roomCreatedAt = payload.roomCreatedAt
 
-	console.log(payload)
+    console.log(payload)
 
-	if (this.map) {
-	  this.createBarrels(this.map)
-	  this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup, payload.deathWallStep)
-	}
+    if (this.map) {
+      this.createBarrels(this.map)
+      this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup, payload.deathWallStep)
+    }
   }
 
   private handleMatchStarted = (payload: { roomId: string; randomBarrelPositions: BarrelPos[] }) => {
-	if (this.isShuttinDown) return
+    if (this.isShuttinDown) return
 
-	this.isShuttinDown = true
-	this.scene.stop('Overlay')
-	this.scene.restart({ matchStartedAt: Date.now()})
-
+    this.isShuttinDown = true
+    this.scene.stop('Overlay')
+    this.scene.restart({ matchStartedAt: Date.now()})
   }
 
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.deathWallManager?.applyStep(p.step)
+
+  private handleBlockDestroyed = (payload: BlockDestroyPayload) => {
+	  this.destroyBlock(payload.position.x, payload.position.y, payload.tileX, payload.tileY)
+  }
 }
