@@ -31,7 +31,7 @@ services:
       ConnectionStrings__Default: >-
         Host=db;Port=5432;Database=${POSTGRES_DB:-tankit};
         Username=${POSTGRES_USER:-tankit};Password=${POSTGRES_PASSWORD:-tankit_dev}
-      FrontendOrigin: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      FrontendOrigin: ${FRONTEND_ORIGIN:-http://localhost:5173,http://localhost:3000}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     healthcheck:
@@ -69,6 +69,26 @@ services:
       - "${FRONTEND_PORT:-5173}:8080"
     depends_on:
       - backend
+
+  landing-dev:
+    profiles: ["dev"]
+    build:
+      context: ./frontend/app
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    volumes:
+      - ./frontend/app/src:/app/src
+      - ./frontend/app/index.html:/app/index.html
+      - ./frontend/app/vite.config.mjs:/app/vite.config.mjs
+      - ./frontend/app/tsconfig.json:/app/tsconfig.json
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_GAME_URL=http://localhost:5173
+    ports:
+      - "3000:3000"
+    depends_on:
+      - frontend-dev
 
   # frontend:
   #   Uncomment once frontend/app/ has a chosen framework + Dockerfile

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <title>Tank It! — Lobby</title>
+</head>
+
+<body>
+    <main class="landing">
+        <h1>Tank It!</h1>
+        <p class="subtitle">Enter a room ID, pick your tank color, then join.</p>
+
+        <!-- Pre-join form -->
+        <section id="join-form" class="join-form">
+            <div class="room-input">
+                <label for="room-id">Room ID:</label>
+                <input type="text" id="room-id" placeholder="local-dev-room" value="local-dev-room" />
+            </div>
+            <div class="color">
+                <label for="color">Tank Color:</label>
+                <select id="color" name="color">
+                    <option value="blue" selected>Blue</option>
+                    <option value="green">Green</option>
+                    <option value="red">Red</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+            <button id="join-btn" type="button">Join</button>
+        </section>
+
+        <!-- Post-join room box (hidden until joined) -->
+        <section id="room-box" class="room-box hidden">
+            <h2>Room: <span id="room-id-display"></span></h2>
+            <p class="hint">Waiting for players…</p>
+            <ul id="player-list" class="player-list"></ul>
+            <button id="start-btn" type="button" class="hidden">Start Game</button>
+            <button id="leave-btn" type="button">Leave</button>
+        </section>
+
+        <p id="error" class="error hidden"></p>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -4,7 +4,10 @@ using TankIt.Api.Hubs.Dtos;
 
 public interface IGameClient
 {
-    Task TankMoved(TankMoveRequest move);
+    Task TankMoved(TankMoveRequest payload);
+	Task PlayerJoined(PlayerJoinedDto payload);
+	Task PlayerLeft(PlayerLeftDto payload);
+	Task MatchStarted(MatchStartedDto payload);
+	Task GameEnded(TankPlacementRequest payload);
+	Task DeathWallStep(DeathWallStepDto payload);
 }
-
-

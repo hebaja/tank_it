@@ -1,4 +1,5 @@
 import { Scene } from "phaser"
+import { GameEvent } from "../config/events"
 
 export class Overlay extends Scene {
 
@@ -42,8 +43,8 @@ export class Overlay extends Scene {
 		container.on('pointerdown', () => {
 			text.setScale(1)
 			container.setScale(btn_scale)
-			this.scene.start('Game')
-			this.scene.stop()
+			this.scene.get('Game').events.emit(GameEvent.MatchRestartRequested)
+			container.disableInteractive()
 		})
 		container.on('pointerup', () => {
 			text.setScale(1.01)
