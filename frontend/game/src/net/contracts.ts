@@ -53,7 +53,12 @@ export interface MatchStartedPayload {
 	randomBarrelPositions: Position[]
 }
 
-export interface DeathWallStepPayload { 
-	roomId: string; 
-	step: number;
+export interface DeathWallStepPayload {
+	roomId: string
+	step: number
+}
+
+export interface BarrelDestroyPaylod {
+	roomId: string
+	index: number
 }

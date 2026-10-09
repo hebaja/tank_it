@@ -183,10 +183,15 @@ export class Game extends Scene {
           type: 'explosion',
         })
         proj.destroy()
+
+
         barrel.destroy()
         this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
           this.speedSystem.addOil(bx, by)
         })
+
+
+
       })
 
     this.physics.add.collider(this.projectileGroup, this.tankGroup,
