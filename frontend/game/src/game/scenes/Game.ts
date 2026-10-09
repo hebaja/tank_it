@@ -28,6 +28,7 @@ export class Game extends Scene {
   private barrelPos: Position[] = []
   private map: Tilemaps.Tilemap
   private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
+  private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
   private isShuttinDown: boolean = false
   private matchStartedAt?: number
 
@@ -53,12 +54,12 @@ export class Game extends Scene {
   }
 
   create() {
-    const { map, blocksHardLayer, tanksSpawnLayer } = this.createMap()
+    const { map, tanksSpawnLayer } = this.createMap()
 	this.map = map
 	this.createGroups()
     this.initTanks(tanksSpawnLayer)
     this.createManagers()
-    this.createCollisions(blocksHardLayer)
+    this.createCollisions()
     this.registerSceneEvents()
 
     this.events.on(GameEvent.TankMoved, this.handleTankMoved, this)
@@ -89,18 +90,18 @@ export class Game extends Scene {
 
     const backgroundLayer = map.createLayer('background', [terrainTileset])
     this.blocksLayer = map.createLayer('blocks', [blocksTileset])
-    const blocksHardLayer = map.createLayer('blocks_hard', [blocksHardTileset])
+    this.blocksHardLayer = map.createLayer('blocks_hard', [blocksHardTileset])
 	const tanksSpawnLayer = map.getObjectLayer('tanks_spawn')
 
 
     backgroundLayer.depth = GAME_CONFIG.depth.background
     this.blocksLayer.depth = GAME_CONFIG.depth.blocks
-    blocksHardLayer.depth = GAME_CONFIG.depth.blocks
+    this.blocksHardLayer.depth = GAME_CONFIG.depth.blocks
 
     this.blocksLayer.setCollisionByExclusion([-1])
-    blocksHardLayer.setCollisionByExclusion([-1])
+    this.blocksHardLayer.setCollisionByExclusion([-1])
 
-    return { map, blocksHardLayer, tanksSpawnLayer }
+    return { map, tanksSpawnLayer }
   }
 
   private createManagers() {
@@ -127,19 +128,19 @@ export class Game extends Scene {
     this.tankGroup = this.physics.add.group()
   }
 
-  private createCollisions(blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer,) {
-    this.registerPassiveColliders(blocksHardLayer)
-    this.registerActiveColliders(blocksHardLayer)
+  private createCollisions() {
+    this.registerPassiveColliders()
+    this.registerActiveColliders()
   }
 
-  private registerPassiveColliders(blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer) {
+  private registerPassiveColliders() {
     this.physics.add.collider(this.tankGroup, this.blocksLayer)
-    this.physics.add.collider(this.tankGroup, blocksHardLayer)
+    this.physics.add.collider(this.tankGroup, this.blocksHardLayer)
     this.physics.add.collider(this.tankGroup, this.tankGroup)
     this.physics.add.collider(this.tankGroup, this.barrelGroup)
   }
 
-  private registerActiveColliders(blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer) {
+  private registerActiveColliders() {
     this.physics.add.collider(this.projectileGroup, this.blocksLayer,
       (p, b) => {
         const proj = p as Projectile
@@ -159,7 +160,7 @@ export class Game extends Scene {
         proj.destroy()
       })
 
-    this.physics.add.collider(this.projectileGroup, blocksHardLayer,
+    this.physics.add.collider(this.projectileGroup, this.blocksHardLayer,
       (p) => {
         const proj = p as Projectile
         this.events.emit(GameEvent.ExplosionSmoke, {
