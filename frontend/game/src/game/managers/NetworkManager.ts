@@ -23,6 +23,7 @@ export class NetworkManager {
     this.hub.onTankMoved(this.handleTankMoved)
 	this.hub.onMatchStarted(this.handleMatchStarted)
 	this.hub.onDeathWallStep(this.handleDeathWallStep)
+	this.hub.onBarrelDestroyed(this.handleBarrelDestroyed)
     this.scene.events.on(GameEvent.TankMove, this.handleLocalTankMove, this)
 	this.scene.events.on(GameEvent.MatchEnd, this.handleMatchEnd, this)
 	this.scene.events.on(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
@@ -46,6 +47,7 @@ export class NetworkManager {
   private handleRestartRequested = () => { this.hub.sendStartMatch(sessionConfig.roomId)}
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.scene.events.emit(GameEvent.DeathWallStep, p)
   private handleBarrelDestroy = (payload: BarrelDestroyPaylod) => this.hub.sendBarrelDestroy(payload)
+  private handleBarrelDestroyed = (payload: BarrelDestroyPaylod) => this.scene.events.emit(GameEvent.BarrelDestroyed, payload)
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)
@@ -55,6 +57,7 @@ export class NetworkManager {
     this.hub.offTankMoved(this.handleTankMoved)
     this.hub.offMatchStarted(this.handleMatchStarted)
 	this.hub.offDeathWallStep(this.handleDeathWallStep)
+	this.hub.offBarrelDestroyed(this.handleBarrelDestroyed)
     this.hub.leaveRoom(sessionConfig.roomId).catch(() => { })
     this.hub.stop().catch(() => { })
   }
