@@ -190,14 +190,8 @@ export class Game extends Scene {
         const proj = p as Projectile
         const tank = t as Tank
         if (proj.owner === tank) return
-        this.events.emit(GameEvent.Explosion, {
-          x: tank.x,
-          y: tank.y,
-          type: 'explosion',
-        })
-        this.matchManager.recordPlacement(tank)
         proj.destroy()
-        tank.destroy()
+		this.destroyTank(tank)
       })
 
     this.physics.add.collider(this.projectileGroup, this.projectileGroup,
@@ -234,6 +228,16 @@ export class Game extends Scene {
 	this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
 		this.speedSystem.addOil(barrel.x, barrel.y)
 	})
+  }
+
+  private destroyTank(tank: Tank) {
+	tank.destroy()
+	this.events.emit(GameEvent.Explosion, {
+		x: tank.x,
+		y: tank.y,
+		type: 'explosion',
+	})
+	this.matchManager.recordPlacement(tank)
   }
 
   private registerSceneEvents() {
