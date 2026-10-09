@@ -11,7 +11,7 @@ import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { BarrelPos, DeathWallStepPayload, RoomJoinedPayload, TankMovedPayload } from '../../net/contracts'
+import type { BarrelPos, DeathWallStepPayload, RoomJoinedPayload, TankDestroyPayload, TankMovedPayload } from '../../net/contracts'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -65,6 +65,7 @@ export class Game extends Scene {
 	this.events.on(GameEvent.RoomJoined, this.handleRoomJoined, this)
 	this.events.on(GameEvent.MatchStarted, this.handleMatchStarted, this)
 	this.events.on(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
+	this.events.on(GameEvent.TankDestroyed, this.handleTankDestroyed, this)
     this.networkManager = new NetworkManager(this)
   }
 
@@ -311,4 +312,12 @@ export class Game extends Scene {
   }
 
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.deathWallManager?.applyStep(p.step)
+
+  private handleTankDestroyed = (payload: TankDestroyPayload) => {
+	const tank = this.tankGroup
+	  .getChildren()
+	  .find(c => (c as Tank).getColor() === payload.color) as Tank | undefined
+	  if (!tank) return
+	  this.destroyTank(tank)
+  }
 }

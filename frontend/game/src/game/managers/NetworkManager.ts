@@ -3,6 +3,7 @@ import { GameHubConnection } from '../../net/GameHubConnection'
 import { GameEvent } from '../config/events'
 import { sessionConfig } from '../../net/sessionConfig'
 import type { DeathWallStepPayload, MatchEndPayload, MatchStartedPayload, RoomJoinedPayload, TankDestroyPayload, TankMovePayload, TankMovedPayload } from '../../net/contracts'
+import { Tank } from '../objects/Tank'
 
 export class NetworkManager {
   private scene: Scene
@@ -15,6 +16,7 @@ export class NetworkManager {
     this.hub.onTankMoved(this.handleTankMoved)
 	this.hub.onMatchStarted(this.handleMatchStarted)
 	this.hub.onDeathWallStep(this.handleDeathWallStep)
+	this.hub.onTankDestroyed(this.handleTankDestroyed)
     this.scene.events.on(GameEvent.TankMove, this.handleLocalTankMove, this)
 	this.scene.events.on(GameEvent.MatchEnd, this.handleMatchEnd, this)
 	this.scene.events.on(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
@@ -38,14 +40,17 @@ export class NetworkManager {
   private handleRestartRequested = () => { this.hub.sendStartMatch(sessionConfig.roomId)}
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.scene.events.emit(GameEvent.DeathWallStep, p)
   private handleTankDestroy = (payload: TankDestroyPayload) => this.hub.sendTankDestroy(payload)
+  private handleTankDestroyed = (payload: TankDestroyPayload) => this.scene.events.emit(GameEvent.TankDestroyed, payload) 
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)
     this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this)
-    this.scene.events.off(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)  // NEW
+    this.scene.events.off(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
+	this.scene.events.off(GameEvent.TankDestroy, this.handleTankDestroy, this)
     this.hub.offTankMoved(this.handleTankMoved)
     this.hub.offMatchStarted(this.handleMatchStarted)
 	this.hub.offDeathWallStep(this.handleDeathWallStep)
+	this.hub.offTankDestroyed(this.handleTankDestroyed)
     this.hub.leaveRoom(sessionConfig.roomId).catch(() => { })
     this.hub.stop().catch(() => { })
   }
