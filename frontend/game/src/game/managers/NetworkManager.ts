@@ -50,12 +50,13 @@ export class NetworkManager {
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.scene.events.emit(GameEvent.DeathWallStep, p)
   private handleBlockDestroy = (payload: BlockDestroyPayload) => this.hub.sendBlockDestroy(payload)
   private handleBlockDestroyed = (payload: BlockDestroyPayload) => this.scene.events.emit(GameEvent.BlockDestroyed, payload)
-  private handleBarrelDestroy = (p: BarrelDestroyPaylod) => this.scene.events.emit(GameEvent.BarrelDestroy, p)
+  private handleBarrelDestroy = (payload: BarrelDestroyPaylod) => this.hub.sendBarrelDestroy(payload)
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)
     this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this)
     this.scene.events.off(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
+    this.scene.events.off(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
     this.hub.offTankMoved(this.handleTankMoved)
     this.hub.offMatchStarted(this.handleMatchStarted)
 	this.hub.offDeathWallStep(this.handleDeathWallStep)
