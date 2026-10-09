@@ -144,8 +144,7 @@ public class GameHub : Hub<IGameClient>
 
 		_logger.LogInformation("Barrel destroy in room {RoomId} at index {Index}", request.RoomId, request.Index);
 
-		
-
+		await Clients.OthersInGroup(request.RoomId).BarrelDestroyed(request);		
 	}
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
