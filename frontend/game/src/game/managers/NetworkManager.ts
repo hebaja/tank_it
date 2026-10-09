@@ -3,7 +3,7 @@ import { GameHubConnection } from '../../net/GameHubConnection'
 import { GameEvent } from '../config/events'
 import { sessionConfig } from '../../net/sessionConfig'
 import type { 
-	BarrelDestroyPaylod,
+	BarrelDestroyPayload,
 	BlockDestroyPayload,
 	DeathWallStepPayload,
 	MatchEndPayload,
@@ -51,8 +51,8 @@ export class NetworkManager {
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.scene.events.emit(GameEvent.DeathWallStep, p)
   private handleBlockDestroy = (payload: BlockDestroyPayload) => this.hub.sendBlockDestroy(payload)
   private handleBlockDestroyed = (payload: BlockDestroyPayload) => this.scene.events.emit(GameEvent.BlockDestroyed, payload)
-  private handleBarrelDestroy = (payload: BarrelDestroyPaylod) => this.hub.sendBarrelDestroy(payload)
-  private handleBarrelDestroyed = (payload: BarrelDestroyPaylod) => this.scene.events.emit(GameEvent.BarrelDestroyed, payload)
+  private handleBarrelDestroy = (payload: BarrelDestroyPayload) => this.hub.sendBarrelDestroy(payload)
+  private handleBarrelDestroyed = (payload: BarrelDestroyPayload) => this.scene.events.emit(GameEvent.BarrelDestroyed, payload)
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)

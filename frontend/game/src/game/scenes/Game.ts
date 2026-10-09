@@ -11,7 +11,7 @@ import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { Position, BlockDestroyPayload, RoomJoinedPayload, TankMovedPayload, DeathWallStepPayload } from '../../net/contracts'
+import type { Position, BlockDestroyPayload, RoomJoinedPayload, TankMovedPayload, DeathWallStepPayload, BarrelDestroyPayload } from '../../net/contracts'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -67,6 +67,7 @@ export class Game extends Scene {
 	this.events.on(GameEvent.MatchStarted, this.handleMatchStarted, this)
 	this.events.on(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
 	this.events.on(GameEvent.BlockDestroyed, this.handleBlockDestroyed, this)
+	this.events.on(GameEvent.BarrelDestroyed, this.handleBarrelDestroyed, this)
     this.networkManager = new NetworkManager(this)
   }
 
@@ -175,24 +176,13 @@ export class Game extends Scene {
       (p, b) => {
         const proj = p as Projectile
         const barrel = b as Barrel
-        const bx = barrel.x
-        const by = barrel.y
-        this.events.emit(GameEvent.Explosion, {
-          x: bx,
-          y: by,
-          type: 'explosion',
-        })
-        proj.destroy()
 
 		this.events.emit(GameEvent.BarrelDestroy, {
 			roomId: sessionConfig.roomId,
 			index: barrel.getIndex()
 		})
-
-        barrel.destroy()
-        this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
-          this.speedSystem.addOil(bx, by)
-        })
+		this.destroyBarrel(barrel)
+        proj.destroy()
       })
 
     this.physics.add.collider(this.projectileGroup, this.tankGroup,
@@ -227,11 +217,23 @@ export class Game extends Scene {
 
   private destroyBlock(x: number, y: number, tileX: number, tileY: number) {
 	this.events.emit(GameEvent.Explosion, {
-		x: x,
-		y: y,
-		type: 'explosion',
+	  x: x,
+	  y: y,
+	  type: 'explosion',
 	})
 	this.blocksLayer.removeTileAt(tileX, tileY)
+  }
+
+  private destroyBarrel(barrel: Barrel) {
+	this.events.emit(GameEvent.Explosion, {
+		x: barrel.x,
+		y: barrel.y,
+		type: 'explosion',
+	})
+	barrel.destroy()
+	this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
+		this.speedSystem.addOil(barrel.x, barrel.y)
+	})
   }
 
   private registerSceneEvents() {
@@ -305,7 +307,7 @@ export class Game extends Scene {
     }
   }
 
-  private handleMatchStarted = (payload: { roomId: string; randomBarrelPositions: BarrelPos[] }) => {
+  private handleMatchStarted = (payload: { roomId: string; randomBarrelPositions: Position[] }) => {
     if (this.isShuttinDown) return
 
     this.isShuttinDown = true
@@ -317,5 +319,13 @@ export class Game extends Scene {
 
   private handleBlockDestroyed = (payload: BlockDestroyPayload) => {
 	  this.destroyBlock(payload.position.x, payload.position.y, payload.tileX, payload.tileY)
+  }
+
+  private handleBarrelDestroyed = (payload: BarrelDestroyPayload) => {
+	const barrel = this.barrelGroup
+	  .getChildren()
+	  .find(c => (c as Barrel).getIndex() === payload.index) as Barrel | undefined
+	if (!barrel) return
+    this.destroyBarrel(barrel)
   }
 }

@@ -58,7 +58,7 @@ export interface DeathWallStepPayload {
 	step: number
 }
 
-export interface BarrelDestroyPaylod {
+export interface BarrelDestroyPayload {
 	roomId: string
 	index: number
 }
