@@ -191,6 +191,12 @@ export class Game extends Scene {
         const tank = t as Tank
         if (proj.owner === tank) return
         proj.destroy()
+		this.events.emit(GameEvent.TankDestroy, {
+		  roomId: sessionConfig.roomId,
+		  color: tank.getColor(),
+		  x: tank.x,
+		  y: tank.y
+		})
 		this.destroyTank(tank)
       })
 

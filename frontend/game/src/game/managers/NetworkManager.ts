@@ -9,6 +9,7 @@ import type {
 	MatchEndPayload,
 	MatchStartedPayload,
 	RoomJoinedPayload,
+	TankDestroyPayload,
 	TankMovePayload,
 	TankMovedPayload 
 } from '../../net/contracts'
@@ -31,6 +32,7 @@ export class NetworkManager {
 	this.scene.events.on(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
 	this.scene.events.on(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
 	this.scene.events.on(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
+	this.scene.events.on(GameEvent.TankDestroy, this.handleTankDestroy, this)
     this.ready = this.hub.start()
 	  .then(() => this.hub.joinRoom(sessionConfig.roomId, sessionConfig.localColor))
 	  .then(dto => {
@@ -53,6 +55,7 @@ export class NetworkManager {
   private handleBlockDestroyed = (payload: BlockDestroyPayload) => this.scene.events.emit(GameEvent.BlockDestroyed, payload)
   private handleBarrelDestroy = (payload: BarrelDestroyPayload) => this.hub.sendBarrelDestroy(payload)
   private handleBarrelDestroyed = (payload: BarrelDestroyPayload) => this.scene.events.emit(GameEvent.BarrelDestroyed, payload)
+  private handleTankDestroy = (payload: TankDestroyPayload) => this.hub.sendTankDestroy(payload)
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)
