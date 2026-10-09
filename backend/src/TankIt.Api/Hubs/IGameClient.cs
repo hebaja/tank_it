@@ -10,6 +10,5 @@ public interface IGameClient
 	Task MatchStarted(MatchStartedDto payload);
 	Task GameEnded(TankPlacementRequest payload);
 	Task DeathWallStep(DeathWallStepDto payload);
-    Task TankMoved(TankMoveRequest move);
     Task BlockDestroyed(BlockDestroyRequest destroy);
 }

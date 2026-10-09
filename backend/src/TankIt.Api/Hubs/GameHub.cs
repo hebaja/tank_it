@@ -135,6 +135,8 @@ public class GameHub : Hub<IGameClient>
 		// TODO This evicting room must not be called when championship is activated for example;
 		// TODO We have to check how to deal with this situation
 		//_rooms.TryEvictRoom(request.RoomId);
+	}
+
 	public async Task BlockDestroy(BlockDestroyRequest request)
 	{
         if (string.IsNullOrEmpty(request.RoomId))
