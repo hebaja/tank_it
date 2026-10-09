@@ -44,9 +44,9 @@ export class GameHubConnection {
 	this.conn.send('StartMatch', roomId).catch(err => console.warn('[GameHubConnection] StartMatch send failed', err))
   }
 
-  sendBlockDestroy(payload: BarrelDestroyPaylod): void {
+  sendBarrelDestroy(payload: BarrelDestroyPaylod): void {
     if (this.conn.state !== signalR.HubConnectionState.Connected) return
-	this.conn.send('DestroyBarrel', payload).catch(err => console.warn('[GameHubConnection] DestroyBarrel send failed', err))
+	this.conn.send('BarrelDestroy', payload).catch(err => console.warn('[GameHubConnection] BarrelDestroy send failed', err))
   }
 
   onTankMoved(cb: (p: TankMovedPayload) => void): void { this.conn.on('TankMoved', cb) }

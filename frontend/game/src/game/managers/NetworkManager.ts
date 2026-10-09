@@ -45,7 +45,7 @@ export class NetworkManager {
   private handleMatchStarted = (payload: MatchStartedPayload) => this.scene.events.emit(GameEvent.MatchStarted, payload)
   private handleRestartRequested = () => { this.hub.sendStartMatch(sessionConfig.roomId)}
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.scene.events.emit(GameEvent.DeathWallStep, p)
-  private handleBarrelDestroy = (payload: BarrelDestroyPaylod) => this.hub.sendBlockDestroy(payload)
+  private handleBarrelDestroy = (payload: BarrelDestroyPaylod) => this.hub.sendBarrelDestroy(payload)
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)
