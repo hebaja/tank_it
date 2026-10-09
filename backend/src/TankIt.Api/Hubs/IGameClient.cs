@@ -11,4 +11,5 @@ public interface IGameClient
 	Task GameEnded(TankPlacementRequest payload);
 	Task DeathWallStep(DeathWallStepDto payload);
     Task BlockDestroyed(BlockDestroyRequest destroy);
+	Task BarrelDestroyed(BarrelDestroyRequest payload);
 }
