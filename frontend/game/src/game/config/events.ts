@@ -14,7 +14,8 @@ export const GameEvent = {
 	BlockDestroyed: 'block_destroyed',
 	BarrelDestroy: 'barrel_destroy',
 	BarrelDestroyed: 'barrel_destroyed',
-	TankDestroy: 'tank_destroy'
+	TankDestroy: 'tank_destroy',
+	TankDestroyed: 'tank_destroyed'
 }
 
 export type GameEventKey = typeof GameEvent[keyof typeof GameEvent]

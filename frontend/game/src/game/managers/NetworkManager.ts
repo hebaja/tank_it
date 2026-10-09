@@ -27,6 +27,7 @@ export class NetworkManager {
 	this.hub.onDeathWallStep(this.handleDeathWallStep)
 	this.hub.onBlockDestroyed(this.handleBlockDestroyed)
 	this.hub.onBarrelDestroyed(this.handleBarrelDestroyed)
+	this.hub.onTankDestroyed(this.handleTankDestroyed)
     this.scene.events.on(GameEvent.TankMove, this.handleLocalTankMove, this)
 	this.scene.events.on(GameEvent.MatchEnd, this.handleMatchEnd, this)
 	this.scene.events.on(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
@@ -56,16 +57,19 @@ export class NetworkManager {
   private handleBarrelDestroy = (payload: BarrelDestroyPayload) => this.hub.sendBarrelDestroy(payload)
   private handleBarrelDestroyed = (payload: BarrelDestroyPayload) => this.scene.events.emit(GameEvent.BarrelDestroyed, payload)
   private handleTankDestroy = (payload: TankDestroyPayload) => this.hub.sendTankDestroy(payload)
+  private handleTankDestroyed = (payload: TankDestroyPayload) => this.scene.events.emit(GameEvent.TankDestroyed, payload) 
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)
     this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this)
     this.scene.events.off(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
     this.scene.events.off(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
+	this.scene.events.off(GameEvent.TankDestroy, this.handleTankDestroy, this)
     this.hub.offTankMoved(this.handleTankMoved)
     this.hub.offMatchStarted(this.handleMatchStarted)
 	this.hub.offDeathWallStep(this.handleDeathWallStep)
 	this.hub.offBarrelDestroyed(this.handleBarrelDestroyed)
+	this.hub.offTankDestroyed(this.handleTankDestroyed)
     this.hub.leaveRoom(sessionConfig.roomId).catch(() => { })
     this.hub.stop().catch(() => { })
   }
