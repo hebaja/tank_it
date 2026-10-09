@@ -184,6 +184,10 @@ export class Game extends Scene {
         })
         proj.destroy()
 
+		this.events.emit(GameEvent.BarrelDestroy, {
+			roomId: sessionConfig.roomId,
+			index: barrel.getIndex()
+		})
 
         barrel.destroy()
         this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
