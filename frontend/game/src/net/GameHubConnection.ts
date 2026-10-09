@@ -62,6 +62,8 @@ export class GameHubConnection {
   offDeathWallStep(cb: (p: DeathWallStepPayload) => void): void { this.conn.off('DeathWallStep', cb) }
   onBlockDestroyed(cb: (p: BlockDestroyPayload) => void): void { this.conn.on('BlockDestroyed', cb) }
   offBlockDestroyed(cb: (p: BlockDestroyPayload) => void): void { this.conn.off('BlockDestroyed', cb) }
+  onBarrelDestroyed(cb: (p: BarrelDestroyPaylod) => void): void { this.conn.on('BarrelDestroyed', cb) }
+  offBarrelDestroyed(cb: (p: BarrelDestroyPaylod) => void): void { this.conn.off('BarrelDestroyed', cb) }
 
   get state(): signalR.HubConnectionState { return this.conn.state }
 }

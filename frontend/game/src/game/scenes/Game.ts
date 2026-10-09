@@ -193,9 +193,6 @@ export class Game extends Scene {
         this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
           this.speedSystem.addOil(bx, by)
         })
-
-
-
       })
 
     this.physics.add.collider(this.projectileGroup, this.tankGroup,
