@@ -143,7 +143,7 @@ public class GameHub : Hub<IGameClient>
 			throw new HubException("roomId is required");
 
 		_logger.LogInformation("Tank destroyed: Color {Color}", request.Color);
-
+		await Clients.OthersInGroup(request.RoomId).TankDestroyed(request);
 	}
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
