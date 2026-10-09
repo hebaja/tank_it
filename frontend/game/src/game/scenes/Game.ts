@@ -11,7 +11,7 @@ import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { BarrelPos, DeathWallStepPayload, RoomJoinedPayload, TankMovedPayload } from '../../net/contracts'
+import type { BarrelDestroyPaylod, BarrelPos, DeathWallStepPayload, RoomJoinedPayload, TankMovedPayload } from '../../net/contracts'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -65,6 +65,7 @@ export class Game extends Scene {
 	this.events.on(GameEvent.RoomJoined, this.handleRoomJoined, this)
 	this.events.on(GameEvent.MatchStarted, this.handleMatchStarted, this)
 	this.events.on(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
+	this.events.on(GameEvent.BarrelDestroyed, this.handleBarrelDestroyed, this)
     this.networkManager = new NetworkManager(this)
   }
 
@@ -176,24 +177,13 @@ export class Game extends Scene {
       (p, b) => {
         const proj = p as Projectile
         const barrel = b as Barrel
-        const bx = barrel.x
-        const by = barrel.y
-        this.events.emit(GameEvent.Explosion, {
-          x: bx,
-          y: by,
-          type: 'explosion',
-        })
-        proj.destroy()
 
 		this.events.emit(GameEvent.BarrelDestroy, {
 			roomId: sessionConfig.roomId,
 			index: barrel.getIndex()
 		})
-
-        barrel.destroy()
-        this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
-          this.speedSystem.addOil(bx, by)
-        })
+		this.destroyBarrel(barrel)
+        proj.destroy()
       })
 
     this.physics.add.collider(this.projectileGroup, this.tankGroup,
@@ -224,6 +214,18 @@ export class Game extends Scene {
         proj1.destroy()
         proj2.destroy()
       })
+  }
+
+  private destroyBarrel(barrel: Barrel) {
+	this.events.emit(GameEvent.Explosion, {
+		x: barrel.x,
+		y: barrel.y,
+		type: 'explosion',
+	})
+	barrel.destroy()
+	this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
+		this.speedSystem.addOil(barrel.x, barrel.y)
+	})
   }
 
   private registerSceneEvents() {
@@ -303,8 +305,15 @@ export class Game extends Scene {
 	this.isShuttinDown = true
 	this.scene.stop('Overlay')
 	this.scene.restart({ matchStartedAt: Date.now()})
-
   }
 
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.deathWallManager?.applyStep(p.step)
+
+  private handleBarrelDestroyed = (payload: BarrelDestroyPaylod) => {
+	const barrel = this.barrelGroup
+	  .getChildren()
+	  .find(c => (c as Barrel).getIndex() === payload.index) as Barrel | undefined
+	if (!barrel) return
+    this.destroyBarrel(barrel)
+  }
 }
