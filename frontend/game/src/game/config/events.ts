@@ -12,7 +12,8 @@ export const GameEvent = {
 	DeathWallStep: 'death_wall_step',
 	BlockDestroy: 'block_destroy',
 	BlockDestroyed: 'block_destroyed',
-	BarrelDestroy: 'barrel_destroy'
+	BarrelDestroy: 'barrel_destroy',
+	BarrelDestroyed: 'barrel_destroyed'
 }
 
 export type GameEventKey = typeof GameEvent[keyof typeof GameEvent]
