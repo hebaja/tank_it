@@ -151,6 +151,16 @@ public class GameHub : Hub<IGameClient>
 		await Clients.OthersInGroup(request.RoomId).BlockDestroyed(request);
 	}
 
+	public async Task BarrelDestroy(BarrelDestroyRequest request)
+	{
+		if (string.IsNullOrWhiteSpace(request.RoomId))
+			throw new HubException("roomId is required");
+
+		_logger.LogInformation("Barrel destroy in room {RoomId} at index {Index}", request.RoomId, request.Index);
+
+		await Clients.OthersInGroup(request.RoomId).BarrelDestroyed(request);		
+	}
+
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
     // TODO: OnDisconnectedAsync override -> mark player disconnected, start reconnection grace
     //       period per the proposal's "handle disconnection/reconnection gracefully" requirement.

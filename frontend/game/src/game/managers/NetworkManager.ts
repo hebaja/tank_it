@@ -2,7 +2,16 @@ import { Scene } from 'phaser'
 import { GameHubConnection } from '../../net/GameHubConnection'
 import { GameEvent } from '../config/events'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { BlockDestroyPayload, DeathWallStepPayload, MatchEndPayload, MatchStartedPayload, RoomJoinedPayload, TankMovePayload, TankMovedPayload } from '../../net/contracts'
+import type { 
+	BarrelDestroyPayload,
+	BlockDestroyPayload,
+	DeathWallStepPayload,
+	MatchEndPayload,
+	MatchStartedPayload,
+	RoomJoinedPayload,
+	TankMovePayload,
+	TankMovedPayload 
+} from '../../net/contracts'
 
 export class NetworkManager {
   private scene: Scene
@@ -10,17 +19,18 @@ export class NetworkManager {
   public readonly ready: Promise<RoomJoinedPayload>
 
   constructor(scene: Scene) {
-    this.scene = scene
+	this.scene = scene
     this.hub = new GameHubConnection(sessionConfig.hubUrl)
     this.hub.onTankMoved(this.handleTankMoved)
-	  this.hub.onMatchStarted(this.handleMatchStarted)
-	  this.hub.onDeathWallStep(this.handleDeathWallStep)
-	  this.hub.onBlockDestroyed(this.handleBlockDestroyed)
+	this.hub.onMatchStarted(this.handleMatchStarted)
+	this.hub.onDeathWallStep(this.handleDeathWallStep)
+	this.hub.onBlockDestroyed(this.handleBlockDestroyed)
+	this.hub.onBarrelDestroyed(this.handleBarrelDestroyed)
     this.scene.events.on(GameEvent.TankMove, this.handleLocalTankMove, this)
-	  this.scene.events.on(GameEvent.MatchEnd, this.handleMatchEnd, this)
-	  this.scene.events.on(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
-    this.scene.events.on(GameEvent.TankMove, this.handleLocalTankMove, this)
-	  this.scene.events.on(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
+	this.scene.events.on(GameEvent.MatchEnd, this.handleMatchEnd, this)
+	this.scene.events.on(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
+	this.scene.events.on(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
+	this.scene.events.on(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
     this.ready = this.hub.start()
 	  .then(() => this.hub.joinRoom(sessionConfig.roomId, sessionConfig.localColor))
 	  .then(dto => {
@@ -41,14 +51,18 @@ export class NetworkManager {
   private handleDeathWallStep = (p: DeathWallStepPayload) => this.scene.events.emit(GameEvent.DeathWallStep, p)
   private handleBlockDestroy = (payload: BlockDestroyPayload) => this.hub.sendBlockDestroy(payload)
   private handleBlockDestroyed = (payload: BlockDestroyPayload) => this.scene.events.emit(GameEvent.BlockDestroyed, payload)
+  private handleBarrelDestroy = (payload: BarrelDestroyPayload) => this.hub.sendBarrelDestroy(payload)
+  private handleBarrelDestroyed = (payload: BarrelDestroyPayload) => this.scene.events.emit(GameEvent.BarrelDestroyed, payload)
 
   destroy() {
 	this.scene.events.off(GameEvent.TankMove, this.handleLocalTankMove, this)
     this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this)
     this.scene.events.off(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
+    this.scene.events.off(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
     this.hub.offTankMoved(this.handleTankMoved)
     this.hub.offMatchStarted(this.handleMatchStarted)
-	  this.hub.offDeathWallStep(this.handleDeathWallStep)
+	this.hub.offDeathWallStep(this.handleDeathWallStep)
+	this.hub.offBarrelDestroyed(this.handleBarrelDestroyed)
     this.hub.leaveRoom(sessionConfig.roomId).catch(() => { })
     this.hub.stop().catch(() => { })
   }
