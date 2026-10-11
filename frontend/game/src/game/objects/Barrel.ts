@@ -1,5 +1,5 @@
 import { Physics, Scene, Utils } from "phaser"
-import { BarrelPos } from "../../net/contracts"
+import { Position } from "../../net/contracts"
 
 const BARREL_TEXTURES = [
 	"barrel_black",
@@ -17,7 +17,7 @@ export class Barrel extends Physics.Arcade.Sprite {
 		scene.load.image('barrel_rust', 'barrels/barrel_rust.png')
 	}
 
-	static generateRandomBarrels(scene: Scene, randomPositions: BarrelPos[], map: Phaser.Tilemaps.Tilemap): Barrel[] {
+	static generateRandomBarrels(scene: Scene, randomPositions: Position[], map: Phaser.Tilemaps.Tilemap): Barrel[] {
 		const barrels: Barrel[] = []
 
 		for (let i = 0; i < randomPositions.length; i++) {
