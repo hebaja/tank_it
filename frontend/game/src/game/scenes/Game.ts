@@ -29,9 +29,8 @@ export class Game extends Scene {
   private map: Tilemaps.Tilemap
   private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
   private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
-  private isShuttinDown: boolean = false
-  private matchStartedAt?: number
   private isShuttingDown: boolean = false
+  private matchStartedAt?: number
 
   constructor() {
     super('Game')
@@ -39,7 +38,7 @@ export class Game extends Scene {
 
   init(data: { matchStartedAt?: number}) {
 	  this.matchStartedAt = data?.matchStartedAt
-	  this.isShuttinDown = false
+	  this.isShuttingDown = false
   }
 
   preload() {
@@ -279,7 +278,7 @@ export class Game extends Scene {
   }
 
   shutdown() {
-	this.isShuttinDown = true
+	this.isShuttingDown = true
     this.explosionManager.destroy()
     this.deathWallManager?.destroy()
     this.matchManager.destroy()
@@ -324,9 +323,9 @@ export class Game extends Scene {
   }
 
   private handleMatchStarted = (payload: { roomId: string; randomBarrelPositions: Position[] }) => {
-    if (this.isShuttinDown) return
+    if (this.isShuttingDown) return
 
-    this.isShuttinDown = true
+    this.isShuttingDown = true
     this.scene.stop('Overlay')
     this.scene.restart({ matchStartedAt: Date.now()})
   }
