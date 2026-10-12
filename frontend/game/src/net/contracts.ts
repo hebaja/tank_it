@@ -62,3 +62,10 @@ export interface BarrelDestroyPayload {
 	roomId: string
 	index: number
 }
+
+export interface TankDestroyPayload {
+	roomId: string
+	color: Color
+	x: number
+	y: number
+}

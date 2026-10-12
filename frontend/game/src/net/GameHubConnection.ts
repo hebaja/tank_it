@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr'
-import type { BarrelDestroyPayload, BlockDestroyPayload, DeathWallStepPayload, MatchEndPayload, MatchStartedPayload, RoomJoinedPayload, TankMovePayload, TankMovedPayload } from './contracts'
+import type { BarrelDestroyPayload, BlockDestroyPayload, DeathWallStepPayload, MatchEndPayload, MatchStartedPayload, RoomJoinedPayload, TankDestroyPayload, TankMovePayload, TankMovedPayload } from './contracts'
 
 const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game'
 
@@ -54,6 +54,11 @@ export class GameHubConnection {
 	this.conn.send('BarrelDestroy', payload).catch(err => console.warn('[GameHubConnection] DestroyBarrel send failed', err))
   }
 
+  sendTankDestroy(payload: TankDestroyPayload): void {
+    if (this.conn.state !== signalR.HubConnectionState.Connected) return
+	this.conn.send('TankDestroy', payload).catch(err => console.warn('[GameHubConnection] TankDestroy send failed', err))
+  }
+
   onTankMoved(cb: (p: TankMovedPayload) => void): void { this.conn.on('TankMoved', cb) }
   offTankMoved(cb: (p: TankMovedPayload) => void): void { this.conn.off('TankMoved', cb) }
   onMatchStarted(cb: (p: MatchStartedPayload) => void): void { this.conn.on('MatchStarted', cb) }
@@ -64,6 +69,8 @@ export class GameHubConnection {
   offBlockDestroyed(cb: (p: BlockDestroyPayload) => void): void { this.conn.off('BlockDestroyed', cb) }
   onBarrelDestroyed(cb: (p: BarrelDestroyPayload) => void): void { this.conn.on('BarrelDestroyed', cb) }
   offBarrelDestroyed(cb: (p: BarrelDestroyPayload) => void): void { this.conn.off('BarrelDestroyed', cb) }
+  onTankDestroyed(cb: (p: TankDestroyPayload) => void): void { this.conn.on('TankDestroyed', cb) }
+  offTankDestroyed(cb: (p: TankDestroyPayload) => void): void { this.conn.off('TankDestroyed', cb) }
 
   get state(): signalR.HubConnectionState { return this.conn.state }
 }

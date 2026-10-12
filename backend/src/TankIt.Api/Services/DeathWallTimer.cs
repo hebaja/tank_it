@@ -6,8 +6,8 @@ namespace TankIt.Api.Services;
 
 public sealed class DeathWallTimer(string roomId, IHubContext<GameHub, IGameClient> hub, ILogger logger)
 {
-	public static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(10);
-	public static readonly TimeSpan RingInterval = TimeSpan.FromSeconds(8);
+	public static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(60);
+	public static readonly TimeSpan RingInterval = TimeSpan.FromSeconds(15);
 	public const int MaxStep = 6;
 
 	private readonly CancellationTokenSource _cts = new();

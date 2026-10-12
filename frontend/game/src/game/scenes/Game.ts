@@ -11,7 +11,7 @@ import { GAME_CONFIG } from '../config/game'
 import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
-import type { Position, BlockDestroyPayload, RoomJoinedPayload, TankMovedPayload, DeathWallStepPayload, BarrelDestroyPayload } from '../../net/contracts'
+import type { Position, BlockDestroyPayload, RoomJoinedPayload, TankMovedPayload, DeathWallStepPayload, BarrelDestroyPayload, TankDestroyPayload } from '../../net/contracts'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -68,6 +68,7 @@ export class Game extends Scene {
 	this.events.on(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
 	this.events.on(GameEvent.BlockDestroyed, this.handleBlockDestroyed, this)
 	this.events.on(GameEvent.BarrelDestroyed, this.handleBarrelDestroyed, this)
+	this.events.on(GameEvent.TankDestroyed, this.handleTankDestroyed, this)
     this.networkManager = new NetworkManager(this)
   }
 
@@ -190,14 +191,14 @@ export class Game extends Scene {
         const proj = p as Projectile
         const tank = t as Tank
         if (proj.owner === tank) return
-        this.events.emit(GameEvent.Explosion, {
-          x: tank.x,
-          y: tank.y,
-          type: 'explosion',
-        })
-        this.matchManager.recordPlacement(tank)
         proj.destroy()
-        tank.destroy()
+		this.events.emit(GameEvent.TankDestroy, {
+		  roomId: sessionConfig.roomId,
+		  color: tank.getColor(),
+		  x: tank.x,
+		  y: tank.y
+		})
+		this.destroyTank(tank)
       })
 
     this.physics.add.collider(this.projectileGroup, this.projectileGroup,
@@ -234,6 +235,16 @@ export class Game extends Scene {
 	this.time.delayedCall(GAME_CONFIG.timing.oilSpawnDelay, () => {
 		this.speedSystem.addOil(barrel.x, barrel.y)
 	})
+  }
+
+  private destroyTank(tank: Tank) {
+	tank.destroy()
+	this.events.emit(GameEvent.Explosion, {
+		x: tank.x,
+		y: tank.y,
+		type: 'explosion',
+	})
+	this.matchManager.recordPlacement(tank)
   }
 
   private registerSceneEvents() {
@@ -327,5 +338,13 @@ export class Game extends Scene {
 	  .find(c => (c as Barrel).getIndex() === payload.index) as Barrel | undefined
 	if (!barrel) return
     this.destroyBarrel(barrel)
+  }
+
+  private handleTankDestroyed = (payload: TankDestroyPayload) => {
+	const tank = this.tankGroup
+	  .getChildren()
+	  .find(c => (c as Tank).getColor() === payload.color) as Tank | undefined
+	if (!tank) return
+	this.destroyTank(tank)
   }
 }
