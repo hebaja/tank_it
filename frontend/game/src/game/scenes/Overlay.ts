@@ -13,6 +13,7 @@ export class Overlay extends Scene {
 	}
 
 	create() {
+		this.children?.removeAll()
 		const { width, height } = this.scale
 		const btn_width: number = 80
 		const btn_height: number = 30

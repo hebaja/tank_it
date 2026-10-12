@@ -65,11 +65,13 @@ export class NetworkManager {
     this.scene.events.off(GameEvent.MatchRestartRequested, this.handleRestartRequested, this)
     this.scene.events.off(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
 	this.scene.events.off(GameEvent.TankDestroy, this.handleTankDestroy, this)
+	this.scene.events.off(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
     this.hub.offTankMoved(this.handleTankMoved)
     this.hub.offMatchStarted(this.handleMatchStarted)
 	this.hub.offDeathWallStep(this.handleDeathWallStep)
 	this.hub.offBarrelDestroyed(this.handleBarrelDestroyed)
 	this.hub.offTankDestroyed(this.handleTankDestroyed)
+	this.hub.offBlockDestroyed(this.handleBlockDestroyed)
     this.hub.leaveRoom(sessionConfig.roomId).catch(() => { })
     this.hub.stop().catch(() => { })
   }

@@ -31,13 +31,15 @@ export class Game extends Scene {
   private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer
   private isShuttinDown: boolean = false
   private matchStartedAt?: number
+  private isShuttingDown: boolean = false
 
   constructor() {
     super('Game')
   }
 
   init(data: { matchStartedAt?: number}) {
-	  this.matchStartedAt = data?.matchStartedAt	
+	  this.matchStartedAt = data?.matchStartedAt
+	  this.isShuttinDown = false
   }
 
   preload() {
@@ -285,9 +287,12 @@ export class Game extends Scene {
     this.events.off(GameEvent.TileDestroy)
     this.networkManager.destroy()
     this.events.off(GameEvent.TankMoved, this.handleTankMoved, this)
-	  this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this)
-	  this.events.off(GameEvent.MatchStarted, this.handleMatchStarted, this)
-	  this.events.off(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
+	this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this)
+	this.events.off(GameEvent.MatchStarted, this.handleMatchStarted, this)
+	this.events.off(GameEvent.DeathWallStep, this.handleDeathWallStep, this)
+	this.events.off(GameEvent.BlockDestroyed, this.handleBlockDestroyed, this)
+	this.events.off(GameEvent.BarrelDestroyed, this.handleBarrelDestroyed, this)
+	this.events.off(GameEvent.TankDestroyed, this.handleTankDestroyed, this)
   }
 
   initTanks(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
