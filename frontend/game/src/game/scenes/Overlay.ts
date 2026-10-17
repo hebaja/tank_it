@@ -6,6 +6,7 @@ interface TankScoreInfo {
 	user: string,
 	color: string,
 	score: number
+	isWinner: boolean
 }
 
 interface MatchInfo {
@@ -35,10 +36,10 @@ export class Overlay extends Scene {
 		isChampionship: true,
 		ft: 10,
 		tanks: [
-			{ label: 'blue', user: '(asdrubal)', color: '#419fdd', score: 9 },
-			{ label: 'red', user: '(gertrudes)', color: '#e74c3c', score: 7 },
-			{ label: 'green', user: '(cremilda)', color: '#2ecc71', score: 12 },
-			{ label: 'dark', user: '(robisberto)', color: '#6b6960', score: 4 }
+			{ label: 'blue', user: '(asdrubal)', color: '#419fdd', score: 10, isWinner: true },
+			{ label: 'red', user: '(gertrudes)', color: '#e74c3c', score: 7, isWinner: false },
+			{ label: 'green', user: '(cremilda)', color: '#2ecc71', score: 2, isWinner: false },
+			{ label: 'dark', user: '(robisberto)', color: '#6b6960', score: 4, isWinner: false }
 		]
 	}
 
@@ -55,12 +56,24 @@ export class Overlay extends Scene {
 		this.load.image('token_green', 'bars/token_green.png')
 		this.load.image('token_dark', 'bars/token_dark.png')
 		this.load.font('pixelify-sans-regular','fonts/Silkscreen-Regular.ttf')
+		this.load.spritesheet('crown', 'sprites/crown.png', {
+			frameWidth: 32,
+			frameHeight: 32
+		})
 	}
 
 	create() {
 		const { width, height } = this.scale
 		this.screenWidth = width
 		this.screenHeight = height
+		if (!this.anims.exists('crown_rotate')) {
+			this.anims.create({
+				key: 'crown_rotate',
+				frames: this.anims.generateFrameNumbers('crown', { frames: [0, 1, 2, 3, 4, 5, 6, 7] }),
+				frameRate: 8,
+				repeat: -1
+			})
+		}
 		// this.createRetryButton()
 		this.createScorePanel()
 	}
@@ -126,7 +139,8 @@ export class Overlay extends Scene {
 					this.matchInfo.tanks[i].color,
 					this.CONTENT_OFFSET,
 					this.CONTENT_OFFSET + (this.LABEL_OFFSET * i),
-					this.matchInfo.tanks[i].score
+					this.matchInfo.tanks[i].score,
+					this.matchInfo.tanks[i].isWinner
 				)
 			)
 		}
@@ -137,7 +151,7 @@ export class Overlay extends Scene {
 		this.scorePanel.add([background, ...labels])
 	}
 
-	createTankScore(tankText: string, userText: string, color: string, x: number, y: number, score: number) {
+	createTankScore(tankText: string, userText: string, color: string, x: number, y: number, score: number, isWinner: boolean) {
 		const tokens = []
 		const tankLabel = this.createTankLabel(tankText, color)
 		const userLabel = this.createUserLabel(userText)
@@ -164,11 +178,20 @@ export class Overlay extends Scene {
 		}
 		const tokensContainer = this.add.container(7, tankLabel.height + 10, [...tokens])
 		userLabel.setPosition(tankLabel.width + 4, tankLabel.height - userLabel.height)
+		const labelContainer = this.add.container(0, 0, [tankLabel, userLabel])
+		if (isWinner)
+			labelContainer.add(
+				this.add.sprite(
+					tankLabel.width + userLabel.width + this.CONTENT_OFFSET,
+					userLabel.height/3,
+					'crown')
+				.setScale(0.5)
+				.play('crown_rotate'))
 		
 		return this.add.container(
 			(-this.scorePanelWidth / 2) + x,
 			(-this.scorePanelHeight / 2) + y, 
-			[tankLabel, userLabel, tokensContainer]
+			[labelContainer, tokensContainer]
 		)
 	}
 
