@@ -1,6 +1,20 @@
 import { Scene } from "phaser"
 import { GameEvent } from "../config/events"
 
+interface TankScoreInfo {
+	label: string,
+	user: string,
+	color: string,
+	score: number
+}
+
+interface MatchInfo {
+	roomId: string,
+	isChampionship: boolean,
+	ft: number,
+	tanks: TankScoreInfo[]
+}
+
 export class Overlay extends Scene {
 
 	private retryBtn: Phaser.GameObjects.Container
@@ -15,12 +29,18 @@ export class Overlay extends Scene {
 	private screenWidth!: number
 	private screenHeight!: number
 	private LABEL_OFFSET: number = 30
-	private players = [
-		{ label: 'blue', user: '(asdrubal)', color: '#419fdd', score: 6 },
-		{ label: 'red', user: '(gertrudes)', color: '#e74c3c', score: 12 },
-		{ label: 'green', user: '(cremilda)', color: '#2ecc71', score: 7 },
-		{ label: 'dark', user: '(robisberto)', color: '#6b6960', score: 3 }
-	]
+	private CONTENT_OFFSET: number = 12
+	private matchInfo: MatchInfo = {
+		roomId: 'local-dev-room',
+		isChampionship: true,
+		ft: 10,
+		tanks: [
+			{ label: 'blue', user: '(asdrubal)', color: '#419fdd', score: 9 },
+			{ label: 'red', user: '(gertrudes)', color: '#e74c3c', score: 7 },
+			{ label: 'green', user: '(cremilda)', color: '#2ecc71', score: 12 },
+			{ label: 'dark', user: '(robisberto)', color: '#6b6960', score: 4 }
+		]
+	}
 
 	constructor() {
 		super('Overlay')
@@ -46,7 +66,6 @@ export class Overlay extends Scene {
 	}
 
 	createRetryButton() {
-
 		this.add.rectangle(0, 0, this.screenWidth, this.screenHeight, 0x000000, 0.6).setOrigin(0)
 		this.retryBtn = this.add.container(this.screenWidth / 2, this.screenHeight / 2)
 		const background = this.add.nineslice(0, 0, 
@@ -99,15 +118,15 @@ export class Overlay extends Scene {
 			16, 16, 16, 16)
 		.setOrigin(0.5)
 
-		for (let i = 0; i < this.players.length; i++) {
+		for (let i = 0; i < this.matchInfo.tanks.length; i++) {
 			labels.push(
 				this.createTankScore(
-					this.players[i].label,
-					this.players[i].user,
-					this.players[i].color,
-					12,
-					12 + (this.LABEL_OFFSET * i),
-					this.players[i].score
+					this.matchInfo.tanks[i].label,
+					this.matchInfo.tanks[i].user,
+					this.matchInfo.tanks[i].color,
+					this.CONTENT_OFFSET,
+					this.CONTENT_OFFSET + (this.LABEL_OFFSET * i),
+					this.matchInfo.tanks[i].score
 				)
 			)
 		}
@@ -124,16 +143,20 @@ export class Overlay extends Scene {
 		const userLabel = this.createUserLabel(userText)
 		let extra = 0
 
-		if (score > 10) {
-			extra = score - 10
-			score = 10
+		if (score > this.matchInfo.ft) {
+			extra = score - this.matchInfo.ft
+			score = this.matchInfo.ft
 		}
 		for (let i = 0; i < score; i++) {
 			const image = this.add.image(0, 0,`token_${tankText}`).setScale(0.5)
 			image.setX((image.width / 2) * i)
 			tokens.push(image)
-			if (i == 9 && extra) {
-				tokens.push(this.add.text((image.width / 2 + 1) * i, -5, `+${extra}`, {
+			if (i == this.matchInfo.ft - 1 && extra) {
+				tokens.push(
+					this.add.text(
+						(image.displayWidth * score) - (this.CONTENT_OFFSET - 4),
+						-image.displayHeight / 3,
+						`+${extra}`, {
 					fontFamily: 'pixelify-sans-regular',
 					fontSize: '8px',
 				}))
