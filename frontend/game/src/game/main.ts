@@ -12,6 +12,7 @@ const config: Types.Core.GameConfig = {
   parent: 'game-container',
   backgroundColor: '#000000',
   pixelArt: true,
+  roundPixels: true,
   physics: {
     default: 'arcade',
     // arcade: {
