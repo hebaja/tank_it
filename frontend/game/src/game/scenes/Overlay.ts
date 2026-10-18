@@ -33,13 +33,13 @@ export class Overlay extends Scene {
 	private CONTENT_OFFSET: number = 12
 	private matchInfo: MatchInfo = {
 		roomId: 'local-dev-room',
-		isChampionship: true,
+		isChampionship: false,
 		ft: 10,
 		tanks: [
-			{ label: 'blue', user: '(asdrubal)', color: '#419fdd', score: 10, isWinner: true },
-			{ label: 'red', user: '(gertrudes)', color: '#e74c3c', score: 7, isWinner: false },
-			{ label: 'green', user: '(cremilda)', color: '#2ecc71', score: 2, isWinner: false },
-			{ label: 'dark', user: '(robisberto)', color: '#6b6960', score: 4, isWinner: false }
+			{ label: 'blue', user: '(asdrubal)', color: '#419fdd', score: 7, isWinner: false },
+			{ label: 'red', user: '(gertrudes)', color: '#e74c3c', score: 4, isWinner: false },
+			{ label: 'green', user: '(cremilda)', color: '#2ecc71', score: 5, isWinner: false },
+			{ label: 'dark', user: '(robisberto)', color: '#6b6960', score: 2, isWinner: false }
 		]
 	}
 
@@ -75,8 +75,10 @@ export class Overlay extends Scene {
 				repeat: -1
 			})
 		}
-		// this.createRetryButton()
-		this.createScorePanel()
+		if (this.matchInfo.isChampionship)
+			this.createScorePanel()
+		else
+			this.createRetryButton()
 	}
 
 	createRetryButton() {
@@ -88,7 +90,7 @@ export class Overlay extends Scene {
 		.setOrigin(0.5)
 		
 		const text = this.add.text(0, 0, 'Retry?', {
-			fontFamily: 'PixelifySans-Medium',
+			fontFamily: 'press-start-2P-regular',
 			fontSize: '8px',
 			color: '#ffffe6',
 		})

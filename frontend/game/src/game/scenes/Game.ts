@@ -75,9 +75,6 @@ export class Game extends Scene {
 	this.events.on(GameEvent.BarrelDestroyed, this.handleBarrelDestroyed, this)
 	this.events.on(GameEvent.TankDestroyed, this.handleTankDestroyed, this)
     this.networkManager = new NetworkManager(this)
-
-	//TODO remove it at the end of championship ui implementation
-	this.scene.launch('Overlay')
   }
 
   private createMap() {
