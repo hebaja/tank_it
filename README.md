@@ -4,6 +4,7 @@ A browser-based tank battle royale (2–4 players) — ft_transcendence project.
 
 Full design, decided modules, and open items: **[`docs/GDD.md`](docs/GDD.md)**.
 Database schema and rationale: **[`docs/database-schema.md`](docs/database-schema.md)**.
+Third-party assets and their licenses: **[`THIRD_PARTY_ASSETS.md`](THIRD_PARTY_ASSETS.md)**.
 Terms & Conditions (draft, not part of module scoring): **[`docs/terms-and-conditions.md`](docs/terms-and-conditions.md)**.
 Original discussion draft (superseded by the GDD, kept for history): [`PROPOSAL.pdf`](PROPOSAL.pdf).
 
