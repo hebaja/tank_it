@@ -10,14 +10,25 @@ export class SoundManager {
 			'sounds/sfx/tank_fire.ogg',
 			'sounds/sfx/tank_fire.mp3'
 		])
+		scene.load.audio('block-destroy', [
+			'sounds/sfx/block_destroy.ogg',
+			'sounds/sfx/block_destroy.mp3'
+		])
 	}
 
 	constructor(scene: Scene) {
 		this.scene = scene
 		this.scene.events.on(GameEvent.ProjectileFired, this.handleProjectileFired, this)
+		this.scene.events.on(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
 	}
 
 	handleProjectileFired() {
 		this.scene.sound.play('tank-fire', { volume: 0.3 })
 	}
+
+	handleBlockDestroy() {
+		this.scene.sound.play('block-destroy', { volume: 0.3 })
+	}
+
+
 }
