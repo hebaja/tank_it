@@ -18,6 +18,11 @@ export class SoundManager {
 			'sounds/sfx/barrel_destroy.ogg',
 			'sounds/sfx/barrel_destroy.mp3'
 		])
+		scene.load.audio('gray-explosion', [
+			'sounds/sfx/gray_explosion.ogg',
+			'sounds/sfx/gray_explosion.mp3'
+		])
+	
 	}
 
 	constructor(scene: Scene) {
@@ -25,6 +30,7 @@ export class SoundManager {
 		this.scene.events.on(GameEvent.ProjectileFired, this.handleProjectileFired, this)
 		this.scene.events.on(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
 		this.scene.events.on(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
+		this.scene.events.on(GameEvent.ExplosionSmoke, this.handleGrayExplosion, this)
 	}
 
 	handleProjectileFired() {
@@ -39,5 +45,8 @@ export class SoundManager {
 		this.scene.sound.play('barrel-destroy', { volume: 0.4 })
 	}
 
+	handleGrayExplosion() {
+		this.scene.sound.play('gray-explosion', { volume: 0.4 })
+	}
 
 }
