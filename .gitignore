@@ -33,6 +33,3 @@ appsettings.*.local.json
 *.ntvs*
 *.njsproj
 *.sw?
-
-# Local-only third-party asset working folders (see THIRD_PARTY_ASSETS.md)
-assets_tank-it/
