@@ -22,7 +22,14 @@ export class SoundManager {
 			'sounds/sfx/gray_explosion.ogg',
 			'sounds/sfx/gray_explosion.mp3'
 		])
-	
+		scene.load.audio('tank-destroy', [
+			'sounds/sfx/tank_destroy.ogg',
+			'sounds/sfx/tank_destroy.mp3'
+		])
+		scene.load.audio('tank-fire-fail', [
+			'sounds/sfx/tank_fire_fail.ogg',
+			'sounds/sfx/tank_fire_fail.mp3'
+		])
 	}
 
 	constructor(scene: Scene) {
@@ -31,6 +38,8 @@ export class SoundManager {
 		this.scene.events.on(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
 		this.scene.events.on(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
 		this.scene.events.on(GameEvent.ExplosionSmoke, this.handleGrayExplosion, this)
+		this.scene.events.on(GameEvent.TankDestroy, this.handleTankDestroy, this)
+		this.scene.events.on(GameEvent.ProjectileFireFail, this.handleProjectileFireFail, this)
 	}
 
 	handleProjectileFired() {
@@ -49,4 +58,11 @@ export class SoundManager {
 		this.scene.sound.play('gray-explosion', { volume: 0.4 })
 	}
 
+	handleTankDestroy() {
+		this.scene.sound.play('tank-destroy', { volume: 0.4 })
+	}
+	
+	handleProjectileFireFail() {
+		this.scene.sound.play('tank-fire-fail', { volume: 0.1 })
+	}
 }
