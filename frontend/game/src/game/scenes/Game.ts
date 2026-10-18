@@ -12,6 +12,7 @@ import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
 import type { Position, BlockDestroyPayload, RoomJoinedPayload, TankMovedPayload, DeathWallStepPayload, BarrelDestroyPayload, TankDestroyPayload } from '../../net/contracts'
+import { SoundManager } from '../managers/SoundManager'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -52,6 +53,7 @@ export class Game extends Scene {
     Barrel.preload(this)
     SpeedSystem.preload(this)
     AmmoGauge.preload(this)
+	SoundManager.preload(this)
   }
 
   create() {
@@ -111,8 +113,8 @@ export class Game extends Scene {
     this.matchManager = new MatchManager(this)
     this.matchManager.reset()
     this.explosionManager = new ExplosionManager(this)
-    // this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup)
     this.speedSystem = new SpeedSystem(this, this.tankGroup)
+	new SoundManager(this)
   }
 
   private createBarrels(map: Tilemaps.Tilemap) {
