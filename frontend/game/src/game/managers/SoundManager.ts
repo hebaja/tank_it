@@ -4,6 +4,7 @@ import { GameEvent } from "../config/events";
 export class SoundManager {
 
 	private scene: Scene
+	private warningTimer: Phaser.Time.TimerEvent | undefined
 
 	static preload(scene: Scene) {
 		scene.load.audio('tank-fire', [
@@ -34,6 +35,10 @@ export class SoundManager {
 			'sounds/sfx/death_wall_explode.ogg',
 			'sounds/sfx/death_wall_explode.mp3'
 		])
+		scene.load.audio('danger-warning', [
+			'sounds/sfx/danger_warning.ogg',
+			'sounds/sfx/danger_warning.mp3'
+		])
 	}
 
 	constructor(scene: Scene) {
@@ -45,6 +50,8 @@ export class SoundManager {
 		this.scene.events.on(GameEvent.TankDestroy, this.handleTankDestroy, this)
 		this.scene.events.on(GameEvent.ProjectileFireFail, this.handleProjectileFireFail, this)
 		this.scene.events.on(GameEvent.DeathWallExplode, this.handleDeathWallDestroy, this)
+		this.scene.events.on(GameEvent.DangerWarning, this.handleDangerWarning, this)
+		this.scene.events.on(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
 	}
 
 	handleProjectileFired() {
@@ -73,6 +80,21 @@ export class SoundManager {
 
 	handleDeathWallDestroy() {
 		this.scene.sound.play('death-wall-explode', { volume: 0.4 })
+	}
+
+	handleDangerWarning() {
+		const warning = this.scene.sound.add('danger-warning', { volume: 0.2 })
+
+		this.warningTimer = this.scene.time.addEvent({
+			delay: 1500,
+			callback: () => warning.play(),
+			loop: true
+		})
+	}
+
+	handleDangerWarningFinish() {
+		this.warningTimer?.remove()
+		this.warningTimer = undefined
 	}
 
 	destroy() {

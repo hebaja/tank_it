@@ -30,8 +30,9 @@ export class DeathWallManager {
 
 	applyStep(step: number): void {
 		if (step <= this.step) return
-		this.explodeWarned()
+		this.explodeWarned(() => this.scene.events.emit(GameEvent.DangerWarningFinish))
 		this.step = step
+		this.scene.events.emit(GameEvent.DangerWarning)
 		if (step < DEATH_WALL_RINGS)
 			this.forEachRingTile(step, (tile) => this.triggerDangerEffect(tile))
 	}
@@ -49,8 +50,9 @@ export class DeathWallManager {
 			this.forEachRingTile(step, (tile) => this.triggerDangerEffect(tile))
 	}
 
-	private explodeWarned() {
+	private explodeWarned(onDone?: () => void) {
 		const tweens = this.effect
+		let pending = tweens.length
 
 		if (tweens.length > 0) this.scene.events.emit(GameEvent.DeathWallExplode)
 		this.effect = []
@@ -65,7 +67,10 @@ export class DeathWallManager {
 				x: tile.pixelX + tile.width / 2,
 				y: tile.pixelY + tile.width / 2,
 				type: GameEvent.Explosion,
-				onComplete: () => this.markDestroyed(tile)
+				onComplete: () => {
+					this.markDestroyed(tile)
+					if (--pending === 0) onDone?.()
+				}
 			})
 		})
 	}

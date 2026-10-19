@@ -17,7 +17,9 @@ export const GameEvent = {
 	TankDestroy: 'tank_destroy',
 	TankDestroyed: 'tank_destroyed',
 	ProjectileFireFail: 'project_fire_fail',
-	DeathWallExplode: 'death_wall_explode'
+	DeathWallExplode: 'death_wall_explode',
+	DangerWarning: 'danger_warning',
+	DangerWarningFinish: 'danger_warning_finish'
 }
 
 export type GameEventKey = typeof GameEvent[keyof typeof GameEvent]
