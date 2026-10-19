@@ -45,7 +45,7 @@ export class SoundManager {
 		])
 		scene.load.audio('ammo-bar-complete', [
 			'sounds/sfx/ammo_bar_complete.ogg',
-			'sounds/sfx/ammo-bar-complete.mp3'
+			'sounds/sfx/ammo_bar_complete.mp3'
 		])
 	}
 
