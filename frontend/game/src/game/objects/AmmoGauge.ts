@@ -37,10 +37,6 @@ export class AmmoGauge extends GameObjects.Container {
 			'dark_fill',
 			'bars/dark_fill.png'
 		)
-		scene.load.font(
-			'PixelifySans-Medium',
-			'fonts/PressStart2P-Regular.ttf'
-		)
 	}
 
 	constructor(scene: Scene, color: Color, corner: Corner) {
@@ -59,7 +55,7 @@ export class AmmoGauge extends GameObjects.Container {
 		const projectileIcon = scene.add.image(-HUD.iconOffsetX, HUD.iconOffsetY, `projectile_${color}`).setScale(HUD.iconScale)
 		this.quantity = scene.add.text(-HUD.textOffsetX, -HUD.textOffsetY, `x${this.counter}`, {
 			fontSize: '18px',
-			fontFamily: 'PixelifySans-Medium'
+			fontFamily: 'press-start-2p-regular'
 		}).setDepth(HUD.depthFrame)
 		this.bg = scene.add.rectangle(0, 0, HUD.gaugeWidth, HUD.fillHeight, 0x000000).setDepth(HUD.depthBg)
 		this.fill = scene.add.nineslice(HUD.fillOffset, 0, `${color}_fill`, undefined, this.gaugeWidth, HUD.fillHeight, 3, 3, 4, 8).setDepth(HUD.depthFill)
