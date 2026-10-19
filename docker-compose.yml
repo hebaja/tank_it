@@ -28,6 +28,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY}
       ConnectionStrings__Default: >-
         Host=db;Port=5432;Database=${POSTGRES_DB:-tankit};
         Username=${POSTGRES_USER:-tankit};Password=${POSTGRES_PASSWORD:-tankit_dev}
