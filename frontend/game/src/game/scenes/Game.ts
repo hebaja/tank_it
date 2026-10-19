@@ -214,6 +214,7 @@ export class Game extends Scene {
           y: (proj1.y + proj2.y) / 2,
           type: 'explosion',
         })
+		this.events.emit(GameEvent.ProjectileHitProjectile)
         proj1.destroy()
         proj2.destroy()
       })

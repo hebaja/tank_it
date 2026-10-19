@@ -62,6 +62,7 @@ export class SoundManager {
 		this.scene.events.on(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
 		this.scene.events.on(GameEvent.OptionSelect, this.handleOptionSelect, this)
 		this.scene.events.on(GameEvent.AmmoBarComplete, this.handleAmmoBarComplete, this)
+		this.scene.events.on(GameEvent.ProjectileHitProjectile, this.handleProjectileHitProjectile, this)
 	}
 
 	handleProjectileFired() {
@@ -100,6 +101,10 @@ export class SoundManager {
 		this.scene.sound.play('ammo-bar-complete', { volume: 0.4 })
 	}
 
+	handleProjectileHitProjectile() {
+		this.scene.sound.play('gray-explosion', { volume: 0.4 })
+	}
+
 	handleDangerWarning() {
 		const warning = this.scene.sound.add('danger-warning', { volume: 0.2 })
 
@@ -127,5 +132,6 @@ export class SoundManager {
 		this.scene.events.off(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
 		this.scene.events.off(GameEvent.OptionSelect, this.handleOptionSelect, this)
 		this.scene.events.off(GameEvent.AmmoBarComplete, this.handleAmmoBarComplete, this)
+		this.scene.events.off(GameEvent.ProjectileHitProjectile, this.handleProjectileHitProjectile, this)
 	}
 }

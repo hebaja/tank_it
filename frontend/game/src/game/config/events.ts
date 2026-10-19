@@ -21,7 +21,8 @@ export const GameEvent = {
 	DangerWarning: 'danger_warning',
 	DangerWarningFinish: 'danger_warning_finish',
 	OptionSelect: 'option_select',
-	AmmoBarComplete: 'ammo_bar_complete'
+	AmmoBarComplete: 'ammo_bar_complete',
+	ProjectileHitProjectile: 'projectile_hit_projectile'
 }
 
 export type GameEventKey = typeof GameEvent[keyof typeof GameEvent]
