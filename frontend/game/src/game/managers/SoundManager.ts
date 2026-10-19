@@ -43,6 +43,10 @@ export class SoundManager {
 			'sounds/sfx/option_select.ogg',
 			'sounds/sfx/option_select.mp3'
 		])
+		scene.load.audio('ammo-bar-complete', [
+			'sounds/sfx/ammo_bar_complete.ogg',
+			'sounds/sfx/ammo-bar-complete.mp3'
+		])
 	}
 
 	constructor(scene: Scene) {
@@ -57,6 +61,7 @@ export class SoundManager {
 		this.scene.events.on(GameEvent.DangerWarning, this.handleDangerWarning, this)
 		this.scene.events.on(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
 		this.scene.events.on(GameEvent.OptionSelect, this.handleOptionSelect, this)
+		this.scene.events.on(GameEvent.AmmoBarComplete, this.handleAmmoBarComplete, this)
 	}
 
 	handleProjectileFired() {
@@ -86,6 +91,14 @@ export class SoundManager {
 	handleDeathWallDestroy() {
 		this.scene.sound.play('death-wall-explode', { volume: 0.4 })
 	}
+	
+	handleOptionSelect() {
+		this.scene.sound.play('option-select', { volume: 0.4 })
+	}
+	
+	handleAmmoBarComplete() {
+		this.scene.sound.play('ammo-bar-complete', { volume: 0.4 })
+	}
 
 	handleDangerWarning() {
 		const warning = this.scene.sound.add('danger-warning', { volume: 0.2 })
@@ -95,10 +108,6 @@ export class SoundManager {
 			callback: () => warning.play(),
 			loop: true
 		})
-	}
-
-	handleOptionSelect() {
-		this.scene.sound.play('option-select', { volume: 0.4 })
 	}
 
 	handleDangerWarningFinish() {
@@ -117,5 +126,6 @@ export class SoundManager {
 		this.scene.events.off(GameEvent.DangerWarning, this.handleDangerWarning, this)
 		this.scene.events.off(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
 		this.scene.events.off(GameEvent.OptionSelect, this.handleOptionSelect, this)
+		this.scene.events.off(GameEvent.AmmoBarComplete, this.handleAmmoBarComplete, this)
 	}
 }
