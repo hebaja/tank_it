@@ -98,7 +98,14 @@ export class SoundManager {
 	}
 
 	destroy() {
+		this.scene.events.off(GameEvent.ProjectileFired, this.handleProjectileFired, this)
+		this.scene.events.off(GameEvent.BlockDestroy, this.handleBlockDestroy, this)
+		this.scene.events.off(GameEvent.BarrelDestroy, this.handleBarrelDestroy, this)
+		this.scene.events.off(GameEvent.ExplosionSmoke, this.handleGrayExplosion, this)
+		this.scene.events.off(GameEvent.TankDestroy, this.handleTankDestroy, this)
+		this.scene.events.off(GameEvent.ProjectileFireFail, this.handleProjectileFireFail, this)
 		this.scene.events.off(GameEvent.DeathWallExplode, this.handleDeathWallDestroy, this)
-
+		this.scene.events.off(GameEvent.DangerWarning, this.handleDangerWarning, this)
+		this.scene.events.off(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
 	}
 }
