@@ -39,6 +39,10 @@ export class SoundManager {
 			'sounds/sfx/danger_warning.ogg',
 			'sounds/sfx/danger_warning.mp3'
 		])
+		scene.load.audio('option-select', [
+			'sounds/sfx/option_select.ogg',
+			'sounds/sfx/option_select.mp3'
+		])
 	}
 
 	constructor(scene: Scene) {
@@ -52,6 +56,7 @@ export class SoundManager {
 		this.scene.events.on(GameEvent.DeathWallExplode, this.handleDeathWallDestroy, this)
 		this.scene.events.on(GameEvent.DangerWarning, this.handleDangerWarning, this)
 		this.scene.events.on(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
+		this.scene.events.on(GameEvent.OptionSelect, this.handleOptionSelect, this)
 	}
 
 	handleProjectileFired() {
@@ -92,6 +97,10 @@ export class SoundManager {
 		})
 	}
 
+	handleOptionSelect() {
+		this.scene.sound.play('option-select', { volume: 0.4 })
+	}
+
 	handleDangerWarningFinish() {
 		this.warningTimer?.remove()
 		this.warningTimer = undefined
@@ -107,5 +116,6 @@ export class SoundManager {
 		this.scene.events.off(GameEvent.DeathWallExplode, this.handleDeathWallDestroy, this)
 		this.scene.events.off(GameEvent.DangerWarning, this.handleDangerWarning, this)
 		this.scene.events.off(GameEvent.DangerWarningFinish, this.handleDangerWarningFinish, this)
+		this.scene.events.off(GameEvent.OptionSelect, this.handleOptionSelect, this)
 	}
 }

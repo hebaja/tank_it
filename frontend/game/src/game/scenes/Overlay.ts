@@ -45,6 +45,7 @@ export class Overlay extends Scene {
 			text.setScale(1)
 			container.setScale(btn_scale)
 			this.scene.get('Game').events.emit(GameEvent.MatchRestartRequested)
+			this.scene.get('Game').events.emit(GameEvent.OptionSelect)
 			container.disableInteractive()
 		})
 		container.on('pointerup', () => {
