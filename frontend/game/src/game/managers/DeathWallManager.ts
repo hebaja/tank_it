@@ -14,7 +14,6 @@ export class DeathWallManager {
 	private effect: Phaser.Tweens.Tween[] = []
 	private destroyed: Set<Tilemaps.Tile> = new Set()
 
-	// initialStep: server step at join time (-1 = wall not started yet)
 	constructor(scene: Scene, map: Tilemaps.Tilemap, tankGroup: Physics.Arcade.Group, initialStep: number = -1) {
 		this.scene = scene
 		const dangerTileset = map.addTilesetImage('main_tileset','main_tileset')
@@ -29,11 +28,11 @@ export class DeathWallManager {
 		if (initialStep >= 0) this.catchUp(initialStep)
 	}
 
-	// Called on each server DeathWallStep event.
 	applyStep(step: number): void {
-		if (step <= this.step) return // ignore duplicate/stale
-		this.explodeWarned()
+		if (step <= this.step) return
+		this.explodeWarned(() => this.scene.events.emit(GameEvent.DangerWarningFinish))
 		this.step = step
+		this.scene.events.emit(GameEvent.DangerWarning)
 		if (step < DEATH_WALL_RINGS)
 			this.forEachRingTile(step, (tile) => this.triggerDangerEffect(tile))
 	}
@@ -43,7 +42,6 @@ export class DeathWallManager {
 		this.effect = []
 	}
 
-	// Late join: rings before `step` already exploded -> place walls silently.
 	private catchUp(step: number) {
 		for (let ring = 0; ring < Math.min(step, DEATH_WALL_RINGS); ring++)
 			this.forEachRingTile(ring, (tile) => this.markDestroyed(tile))
@@ -52,8 +50,11 @@ export class DeathWallManager {
 			this.forEachRingTile(step, (tile) => this.triggerDangerEffect(tile))
 	}
 
-	private explodeWarned() {
+	private explodeWarned(onDone?: () => void) {
 		const tweens = this.effect
+		let pending = tweens.length
+
+		if (tweens.length > 0) this.scene.events.emit(GameEvent.DeathWallExplode)
 		this.effect = []
 		tweens.forEach((effect) => {
 			const tile = effect.targets[0] as Tilemaps.Tile
@@ -66,7 +67,10 @@ export class DeathWallManager {
 				x: tile.pixelX + tile.width / 2,
 				y: tile.pixelY + tile.width / 2,
 				type: GameEvent.Explosion,
-				onComplete: () => this.markDestroyed(tile)
+				onComplete: () => {
+					this.markDestroyed(tile)
+					if (--pending === 0) onDone?.()
+				}
 			})
 		})
 	}
@@ -78,7 +82,6 @@ export class DeathWallManager {
 		this.destroyed.add(tile)
 	}
 
-	// Same selection as the old start(): border of square [ring, ringEnd - ring].
 	private forEachRingTile(ring: number, fn: (tile: Tilemaps.Tile) => void)
 	{
 		const min = ring

@@ -1,6 +1,7 @@
 import { Display, GameObjects, Scene, Scenes } from "phaser"
 import { Color } from "../config/color.ts"
 import { type Corner, HUD } from "../config/layout.ts"
+import { GameEvent } from "../config/events.ts"
 
 export class AmmoGauge extends GameObjects.Container {
 
@@ -116,6 +117,7 @@ export class AmmoGauge extends GameObjects.Container {
 				this.counter = HUD.initialAmmo
 				this.quantity.setText(`x${this.counter}`)
 				this.canFire = true
+				this.scene.events.emit(GameEvent.AmmoBarComplete)
 			}
 		})
 	}

@@ -12,6 +12,7 @@ import { GameEvent } from '../config/events'
 import { NetworkManager } from '../managers/NetworkManager'
 import { sessionConfig } from '../../net/sessionConfig'
 import type { Position, BlockDestroyPayload, RoomJoinedPayload, TankMovedPayload, DeathWallStepPayload, BarrelDestroyPayload, TankDestroyPayload } from '../../net/contracts'
+import { SoundManager } from '../managers/SoundManager'
 
 export class Game extends Scene {
   barrelGroup: Phaser.Physics.Arcade.Group
@@ -22,6 +23,7 @@ export class Game extends Scene {
   private explosionManager: ExplosionManager
   private deathWallManager: DeathWallManager
   private networkManager: NetworkManager
+  private soundManager: SoundManager
   private tankRoster: Map<string, Tank>
   private roomId: string
   private roomCreatedAt: number
@@ -52,6 +54,7 @@ export class Game extends Scene {
     Barrel.preload(this)
     SpeedSystem.preload(this)
     AmmoGauge.preload(this)
+	SoundManager.preload(this)
   }
 
   create() {
@@ -96,7 +99,6 @@ export class Game extends Scene {
     this.blocksHardLayer = map.createLayer('blocks_hard', [blocksHardTileset])
 	const tanksSpawnLayer = map.getObjectLayer('tanks_spawn')
 
-
     backgroundLayer.depth = GAME_CONFIG.depth.background
     this.blocksLayer.depth = GAME_CONFIG.depth.blocks
     this.blocksHardLayer.depth = GAME_CONFIG.depth.blocks
@@ -111,8 +113,8 @@ export class Game extends Scene {
     this.matchManager = new MatchManager(this)
     this.matchManager.reset()
     this.explosionManager = new ExplosionManager(this)
-    // this.deathWallManager = new DeathWallManager(this, this.map, this.tankGroup)
     this.speedSystem = new SpeedSystem(this, this.tankGroup)
+	this.soundManager = new SoundManager(this)
   }
 
   private createBarrels(map: Tilemaps.Tilemap) {
@@ -212,6 +214,7 @@ export class Game extends Scene {
           y: (proj1.y + proj2.y) / 2,
           type: 'explosion',
         })
+		this.events.emit(GameEvent.ProjectileHitProjectile)
         proj1.destroy()
         proj2.destroy()
       })
@@ -285,6 +288,7 @@ export class Game extends Scene {
     this.speedSystem.destroy()
     this.events.off(GameEvent.TileDestroy)
     this.networkManager.destroy()
+	this.soundManager.destroy()
     this.events.off(GameEvent.TankMoved, this.handleTankMoved, this)
 	this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this)
 	this.events.off(GameEvent.MatchStarted, this.handleMatchStarted, this)
