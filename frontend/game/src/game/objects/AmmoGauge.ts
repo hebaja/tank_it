@@ -37,7 +37,6 @@ export class AmmoGauge extends GameObjects.Container {
               HUD.edgeInset;
         const x = screenX;
         const y = topHalf ? HUD.topMargin : bounds.height - HUD.bottomMargin;
-
         super(scene, x, y);
 
         const frame = scene.add
@@ -108,7 +107,6 @@ export class AmmoGauge extends GameObjects.Container {
         });
         if (this.gaugeWidth <= 0) this.recharge();
     }
-
     getCanFire(): boolean {
         return this.canFire;
     }

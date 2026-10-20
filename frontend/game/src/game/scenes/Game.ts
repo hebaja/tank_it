@@ -52,7 +52,6 @@ export class Game extends Scene {
         this.load.setPath('assets');
         this.load.tilemapTiledJSON('level', 'map/tanks_map.json');
         this.load.image('main_tileset', 'map/main_tileset.png');
-
         Tank.preload(this);
         Projectile.preload(this);
         ExplosionManager.preload(this);
