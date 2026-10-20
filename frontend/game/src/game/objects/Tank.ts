@@ -262,4 +262,8 @@ export class Tank extends Physics.Arcade.Sprite {
     getColor(): Color {
         return this.color;
     }
+
+    getIsLocal(): boolean {
+        return this.isLocal;
+    }
 }

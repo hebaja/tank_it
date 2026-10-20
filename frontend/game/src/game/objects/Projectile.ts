@@ -63,5 +63,9 @@ export class Projectile extends Physics.Arcade.Sprite {
         super.destroy(fromScene);
     }
 
+    getOwner(): Tank | null {
+        return this.owner;
+    }
+
     update() {}
 }

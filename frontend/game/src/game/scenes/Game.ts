@@ -40,7 +40,6 @@ export class Game extends Scene {
     private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private isShuttingDown: boolean = false;
-    private isLocal: boolean;
 
     constructor() {
         super('Game');
@@ -194,7 +193,7 @@ export class Game extends Scene {
                 const proj = p as Projectile;
                 const tile = b as Phaser.Tilemaps.Tile;
 
-                if (this.isLocal) {
+                if (proj.getOwner()?.getIsLocal()) {
                     this.events.emit(GameEvent.BlockDestroy, {
                         roomId: sessionConfig.roomId,
                         tileX: tile.x,
@@ -221,7 +220,7 @@ export class Game extends Scene {
             this.blocksHardLayer,
             (p) => {
                 const proj = p as Projectile;
-                if (this.isLocal)
+                if (proj.getOwner()?.getIsLocal())
                     this.events.emit(GameEvent.ExplosionSmoke, {
                         x: proj.x,
                         y: proj.y,
@@ -238,7 +237,7 @@ export class Game extends Scene {
                 const proj = p as Projectile;
                 const barrel = b as Barrel;
 
-                if (this.isLocal) {
+                if (proj.getOwner()?.getIsLocal()) {
                     this.events.emit(GameEvent.BarrelDestroy, {
                         roomId: sessionConfig.roomId,
                         index: barrel.getIndex(),
@@ -257,7 +256,7 @@ export class Game extends Scene {
                 const tank = t as Tank;
                 if (proj.owner === tank) return;
                 proj.destroy();
-                if (this.isLocal) {
+                if (proj.getOwner()?.getIsLocal()) {
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
                         color: tank.getColor(),
@@ -419,7 +418,7 @@ export class Game extends Scene {
             }
 
             const color = colorValue as Color;
-            this.isLocal = color === sessionConfig.localColor;
+            const isLocal = color === sessionConfig.localColor;
             const tank = new Tank(
                 this,
                 obj.x ?? 0,
@@ -428,7 +427,7 @@ export class Game extends Scene {
                 color,
                 this.tankGroup,
                 this.projectileGroup,
-                this.isLocal,
+                isLocal,
             );
             this.tankRoster.set(color, tank);
         });
