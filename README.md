@@ -38,31 +38,32 @@ make prod
 
 ### Makefile commands
 
-| Command          | Description                                           |
-| ---------------- | ----------------------------------------------------- |
-| `make up`        | Start default services in background                  |
-| `make down`      | Stop default services                                 |
-| `make build`     | Build Docker images and both frontends for production |
-| `make rebuild`   | Rebuild and restart in background                     |
-| `make logs`      | Follow logs                                           |
-| `make clean`     | Stop services and remove volumes                      |
-| `make fclean`    | Full cleanup: containers, volumes, images, orphans    |
-| `make ps`        | Show running project containers                       |
-| `make dev`       | Start dev profile (hot reload)                        |
-| `make prod`      | Start prod profile                                    |
-| `make lint`      | Run frontend lint/format and backend format checks    |
-| `make typecheck` | Typecheck frontend and build backend                  |
-| `make test`      | Run frontend and backend test runners                 |
+| Command          | Description                                                               |
+| ---------------- | ------------------------------------------------------------------------- |
+| `make up`        | Start default services in background                                      |
+| `make down`      | Stop default services                                                     |
+| `make build`     | Build Docker images and both frontends for production                     |
+| `make rebuild`   | Rebuild and restart in background                                         |
+| `make logs`      | Follow logs                                                               |
+| `make clean`     | Stop services and remove volumes                                          |
+| `make fclean`    | Full cleanup: containers, volumes, images, orphans                        |
+| `make ps`        | Show running project containers                                           |
+| `make install`   | Install root and frontend Yarn dependencies; restore backend dependencies |
+| `make dev`       | Start dev profile (hot reload)                                            |
+| `make prod`      | Start prod profile                                                        |
+| `make lint`      | Run frontend lint/format and backend format checks                        |
+| `make typecheck` | Typecheck frontend and build backend                                      |
+| `make test`      | Run frontend and backend test runners                                     |
 
 ### Code quality checks
 
-Install the shared tools from the repository root and each frontend package's dependencies:
+Install all project dependencies from the repository root:
 
 ```bash
-yarn install --frozen-lockfile
-cd frontend/game && yarn install --frozen-lockfile
-cd ../app && yarn install --frozen-lockfile
+make install
 ```
+
+This installs the root, game, and app Yarn dependencies, then restores backend NuGet packages.
 
 The root `yarn lint` command checks both frontends. Use `yarn lint:game` or `yarn lint:app` to
 check one package. `yarn format` applies Prettier; `yarn format:check` verifies formatting.

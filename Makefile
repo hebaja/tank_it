@@ -28,6 +28,11 @@ fclean:
 ps:
 	$(COMPOSE) ps
 
+install: backend-restore
+	yarn install --frozen-lockfile
+	cd frontend/game && yarn install --frozen-lockfile
+	cd frontend/app && yarn install --frozen-lockfile
+
 lint: lint-frontend lint-backend
 
 lint-frontend:
@@ -70,4 +75,4 @@ db-migrate:
 db-migration-add name=MigrationName:
 	cd backend && dotnet ef migrations add $(name) -p src/TankIt.Api -s src/TankIt.Api
 
-.PHONY: all up down build rebuild logs clean fclean ps dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend backend-restore db-migrate db-migration-add
+.PHONY: all up down build rebuild logs clean fclean ps install dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend backend-restore db-migrate db-migration-add
