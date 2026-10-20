@@ -66,6 +66,7 @@ public class GameHub : Hub<IGameClient>
 
         return new RoomJoinedDto
         {
+            ConnectionId = Context.ConnectionId,
             RoomId = roomId,
             RandomBarrelPositions = barrels,
             RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
@@ -168,6 +169,15 @@ public class GameHub : Hub<IGameClient>
 
         _logger.LogInformation("Tank destroyed: Color {Color}", request.Color);
         await Clients.OthersInGroup(request.RoomId).TankDestroyed(request);
+    }
+
+    public async Task ProjectileFire(ProjectileFireRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoomId))
+            throw new HubException("roomId is required");
+
+        _logger.LogInformation("Projectile fire: Id: {ConnectionId} - Color: {Color}", Context.ConnectionId, request.Color);
+        await Clients.OthersInGroup(request.RoomId).ProjectileFired(request);
     }
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
