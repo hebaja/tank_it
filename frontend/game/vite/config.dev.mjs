@@ -6,9 +6,9 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: {
-                    phaser: ['phaser']
-                }
-            }
+                    phaser: ['phaser'],
+                },
+            },
         },
     },
     server: {
@@ -16,7 +16,7 @@ export default defineConfig({
         host: true,
         watch: {
             usePolling: true,
-            interval: 300
-        }
-    }
+            interval: 300,
+        },
+    },
 });

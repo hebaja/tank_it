@@ -28,7 +28,8 @@ body {
     margin-bottom: 1.5rem;
 }
 
-.room-input, .color {
+.room-input,
+.color {
     margin-bottom: 1rem;
     text-align: left;
 }
@@ -40,7 +41,8 @@ label {
     opacity: 0.85;
 }
 
-input[type="text"], select {
+input[type='text'],
+select {
     width: 100%;
     padding: 0.6rem 0.8rem;
     border: 1px solid #2a2f36;
@@ -50,7 +52,8 @@ input[type="text"], select {
     font-size: 1rem;
 }
 
-input[type="text"]:focus, select:focus {
+input[type='text']:focus,
+select:focus {
     outline: none;
     border-color: #4caf50;
 }
@@ -61,19 +64,27 @@ button {
     border: 0;
     border-radius: 0.5rem;
     cursor: pointer;
-    transition: background 0.15s, transform 0.05s;
+    transition:
+        background 0.15s,
+        transform 0.05s;
 }
 
-button:active { transform: scale(0.98); }
+button:active {
+    transform: scale(0.98);
+}
 
-#join-btn, #start-btn {
+#join-btn,
+#start-btn {
     width: 100%;
     background: #4caf50;
     color: #fff;
     margin-top: 0.5rem;
 }
 
-#join-btn:hover, #start-btn:hover { background: #43a047; }
+#join-btn:hover,
+#start-btn:hover {
+    background: #43a047;
+}
 
 #leave-btn {
     width: 100%;
@@ -82,7 +93,9 @@ button:active { transform: scale(0.98); }
     margin-top: 0.75rem;
 }
 
-#leave-btn:hover { background: #c62828; }
+#leave-btn:hover {
+    background: #c62828;
+}
 
 /* Room box */
 .room-box {
@@ -119,7 +132,9 @@ button:active { transform: scale(0.98); }
     border-bottom: 1px solid #2a2f36;
 }
 
-.player-list li:last-child { border-bottom: none; }
+.player-list li:last-child {
+    border-bottom: none;
+}
 
 .color-swatch {
     width: 1.25rem;
@@ -129,15 +144,33 @@ button:active { transform: scale(0.98); }
     flex-shrink: 0;
 }
 
-.color-swatch.blue   { background: #1e88e5; }
-.color-swatch.green  { background: #43a047; }
-.color-swatch.red    { background: #e53935; }
-.color-swatch.dark   { background: #37474f; }
+.color-swatch.blue {
+    background: #1e88e5;
+}
+.color-swatch.green {
+    background: #43a047;
+}
+.color-swatch.red {
+    background: #e53935;
+}
+.color-swatch.dark {
+    background: #37474f;
+}
 
-.player-name { font-weight: 500; }
-.player-you  { font-size: 0.75rem; opacity: 0.7; background: #2a2f36; padding: 0.1rem 0.4rem; border-radius: 0.25rem; }
+.player-name {
+    font-weight: 500;
+}
+.player-you {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    background: #2a2f36;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+}
 
-.hidden { display: none !important; }
+.hidden {
+    display: none !important;
+}
 
 .error {
     color: #ef5350;

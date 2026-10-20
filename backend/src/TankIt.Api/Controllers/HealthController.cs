@@ -16,14 +16,17 @@ public class HealthController(AppDbContext db) : ControllerBase
         var stopwatch = Stopwatch.StartNew();
         var uptime = DateTime.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime();
         var version = GetType().Assembly.GetName().Version?.ToString() ?? "dev";
-        try {
+        try
+        {
             var canConnect = await db.Database.CanConnectAsync();
             if (!canConnect)
                 return StatusCode(503, new { status = "degraded", database = "unreachable", latencyMs = stopwatch.ElapsedMilliseconds, uptime = uptime.ToString(), version, timestamp = DateTime.UtcNow });
             await db.Database.ExecuteSqlRawAsync("SELECT 1");
             stopwatch.Stop();
             return Ok(new { status = "ok", database = "connected", latencyMs = stopwatch.ElapsedMilliseconds, uptime = uptime.ToString(), version, timestamp = DateTime.UtcNow });
-        } catch (Exception ex){
+        }
+        catch (Exception ex)
+        {
             stopwatch.Stop();
             return StatusCode(503, new { status = "degraded", database = "unreachable", latencyMs = stopwatch.ElapsedMilliseconds, uptime = uptime.ToString(), version, timestamp = DateTime.UtcNow, error = ex.Message });
         }

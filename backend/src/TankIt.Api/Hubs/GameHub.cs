@@ -7,11 +7,11 @@ namespace TankIt.Api.Hubs;
 public class GameHub : Hub<IGameClient>
 {
     private readonly ILogger<GameHub> _logger;
-	private readonly RoomService _rooms;
-	private readonly DeathWallService _deathWall;
+    private readonly RoomService _rooms;
+    private readonly DeathWallService _deathWall;
 
-    public GameHub(ILogger<GameHub> logger, RoomService rooms, DeathWallService deathWall) 
-		=> (_logger, _rooms, _deathWall) = (logger, rooms, deathWall);
+    public GameHub(ILogger<GameHub> logger, RoomService rooms, DeathWallService deathWall)
+        => (_logger, _rooms, _deathWall) = (logger, rooms, deathWall);
 
     public override async Task OnConnectedAsync()
     {
@@ -26,66 +26,66 @@ public class GameHub : Hub<IGameClient>
         else
             _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
 
-		var roomIds = _rooms.GetRoomIdsForConnection(Context.ConnectionId);
+        var roomIds = _rooms.GetRoomIdsForConnection(Context.ConnectionId);
 
-		_rooms.TrackDisconnect(Context.ConnectionId);
+        _rooms.TrackDisconnect(Context.ConnectionId);
 
-		foreach (var roomId in roomIds)
-		{
-			await Clients.OthersInGroup(roomId).PlayerLeft(new PlayerLeftDto
-			{
-				ConnectionId = Context.ConnectionId
-			});
-		}
+        foreach (var roomId in roomIds)
+        {
+            await Clients.OthersInGroup(roomId).PlayerLeft(new PlayerLeftDto
+            {
+                ConnectionId = Context.ConnectionId
+            });
+        }
 
         await base.OnDisconnectedAsync(exception);
     }
 
     public async Task<RoomJoinedDto> JoinRoom(string roomId, string color)
     {
-		if (string.IsNullOrWhiteSpace(roomId))
-			throw new HubException("roomId is required");
-		if (string.IsNullOrWhiteSpace(color))
-			throw new HubException("color is required");
+        if (string.IsNullOrWhiteSpace(roomId))
+            throw new HubException("roomId is required");
+        if (string.IsNullOrWhiteSpace(color))
+            throw new HubException("color is required");
 
         _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId}", roomId, color, Context.ConnectionId);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId, color);
-		_rooms.TrackRoomCreation(roomId);
-		_deathWall.EnsureStarted(roomId);
+        _rooms.TrackRoomCreation(roomId);
+        _deathWall.EnsureStarted(roomId);
 
-		var barrels = _rooms.GetOrCreateBarrels(roomId);
-		var players = _rooms.GetRoomPlayers(roomId);
+        var barrels = _rooms.GetOrCreateBarrels(roomId);
+        var players = _rooms.GetRoomPlayers(roomId);
 
-		await Clients.OthersInGroup(roomId).PlayerJoined(new PlayerJoinedDto
-		{
-			ConnectionId = Context.ConnectionId,
-			Color = color
-		});
+        await Clients.OthersInGroup(roomId).PlayerJoined(new PlayerJoinedDto
+        {
+            ConnectionId = Context.ConnectionId,
+            Color = color
+        });
 
-		return new RoomJoinedDto
-		{
-			RoomId = roomId,
-			RandomBarrelPositions = barrels,
-			RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
-			Players = players,
-			DeathWallStep = _deathWall.GetStep(roomId)
-		};
+        return new RoomJoinedDto
+        {
+            RoomId = roomId,
+            RandomBarrelPositions = barrels,
+            RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
+            Players = players,
+            DeathWallStep = _deathWall.GetStep(roomId)
+        };
     }
 
     public async Task LeaveRoom(string roomId)
     {
-		if (string.IsNullOrWhiteSpace(roomId))
-			throw new HubException("roomId is required");
+        if (string.IsNullOrWhiteSpace(roomId))
+            throw new HubException("roomId is required");
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
-		_rooms.TrackLeave(roomId, Context.ConnectionId);
+        _rooms.TrackLeave(roomId, Context.ConnectionId);
 
-		await Clients.OthersInGroup(roomId).PlayerLeft(new PlayerLeftDto
-		{
-			ConnectionId = Context.ConnectionId
-		});
+        await Clients.OthersInGroup(roomId).PlayerLeft(new PlayerLeftDto
+        {
+            ConnectionId = Context.ConnectionId
+        });
     }
 
     public async Task TankMove(TankMoveRequest request)
@@ -103,72 +103,72 @@ public class GameHub : Hub<IGameClient>
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
     }
 
-	public async Task StartMatch(string roomId)
-	{
-		if (string.IsNullOrWhiteSpace(roomId))
-			throw new HubException("roomId is required");
+    public async Task StartMatch(string roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+            throw new HubException("roomId is required");
 
-		_logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
+        _logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
 
-		var barrels = _rooms.GetOrCreateBarrels(roomId);
+        var barrels = _rooms.GetOrCreateBarrels(roomId);
 
-		_deathWall.Restart(roomId);
+        _deathWall.Restart(roomId);
 
-		await Clients.Group(roomId).MatchStarted(new MatchStartedDto
-		{
-			RoomId = roomId,
-			RandomBarrelPositions = barrels
-		});
-	}
+        await Clients.Group(roomId).MatchStarted(new MatchStartedDto
+        {
+            RoomId = roomId,
+            RandomBarrelPositions = barrels
+        });
+    }
 
-	public async Task MatchEnd(TankPlacementRequest request)
-	{
-		if (string.IsNullOrWhiteSpace(request.RoomId))
-			throw new HubException("roomId is required");
+    public async Task MatchEnd(TankPlacementRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoomId))
+            throw new HubException("roomId is required");
 
-		_logger.LogInformation("Game ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
+        _logger.LogInformation("Game ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
 
-		await Clients.OthersInGroup(request.RoomId).GameEnded(request);
+        await Clients.OthersInGroup(request.RoomId).GameEnded(request);
 
-		_deathWall.Stop(request.RoomId);
+        _deathWall.Stop(request.RoomId);
 
-		// TODO This evicting room must not be called when championship is activated for example;
-		// TODO We have to check how to deal with this situation
-		//_rooms.TryEvictRoom(request.RoomId);
-	}
+        // TODO This evicting room must not be called when championship is activated for example;
+        // TODO We have to check how to deal with this situation
+        //_rooms.TryEvictRoom(request.RoomId);
+    }
 
-	public async Task BlockDestroy(BlockDestroyRequest request)
-	{
+    public async Task BlockDestroy(BlockDestroyRequest request)
+    {
         if (string.IsNullOrEmpty(request.RoomId))
             throw new HubException("roomId is required");
-		_logger.LogInformation("Block destroyed in {RoomId} at position {Position.X}:{Positions.Y}, tile {X}:{Y}",
-			request.RoomId,
-			request.Position.X,
-			request.Position.Y,
-			request.TileX,
-			request.TileY);
-		
-		await Clients.OthersInGroup(request.RoomId).BlockDestroyed(request);
-	}
+        _logger.LogInformation("Block destroyed in {RoomId} at position {Position.X}:{Positions.Y}, tile {X}:{Y}",
+            request.RoomId,
+            request.Position.X,
+            request.Position.Y,
+            request.TileX,
+            request.TileY);
 
-	public async Task BarrelDestroy(BarrelDestroyRequest request)
-	{
-		if (string.IsNullOrWhiteSpace(request.RoomId))
-			throw new HubException("roomId is required");
+        await Clients.OthersInGroup(request.RoomId).BlockDestroyed(request);
+    }
 
-		_logger.LogInformation("Barrel destroy in room {RoomId} at index {Index}", request.RoomId, request.Index);
+    public async Task BarrelDestroy(BarrelDestroyRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoomId))
+            throw new HubException("roomId is required");
 
-		await Clients.OthersInGroup(request.RoomId).BarrelDestroyed(request);		
-	}
+        _logger.LogInformation("Barrel destroy in room {RoomId} at index {Index}", request.RoomId, request.Index);
 
-	public async Task TankDestroy(TankDestroyRequest request)
-	{
-		if (string.IsNullOrWhiteSpace(request.RoomId))
-			throw new HubException("roomId is required");
+        await Clients.OthersInGroup(request.RoomId).BarrelDestroyed(request);
+    }
 
-		_logger.LogInformation("Tank destroyed: Color {Color}", request.Color);
-		await Clients.OthersInGroup(request.RoomId).TankDestroyed(request);
-	}
+    public async Task TankDestroy(TankDestroyRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoomId))
+            throw new HubException("roomId is required");
+
+        _logger.LogInformation("Tank destroyed: Color {Color}", request.Color);
+        await Clients.OthersInGroup(request.RoomId).TankDestroyed(request);
+    }
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
     // TODO: OnDisconnectedAsync override -> mark player disconnected, start reconnection grace
