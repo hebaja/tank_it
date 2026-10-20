@@ -6,11 +6,15 @@
   "license": "MIT",
   "packageManager": "yarn@1.22.22",
   "scripts": {
-    "dev": "vite --host --port 3000"
+    "dev": "vite --host --port 3000",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
     "typescript": "~5.7.2",
-    "vite": "^6.3.1"
+    "vite": "^6.3.1",
+    "vitest": "^3.0.0"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.11"
