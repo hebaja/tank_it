@@ -10,8 +10,8 @@ permissions:
     contents: read
 
 jobs:
-    frontend:
-        name: Frontend checks
+    quality-gates:
+        name: Quality gates
         runs-on: ubuntu-latest
         env:
             HUSKY: 0
@@ -45,20 +45,13 @@ jobs:
               working-directory: frontend/app
               run: yarn install --frozen-lockfile
 
-            - name: Run frontend gates
-              run: make lint-frontend typecheck-frontend build test-frontend
-
-    backend:
-        name: Backend build
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out repository
-              uses: actions/checkout@v4
-
             - name: Set up .NET
               uses: actions/setup-dotnet@v4
               with:
                   dotnet-version: 10.0.111
+
+            - name: Run frontend gates
+              run: make lint-frontend typecheck-frontend build test-frontend
 
             - name: Run backend gates
               run: make lint-backend typecheck-backend test-backend
