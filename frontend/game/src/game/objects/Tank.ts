@@ -1,229 +1,249 @@
-import { Physics, Input, Scenes, Scene } from 'phaser'
-import { Math as PhaserMath } from 'phaser'
-import { Projectile } from './Projectile'
-import { AmmoGauge } from './AmmoGauge'
-import { Color } from '../config/color'
-import { SPAWN_CORNERS } from '../config/layout'
-import { GAME_CONFIG } from '../config/game'
-import { GameEvent } from '../config/events'
-import { sessionConfig } from '../../net/sessionConfig'
-import { TankMovedPayload, TankMovePayload } from '../../net/contracts'
+import { Physics, Input, Scenes, Scene } from 'phaser';
+import { Math as PhaserMath } from 'phaser';
+import { Projectile } from './Projectile';
+import { AmmoGauge } from './AmmoGauge';
+import { Color } from '../config/color';
+import { SPAWN_CORNERS } from '../config/layout';
+import { GAME_CONFIG } from '../config/game';
+import { GameEvent } from '../config/events';
+import { sessionConfig } from '../../net/sessionConfig';
+import { TankMovedPayload, TankMovePayload } from '../../net/contracts';
 
 type TankControls = {
-  A: Input.Keyboard.Key
-  D: Input.Keyboard.Key
-  W: Input.Keyboard.Key
-  S: Input.Keyboard.Key
-  SPACE: Input.Keyboard.Key
-}
+    A: Input.Keyboard.Key;
+    D: Input.Keyboard.Key;
+    W: Input.Keyboard.Key;
+    S: Input.Keyboard.Key;
+    SPACE: Input.Keyboard.Key;
+};
 
-type Pair = [x: number, y: number]
+type Pair = [x: number, y: number];
 
 export class Tank extends Physics.Arcade.Sprite {
-  private controlsA: TankControls
-  private keyboard: any
-  private projectile: Projectile | null = null
-  private ammoGauge: AmmoGauge
-  private sparkShot?: Phaser.GameObjects.Sprite
-  private speed: number = GAME_CONFIG.tank.speed
-  private turnSpeed: number = GAME_CONFIG.tank.turnSpeed
-  private isSlow: boolean = false
-  private color: Color
-  private isLocal: boolean
-  private projectileGroup: Phaser.Physics.Arcade.Group
-  private lastSentAt = 0
-  private lastSentX = 0
-  private lastSentY = 0
-  private lastSentAngle = 0
-  private sequence = 0
-  private static readonly SEND_INTERVAL_MS = 5
-  private static readonly POS_EPSILON = 0.5
-  private static readonly ANGLE_EPSILON = 0.5
+    private controlsA: TankControls;
+    private projectile: Projectile | null = null;
+    private ammoGauge: AmmoGauge;
+    private sparkShot?: Phaser.GameObjects.Sprite;
+    private speed: number = GAME_CONFIG.tank.speed;
+    private turnSpeed: number = GAME_CONFIG.tank.turnSpeed;
+    private isSlow: boolean = false;
+    private color: Color;
+    private isLocal: boolean;
+    private projectileGroup: Phaser.Physics.Arcade.Group;
+    private lastSentAt = 0;
+    private lastSentX = 0;
+    private lastSentY = 0;
+    private lastSentAngle = 0;
+    private sequence = 0;
+    private static readonly SEND_INTERVAL_MS = 5;
+    private static readonly POS_EPSILON = 0.5;
+    private static readonly ANGLE_EPSILON = 0.5;
 
-  private pendingRemote?: { x: number; y: number; angle: number }
+    private pendingRemote?: { x: number; y: number; angle: number };
 
-  static preload(scene: Scene) {
-    scene.load.image(Color.blue, 'sprites/tank_blue.png')
-    scene.load.image(Color.red, 'sprites/tank_red.png')
-    scene.load.image(Color.green, 'sprites/tank_green.png')
-    scene.load.image(Color.dark, 'sprites/tank_dark.png')
-    scene.load.image('spark', 'sprites/shot_orange.png')
-  }
-
-  constructor(
-    scene: Scene,
-    x: number,
-    y: number,
-	angle: number,
-    color: Color,
-    group: Phaser.Physics.Arcade.Group,
-    projectileGroup: Phaser.Physics.Arcade.Group,
-    isLocal: boolean
-  ) {
-    super(scene, x, y, color)
-    this.keyboard = scene.input.keyboard
-    if (!this.keyboard) {
-      throw new Error('Keyboard plugin not available')
-    }
-    scene.physics.add.existing(this)
-    scene.add.existing(this)
-    group.add(this)
-    scene.events.on(Scenes.Events.UPDATE, this.update, this)
-    this.setCollideWorldBounds(true)
-    this.depth = GAME_CONFIG.depth.tank
-    this.color = color
-    this.projectileGroup = projectileGroup
-    this.isLocal = isLocal
-	this.angle = angle
-
-    if (this.isLocal)
-      this.controlsA = this.keyboard?.addKeys({
-        A: Input.Keyboard.KeyCodes.A,
-        D: Input.Keyboard.KeyCodes.D,
-        W: Input.Keyboard.KeyCodes.W,
-        S: Input.Keyboard.KeyCodes.S,
-        SPACE: Input.Keyboard.KeyCodes.SPACE
-      })
-    this.ammoGauge = new AmmoGauge(scene, color, SPAWN_CORNERS[color])
-  }
-
-  destroy(fromScene?: boolean): void {
-    this.scene?.events.off(Scenes.Events.UPDATE, this.update, this)
-    this.ammoGauge?.destroy()
-    this.sparkShot?.destroy()
-    super.destroy(fromScene)
-  }
-
-  update() {
-    if (this.body)
-      this.setVelocity(0, 0)
-    if (this.isSlow) {
-      this.turnSpeed = GAME_CONFIG.tank.turnSpeedSlow
-      this.speed = GAME_CONFIG.tank.speedSlow
-    } else {
-      this.turnSpeed = GAME_CONFIG.tank.turnSpeed
-      this.speed = GAME_CONFIG.tank.speed
+    static preload(scene: Scene) {
+        scene.load.image(Color.blue, 'sprites/tank_blue.png');
+        scene.load.image(Color.red, 'sprites/tank_red.png');
+        scene.load.image(Color.green, 'sprites/tank_green.png');
+        scene.load.image(Color.dark, 'sprites/tank_dark.png');
+        scene.load.image('spark', 'sprites/shot_orange.png');
     }
 
-    if (this.isLocal && this.body) {
+    constructor(
+        scene: Scene,
+        x: number,
+        y: number,
+        angle: number,
+        color: Color,
+        group: Phaser.Physics.Arcade.Group,
+        projectileGroup: Phaser.Physics.Arcade.Group,
+        isLocal: boolean,
+    ) {
+        super(scene, x, y, color);
+        const keyboard = scene.input.keyboard;
+        if (!keyboard) {
+            throw new Error('Keyboard plugin not available');
+        }
+        scene.physics.add.existing(this);
+        scene.add.existing(this);
+        group.add(this);
+        scene.events.on(Scenes.Events.UPDATE, this.update, this);
+        this.setCollideWorldBounds(true);
+        this.depth = GAME_CONFIG.depth.tank;
+        this.color = color;
+        this.projectileGroup = projectileGroup;
+        this.isLocal = isLocal;
+        this.angle = angle;
 
-      if (this.controlsA.A.isDown) {
-        this.angle -= this.turnSpeed
-      }
-      if (this.controlsA.D.isDown) {
-        this.angle += this.turnSpeed
-      }
-      if (this.controlsA.S.isDown) {
-        const velocity = this.scene.physics.velocityFromAngle(this.angle - 90, this.speed)
-        this.setVelocity(velocity.x, velocity.y)
-      }
-      if (this.controlsA.W.isDown) {
-        const velocity = this.scene.physics.velocityFromAngle(this.angle - 90 + 180, this.speed)
-        this.setVelocity(velocity.x, velocity.y)
-      }
-      this.maybeSendTankMove()
-
-      if (Input.Keyboard.JustDown(this.controlsA.SPACE)) {
-        this.fire()
-      }
-    } else {
-      this.applyRemoteState()
+        if (this.isLocal)
+            this.controlsA = keyboard.addKeys({
+                A: Input.Keyboard.KeyCodes.A,
+                D: Input.Keyboard.KeyCodes.D,
+                W: Input.Keyboard.KeyCodes.W,
+                S: Input.Keyboard.KeyCodes.S,
+                SPACE: Input.Keyboard.KeyCodes.SPACE,
+            }) as TankControls;
+        this.ammoGauge = new AmmoGauge(scene, color, SPAWN_CORNERS[color]);
     }
 
-    if (this.sparkShot) {
-      const tips = this.getTipTank(36)
-      this.sparkShot.setPosition(
-        tips[0],
-        tips[1]
-      )
+    destroy(fromScene?: boolean): void {
+        this.scene?.events.off(Scenes.Events.UPDATE, this.update, this);
+        this.ammoGauge?.destroy();
+        this.sparkShot?.destroy();
+        super.destroy(fromScene);
     }
-  }
 
-  private maybeSendTankMove() {
-    const now = this.scene.time.now
+    update() {
+        if (this.body) this.setVelocity(0, 0);
+        if (this.isSlow) {
+            this.turnSpeed = GAME_CONFIG.tank.turnSpeedSlow;
+            this.speed = GAME_CONFIG.tank.speedSlow;
+        } else {
+            this.turnSpeed = GAME_CONFIG.tank.turnSpeed;
+            this.speed = GAME_CONFIG.tank.speed;
+        }
 
-    if (now - this.lastSentAt < Tank.SEND_INTERVAL_MS) return
+        if (this.isLocal && this.body) {
+            if (this.controlsA.A.isDown) {
+                this.angle -= this.turnSpeed;
+            }
+            if (this.controlsA.D.isDown) {
+                this.angle += this.turnSpeed;
+            }
+            if (this.controlsA.S.isDown) {
+                const velocity = this.scene.physics.velocityFromAngle(
+                    this.angle - 90,
+                    this.speed,
+                );
+                this.setVelocity(velocity.x, velocity.y);
+            }
+            if (this.controlsA.W.isDown) {
+                const velocity = this.scene.physics.velocityFromAngle(
+                    this.angle - 90 + 180,
+                    this.speed,
+                );
+                this.setVelocity(velocity.x, velocity.y);
+            }
+            this.maybeSendTankMove();
 
-    const dx = Math.abs(this.x - this.lastSentX), dy = Math.abs(this.y - this.lastSentY)
-    const da = Math.abs(this.angle - this.lastSentAngle)
+            if (Input.Keyboard.JustDown(this.controlsA.SPACE)) {
+                this.fire();
+            }
+        } else {
+            this.applyRemoteState();
+        }
 
-    if (dx < Tank.POS_EPSILON && dy < Tank.POS_EPSILON && da < Tank.ANGLE_EPSILON) return
+        if (this.sparkShot) {
+            const tips = this.getTipTank(36);
+            this.sparkShot.setPosition(tips[0], tips[1]);
+        }
+    }
 
-    this.lastSentAt = now
-    this.lastSentX = this.x;
-	this.lastSentY = this.y;
-	this.lastSentAngle = this.angle
-    this.scene.events.emit(GameEvent.TankMove, {
-      roomId: sessionConfig.roomId,
-      playerId: this.color,
-      position: { x: this.x, y: this.y },
-      rotation: this.angle,
-      sequence: this.sequence++,
-      timestamp: Date.now(),
-    } satisfies TankMovePayload)
-  }
+    private maybeSendTankMove() {
+        const now = this.scene.time.now;
 
-  getProjectile(): Projectile | null {
-    return this.projectile
-  }
+        if (now - this.lastSentAt < Tank.SEND_INTERVAL_MS) return;
 
-  getTipTank(distance: number): Pair {
-    const tipX = this.x - Math.cos(PhaserMath.DegToRad(this.angle - 90)) * distance
-    const tipY = this.y - Math.sin(PhaserMath.DegToRad(this.angle - 90)) * distance
+        const dx = Math.abs(this.x - this.lastSentX),
+            dy = Math.abs(this.y - this.lastSentY);
+        const da = Math.abs(this.angle - this.lastSentAngle);
 
-    const tips: Pair = [tipX, tipY]
+        if (
+            dx < Tank.POS_EPSILON &&
+            dy < Tank.POS_EPSILON &&
+            da < Tank.ANGLE_EPSILON
+        )
+            return;
 
-    return (tips)
-  }
+        this.lastSentAt = now;
+        this.lastSentX = this.x;
+        this.lastSentY = this.y;
+        this.lastSentAngle = this.angle;
+        this.scene.events.emit(GameEvent.TankMove, {
+            roomId: sessionConfig.roomId,
+            playerId: this.color,
+            position: { x: this.x, y: this.y },
+            rotation: this.angle,
+            sequence: this.sequence++,
+            timestamp: Date.now(),
+        } satisfies TankMovePayload);
+    }
 
-  setSparkShot() {
-    this.sparkShot?.destroy()
-    const tips = this.getTipTank(36)
-    this.sparkShot = this.scene.add.sprite(tips[0], tips[1], 'spark')
-    this.sparkShot.angle = this.angle
-    this.sparkShot.depth = GAME_CONFIG.depth.spark
-  }
+    getProjectile(): Projectile | null {
+        return this.projectile;
+    }
 
-  setSlow(value: boolean) {
-    this.isSlow = value
-  }
+    getTipTank(distance: number): Pair {
+        const tipX =
+            this.x - Math.cos(PhaserMath.DegToRad(this.angle - 90)) * distance;
+        const tipY =
+            this.y - Math.sin(PhaserMath.DegToRad(this.angle - 90)) * distance;
 
-  fire() {
-    if (!this.ammoGauge.getCanFire()) {
-	  this.scene.events.emit(GameEvent.ProjectileFireFail)
-      return
-	}
+        const tips: Pair = [tipX, tipY];
 
-    const tip = this.getTipTank(20)
-    this.setSparkShot()
-    this.scene.time.delayedCall(GAME_CONFIG.timing.sparkLifetime, () => {
-      this.sparkShot?.destroy()
-      this.sparkShot = undefined
-    })
+        return tips;
+    }
 
-    this.projectile = new Projectile(this.scene, tip[0], tip[1], this.angle, this.color, this.projectileGroup, this)
-    this.projectile.depth = GAME_CONFIG.depth.projectile
+    setSparkShot() {
+        this.sparkShot?.destroy();
+        const tips = this.getTipTank(36);
+        this.sparkShot = this.scene.add.sprite(tips[0], tips[1], 'spark');
+        this.sparkShot.angle = this.angle;
+        this.sparkShot.depth = GAME_CONFIG.depth.spark;
+    }
 
-    this.scene.events.emit(GameEvent.ProjectileFired, this.projectile)
+    setSlow(value: boolean) {
+        this.isSlow = value;
+    }
 
-    this.projectile.once('destroy', () => {
-      this.projectile = null
-    })
-    this.ammoGauge.consumeGauge()
-  }
+    fire() {
+        if (!this.ammoGauge.getCanFire()) {
+            this.scene.events.emit(GameEvent.ProjectileFireFail);
+            return;
+        }
 
-  private applyRemoteState() {
-    if (!this.pendingRemote) return
-    this.x = this.pendingRemote.x
-	this.y = this.pendingRemote.y
-	this.angle = this.pendingRemote.angle
-  }
+        const tip = this.getTipTank(20);
+        this.setSparkShot();
+        this.scene.time.delayedCall(GAME_CONFIG.timing.sparkLifetime, () => {
+            this.sparkShot?.destroy();
+            this.sparkShot = undefined;
+        });
 
-  receiveRemoteState(payload: TankMovedPayload) {
-    this.pendingRemote = { x: payload.position.x, y: payload.position.y, angle: payload.rotation }
-  }
+        this.projectile = new Projectile(
+            this.scene,
+            tip[0],
+            tip[1],
+            this.angle,
+            this.color,
+            this.projectileGroup,
+            this,
+        );
+        this.projectile.depth = GAME_CONFIG.depth.projectile;
 
-  getColor(): Color {
-    return this.color
-  }
+        this.scene.events.emit(GameEvent.ProjectileFired, this.projectile);
+
+        this.projectile.once('destroy', () => {
+            this.projectile = null;
+        });
+        this.ammoGauge.consumeGauge();
+    }
+
+    private applyRemoteState() {
+        if (!this.pendingRemote) return;
+        this.x = this.pendingRemote.x;
+        this.y = this.pendingRemote.y;
+        this.angle = this.pendingRemote.angle;
+    }
+
+    receiveRemoteState(payload: TankMovedPayload) {
+        this.pendingRemote = {
+            x: payload.position.x,
+            y: payload.position.y,
+            angle: payload.rotation,
+        };
+    }
+
+    getColor(): Color {
+        return this.color;
+    }
 }

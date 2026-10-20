@@ -4,6 +4,12 @@ This is where the landing page lives: registration/login, room creation/matchmak
 profile. It embeds the game core (`frontend/game/`) as a route/component
 (e.g. `/play/:roomId`).
 
+## Development checks
+
+Run `yarn build` to make a production bundle and `yarn typecheck` to check TypeScript. Shared
+quality commands run from the repository root: `yarn lint:app` checks this package, and
+`yarn format:check` verifies formatting across both frontends. `yarn format` applies it.
+
 ## Open decision
 
 Framework is **not chosen yet** — Pure React, Angular, or Vue, per `docs/GDD.md` §4.2. All three
@@ -28,4 +34,4 @@ Whoever picks it up should scaffold their tool of choice directly into this dire
 ## Do not
 
 Don't duplicate game simulation logic here — `frontend/game/` owns the Phaser canvas and match
-rendering. This app owns everything *around* a match.
+rendering. This app owns everything _around_ a match.

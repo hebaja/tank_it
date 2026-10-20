@@ -1,38 +1,38 @@
 export const GAME_CONFIG = {
-  depth: {
-    background: 0,
-    blocks: 10,
-    dangerLayer: 20,
-    projectile: 5,
-    tank: 30,
-    spark: 31,
-    explosion: 100,
-  },
+    depth: {
+        background: 0,
+        blocks: 10,
+        dangerLayer: 20,
+        projectile: 5,
+        tank: 30,
+        spark: 31,
+        explosion: 100,
+    },
 
-  tank: {
-    speed: 150,
-    speedSlow: 50,
-    turnSpeed: 2,
-    turnSpeedSlow: 1,
-  },
+    tank: {
+        speed: 150,
+        speedSlow: 50,
+        turnSpeed: 2,
+        turnSpeedSlow: 1,
+    },
 
-  projectile: {
-    speed: 400,
-  },
+    projectile: {
+        speed: 400,
+    },
 
-  barrel: {
-    count: 10,
-    excludeCorners: [
-      { tx: 0, ty: 0 },
-      { tx: 0, ty: 14 },
-      { tx: 14, ty: 0 },
-      { tx: 14, ty: 14 },
-    ],
-  },
+    barrel: {
+        count: 10,
+        excludeCorners: [
+            { tx: 0, ty: 0 },
+            { tx: 0, ty: 14 },
+            { tx: 14, ty: 0 },
+            { tx: 14, ty: 14 },
+        ],
+    },
 
-  timing: {
-    oilSpawnDelay: 400,
-    sparkLifetime: 100,
-    matchEndOverlayDelay: 1000,
-  },
-}
+    timing: {
+        oilSpawnDelay: 400,
+        sparkLifetime: 100,
+        matchEndOverlayDelay: 1000,
+    },
+};
