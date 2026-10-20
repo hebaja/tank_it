@@ -15,6 +15,7 @@ export interface PlayerInfo {
 }
 
 export interface RoomJoinedPayload {
+    connectionId: string;
     roomId: string;
     roomCreatedAt: number;
     players: PlayerInfo[];
@@ -68,6 +69,15 @@ export interface TankDestroyPayload {
     color: Color;
     x: number;
     y: number;
+}
+
+export interface ProjectileFirePayload {
+    roomId: string;
+    ownerId: string;
+    projectileId: string;
+    color: string;
+    timestamp: number;
+    sequence: number;
 }
 
 /*

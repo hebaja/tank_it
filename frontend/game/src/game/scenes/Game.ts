@@ -20,6 +20,7 @@ import type {
     DeathWallStepPayload,
     BarrelDestroyPayload,
     TankDestroyPayload,
+    ProjectileFirePayload,
 } from '../../net/contracts';
 import { SoundManager } from '../managers/SoundManager';
 
@@ -39,6 +40,7 @@ export class Game extends Scene {
     private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private isShuttingDown: boolean = false;
+    private isLocal: boolean;
 
     constructor() {
         super('Game');
@@ -90,6 +92,11 @@ export class Game extends Scene {
             this,
         );
         this.events.on(GameEvent.TankDestroyed, this.handleTankDestroyed, this);
+        this.events.on(
+            GameEvent.ProjectileFired,
+            this.handleProjectileFired,
+            this,
+        );
         this.networkManager = new NetworkManager(this);
     }
 
@@ -187,22 +194,24 @@ export class Game extends Scene {
                 const proj = p as Projectile;
                 const tile = b as Phaser.Tilemaps.Tile;
 
-                this.events.emit(GameEvent.BlockDestroy, {
-                    roomId: sessionConfig.roomId,
-                    tileX: tile.x,
-                    tileY: tile.y,
-                    position: {
-                        x: tile.getCenterX(),
-                        y: tile.getCenterY(),
-                    },
-                });
+                if (this.isLocal) {
+                    this.events.emit(GameEvent.BlockDestroy, {
+                        roomId: sessionConfig.roomId,
+                        tileX: tile.x,
+                        tileY: tile.y,
+                        position: {
+                            x: tile.getCenterX(),
+                            y: tile.getCenterY(),
+                        },
+                    });
 
-                this.destroyBlock(
-                    tile.getCenterX(),
-                    tile.getCenterY(),
-                    tile.x,
-                    tile.y,
-                );
+                    this.destroyBlock(
+                        tile.getCenterX(),
+                        tile.getCenterY(),
+                        tile.x,
+                        tile.y,
+                    );
+                }
                 proj.destroy();
             },
         );
@@ -212,11 +221,12 @@ export class Game extends Scene {
             this.blocksHardLayer,
             (p) => {
                 const proj = p as Projectile;
-                this.events.emit(GameEvent.ExplosionSmoke, {
-                    x: proj.x,
-                    y: proj.y,
-                    type: 'explosion_smoke',
-                });
+                if (this.isLocal)
+                    this.events.emit(GameEvent.ExplosionSmoke, {
+                        x: proj.x,
+                        y: proj.y,
+                        type: 'explosion_smoke',
+                    });
                 proj.destroy();
             },
         );
@@ -228,11 +238,13 @@ export class Game extends Scene {
                 const proj = p as Projectile;
                 const barrel = b as Barrel;
 
-                this.events.emit(GameEvent.BarrelDestroy, {
-                    roomId: sessionConfig.roomId,
-                    index: barrel.getIndex(),
-                });
-                this.destroyBarrel(barrel);
+                if (this.isLocal) {
+                    this.events.emit(GameEvent.BarrelDestroy, {
+                        roomId: sessionConfig.roomId,
+                        index: barrel.getIndex(),
+                    });
+                    this.destroyBarrel(barrel);
+                }
                 proj.destroy();
             },
         );
@@ -245,12 +257,14 @@ export class Game extends Scene {
                 const tank = t as Tank;
                 if (proj.owner === tank) return;
                 proj.destroy();
-                this.events.emit(GameEvent.TankDestroy, {
-                    roomId: sessionConfig.roomId,
-                    color: tank.getColor(),
-                    x: tank.x,
-                    y: tank.y,
-                });
+                if (this.isLocal) {
+                    this.events.emit(GameEvent.TankDestroy, {
+                        roomId: sessionConfig.roomId,
+                        color: tank.getColor(),
+                        x: tank.x,
+                        y: tank.y,
+                    });
+                }
                 this.destroyTank(tank);
             },
         );
@@ -376,6 +390,11 @@ export class Game extends Scene {
             this.handleTankDestroyed,
             this,
         );
+        this.events.off(
+            GameEvent.ProjectileFired,
+            this.handleProjectileFired,
+            this,
+        );
     }
 
     initTanks(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
@@ -400,7 +419,7 @@ export class Game extends Scene {
             }
 
             const color = colorValue as Color;
-            const isLocal = color === sessionConfig.localColor;
+            this.isLocal = color === sessionConfig.localColor;
             const tank = new Tank(
                 this,
                 obj.x ?? 0,
@@ -409,7 +428,7 @@ export class Game extends Scene {
                 color,
                 this.tankGroup,
                 this.projectileGroup,
-                isLocal,
+                this.isLocal,
             );
             this.tankRoster.set(color, tank);
         });
@@ -420,8 +439,6 @@ export class Game extends Scene {
 
     private handleRoomJoined = (payload: RoomJoinedPayload) => {
         this.barrelPos = payload.randomBarrelPositions;
-
-        console.log(payload);
 
         if (this.map) {
             this.createBarrels(this.map);
@@ -470,5 +487,9 @@ export class Game extends Scene {
             Tank | undefined;
         if (!tank) return;
         this.destroyTank(tank);
+    };
+
+    private handleProjectileFired = (payload: ProjectileFirePayload) => {
+        this.tankRoster.get(payload.color)?.fireRemoteProjectile();
     };
 }

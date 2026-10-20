@@ -5,6 +5,7 @@ import type {
     DeathWallStepPayload,
     MatchEndPayload,
     MatchStartedPayload,
+    ProjectileFirePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
     TankMovePayload,
@@ -16,12 +17,17 @@ const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game';
 export class GameHubConnection {
     private conn: signalR.HubConnection;
     private started: Promise<void> | null = null;
+    private connectionId: string | null = null;
 
     constructor(hubUrl: string = DEFAULT_HUB_URL) {
         this.conn = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl)
             .withAutomaticReconnect()
             .build();
+    }
+
+    getConnectionId(): string | null {
+        return this.connectionId;
     }
 
     async start(): Promise<void> {
@@ -35,11 +41,13 @@ export class GameHubConnection {
     }
 
     async joinRoom(roomId: string, color: string): Promise<RoomJoinedPayload> {
-        return await this.conn.invoke<RoomJoinedPayload>(
+        const joined = await this.conn.invoke<RoomJoinedPayload>(
             'JoinRoom',
             roomId,
             color,
         );
+        this.connectionId = joined.connectionId;
+        return joined;
     }
     async leaveRoom(roomId: string): Promise<void> {
         await this.conn.invoke('LeaveRoom', roomId);
@@ -108,6 +116,18 @@ export class GameHubConnection {
             );
     }
 
+    sendProjectileFire(payload: ProjectileFirePayload): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('ProjectileFire', payload)
+            .catch((err) =>
+                console.warn(
+                    '[GameHubConnection] ProjectileFire send failed',
+                    err,
+                ),
+            );
+    }
+
     onTankMoved(cb: (p: TankMovedPayload) => void): void {
         this.conn.on('TankMoved', cb);
     }
@@ -143,6 +163,12 @@ export class GameHubConnection {
     }
     offTankDestroyed(cb: (p: TankDestroyPayload) => void): void {
         this.conn.off('TankDestroyed', cb);
+    }
+    onProjectileFired(cb: (p: ProjectileFirePayload) => void): void {
+        this.conn.on('ProjectileFired', cb);
+    }
+    offProjectileFired(cb: (p: ProjectileFirePayload) => void): void {
+        this.conn.off('ProjectileFired', cb);
     }
 
     get state(): signalR.HubConnectionState {

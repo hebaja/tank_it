@@ -7,7 +7,11 @@ import { SPAWN_CORNERS } from '../config/layout';
 import { GAME_CONFIG } from '../config/game';
 import { GameEvent } from '../config/events';
 import { sessionConfig } from '../../net/sessionConfig';
-import { TankMovedPayload, TankMovePayload } from '../../net/contracts';
+import {
+    ProjectileFirePayload,
+    TankMovedPayload,
+    TankMovePayload,
+} from '../../net/contracts';
 
 type TankControls = {
     A: Input.Keyboard.Key;
@@ -220,7 +224,15 @@ export class Tank extends Physics.Arcade.Sprite {
         );
         this.projectile.depth = GAME_CONFIG.depth.projectile;
 
-        this.scene.events.emit(GameEvent.ProjectileFired, this.projectile);
+        if (this.isLocal)
+            this.scene.events.emit(GameEvent.ProjectileFire, {
+                roomId: sessionConfig.roomId,
+                ownerId: this.color,
+                projectileId: this.color,
+                color: this.color,
+                timestamp: Date.now(),
+                sequence: this.sequence,
+            } satisfies ProjectileFirePayload);
 
         this.projectile.once('destroy', () => {
             this.projectile = null;
@@ -241,6 +253,10 @@ export class Tank extends Physics.Arcade.Sprite {
             y: payload.position.y,
             angle: payload.rotation,
         };
+    }
+
+    fireRemoteProjectile() {
+        this.fire();
     }
 
     getColor(): Color {
