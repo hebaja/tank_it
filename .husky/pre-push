@@ -1,1 +1,1 @@
-make lint typecheck test
+make lint typecheck build test

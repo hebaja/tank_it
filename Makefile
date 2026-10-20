@@ -10,6 +10,8 @@ down:
 
 build:
 	$(COMPOSE) build
+	cd frontend/game && yarn build
+	cd frontend/app && yarn build
 
 rebuild:
 	$(COMPOSE) up -d --build
