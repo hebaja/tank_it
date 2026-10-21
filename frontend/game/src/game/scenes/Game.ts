@@ -96,6 +96,11 @@ export class Game extends Scene {
             this.handleProjectileFired,
             this,
         );
+        this.events.on(
+            GameEvent.ProjectileDestroyed,
+            this.handleProjectileDestroyed,
+            this,
+        );
         this.networkManager = new NetworkManager(this);
     }
 
@@ -194,6 +199,12 @@ export class Game extends Scene {
                 const tile = b as Phaser.Tilemaps.Tile;
 
                 if (proj.getOwner()?.getIsLocal()) {
+                    this.destroyBlock(
+                        tile.getCenterX(),
+                        tile.getCenterY(),
+                        tile.x,
+                        tile.y,
+                    );
                     this.events.emit(GameEvent.BlockDestroy, {
                         roomId: sessionConfig.roomId,
                         tileX: tile.x,
@@ -203,15 +214,8 @@ export class Game extends Scene {
                             y: tile.getCenterY(),
                         },
                     });
-
-                    this.destroyBlock(
-                        tile.getCenterX(),
-                        tile.getCenterY(),
-                        tile.x,
-                        tile.y,
-                    );
                 }
-                proj.destroy();
+                this.destroyProjectile(proj);
             },
         );
 
@@ -220,12 +224,11 @@ export class Game extends Scene {
             this.blocksHardLayer,
             (p) => {
                 const proj = p as Projectile;
-                if (proj.getOwner()?.getIsLocal())
-                    this.events.emit(GameEvent.ExplosionSmoke, {
-                        x: proj.x,
-                        y: proj.y,
-                        type: 'explosion_smoke',
-                    });
+                this.events.emit(GameEvent.ExplosionSmoke, {
+                    x: proj.x,
+                    y: proj.y,
+                    type: 'explosion_smoke',
+                });
                 proj.destroy();
             },
         );
@@ -238,13 +241,13 @@ export class Game extends Scene {
                 const barrel = b as Barrel;
 
                 if (proj.getOwner()?.getIsLocal()) {
+                    this.destroyBarrel(barrel);
                     this.events.emit(GameEvent.BarrelDestroy, {
                         roomId: sessionConfig.roomId,
                         index: barrel.getIndex(),
                     });
-                    this.destroyBarrel(barrel);
                 }
-                proj.destroy();
+                this.destroyProjectile(proj);
             },
         );
 
@@ -255,7 +258,6 @@ export class Game extends Scene {
                 const proj = p as Projectile;
                 const tank = t as Tank;
                 if (proj.owner === tank) return;
-                proj.destroy();
                 if (proj.getOwner()?.getIsLocal()) {
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
@@ -265,6 +267,7 @@ export class Game extends Scene {
                     });
                 }
                 this.destroyTank(tank);
+                this.destroyProjectile(proj);
             },
         );
 
@@ -316,6 +319,21 @@ export class Game extends Scene {
             type: 'explosion',
         });
         this.matchManager.recordPlacement(tank);
+    }
+
+    private destroyProjectile(proj: Projectile) {
+        const owner = proj.getOwner();
+        proj.destroy();
+        if (!owner?.getIsLocal()) return;
+
+        this.events.emit(GameEvent.ProjectileDestroy, {
+            roomId: sessionConfig.roomId,
+            ownerId: owner.getColor(),
+            projectileId: owner.getColor(),
+            color: owner.getColor(),
+            timestamp: Date.now(),
+            sequence: 0,
+        } satisfies ProjectileFirePayload);
     }
 
     private registerSceneEvents() {
@@ -392,6 +410,11 @@ export class Game extends Scene {
         this.events.off(
             GameEvent.ProjectileFired,
             this.handleProjectileFired,
+            this,
+        );
+        this.events.off(
+            GameEvent.ProjectileDestroyed,
+            this.handleProjectileDestroyed,
             this,
         );
     }
@@ -490,5 +513,16 @@ export class Game extends Scene {
 
     private handleProjectileFired = (payload: ProjectileFirePayload) => {
         this.tankRoster.get(payload.color)?.fireRemoteProjectile();
+    };
+
+    private handleProjectileDestroyed = (payload: ProjectileFirePayload) => {
+        const proj = this.projectileGroup
+            .getChildren()
+            .find(
+                (c) =>
+                    (c as Projectile).getOwner()?.getColor() === payload.color,
+            ) as Projectile | undefined;
+        if (!proj) return;
+        proj.destroy();
     };
 }

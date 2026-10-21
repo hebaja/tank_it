@@ -30,6 +30,7 @@ export class NetworkManager {
         this.hub.onBarrelDestroyed(this.handleBarrelDestroyed);
         this.hub.onTankDestroyed(this.handleTankDestroyed);
         this.hub.onProjectileFired(this.handleProjectileFired);
+        this.hub.onProjectileDestroyed(this.handleProjectileDestroyed);
         this.scene.events.on(
             GameEvent.TankMove,
             this.handleLocalTankMove,
@@ -59,6 +60,11 @@ export class NetworkManager {
         this.scene.events.on(
             GameEvent.ProjectileFire,
             this.handleProjectileFire,
+            this,
+        );
+        this.scene.events.on(
+            GameEvent.ProjectileDestroy,
+            this.handleProjectileDestroy,
             this,
         );
         this.ready = this.hub
@@ -112,6 +118,10 @@ export class NetworkManager {
         this.hub.sendProjectileFire(payload);
     private handleProjectileFired = (payload: ProjectileFirePayload) =>
         this.scene.events.emit(GameEvent.ProjectileFired, payload);
+    private handleProjectileDestroy = (payload: ProjectileFirePayload) =>
+        this.hub.sendProjectileDestroy(payload);
+    private handleProjectileDestroyed = (payload: ProjectileFirePayload) =>
+        this.scene.events.emit(GameEvent.ProjectileDestroyed, payload);
 
     destroy() {
         this.scene.events.off(
@@ -141,6 +151,11 @@ export class NetworkManager {
             this,
         );
         this.scene.events.off(
+            GameEvent.ProjectileDestroy,
+            this.handleProjectileDestroy,
+            this,
+        );
+        this.scene.events.off(
             GameEvent.BlockDestroy,
             this.handleBlockDestroy,
             this,
@@ -152,6 +167,7 @@ export class NetworkManager {
         this.hub.offTankDestroyed(this.handleTankDestroyed);
         this.hub.offBlockDestroyed(this.handleBlockDestroyed);
         this.hub.offProjectileFired(this.handleProjectileFired);
+        this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.leaveRoom(sessionConfig.roomId).catch(() => {});
         this.hub.stop().catch(() => {});
     }

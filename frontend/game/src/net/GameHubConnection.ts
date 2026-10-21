@@ -128,6 +128,18 @@ export class GameHubConnection {
             );
     }
 
+    sendProjectileDestroy(payload: ProjectileFirePayload): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('ProjectileDestroy', payload)
+            .catch((err) =>
+                console.warn(
+                    '[GameHubConnection] ProjectileDestroy send failed',
+                    err,
+                ),
+            );
+    }
+
     onTankMoved(cb: (p: TankMovedPayload) => void): void {
         this.conn.on('TankMoved', cb);
     }
@@ -169,6 +181,12 @@ export class GameHubConnection {
     }
     offProjectileFired(cb: (p: ProjectileFirePayload) => void): void {
         this.conn.off('ProjectileFired', cb);
+    }
+    onProjectileDestroyed(cb: (p: ProjectileFirePayload) => void): void {
+        this.conn.on('ProjectileDestroyed', cb);
+    }
+    offProjectileDestroyed(cb: (p: ProjectileFirePayload) => void): void {
+        this.conn.off('ProjectileDestroyed', cb);
     }
 
     get state(): signalR.HubConnectionState {

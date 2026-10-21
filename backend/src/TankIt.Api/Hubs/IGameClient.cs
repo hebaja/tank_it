@@ -14,4 +14,5 @@ public interface IGameClient
     Task BarrelDestroyed(BarrelDestroyRequest payload);
     Task TankDestroyed(TankDestroyRequest payload);
     Task ProjectileFired(ProjectileFireRequest payload);
+    Task ProjectileDestroyed(ProjectileFireRequest payload);
 }
