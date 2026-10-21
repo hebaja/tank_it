@@ -225,6 +225,7 @@ export class Tank extends Physics.Arcade.Sprite {
             this.color,
             this.projectileGroup,
             this,
+            Date.now(),
         );
         this.projectile.depth = GAME_CONFIG.depth.projectile;
 

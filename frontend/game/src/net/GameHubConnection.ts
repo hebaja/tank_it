@@ -6,6 +6,7 @@ import type {
     MatchEndPayload,
     MatchStartedPayload,
     ProjectileFirePayload,
+    ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
     TankMovePayload,
@@ -135,6 +136,18 @@ export class GameHubConnection {
             .catch((err) =>
                 console.warn(
                     '[GameHubConnection] ProjectileDestroy send failed',
+                    err,
+                ),
+            );
+    }
+
+    sendProjectilesCollide(payload: ProjectilesCollidePayload): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('ProjectilesCollide', payload)
+            .catch((err) =>
+                console.warn(
+                    '[GameHubConnection] ProjectilesCollide send failed',
                     err,
                 ),
             );

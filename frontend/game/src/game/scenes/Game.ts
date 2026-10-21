@@ -275,19 +275,36 @@ export class Game extends Scene {
             this.projectileGroup,
             this.projectileGroup,
             (p1, p2) => {
-                const proj1 = p1 as Projectile;
-                const proj2 = p2 as Projectile;
-                if (!proj1.active || !proj2.active) return;
+                const projA = p1 as Projectile;
+                const projB = p2 as Projectile;
+                if (!projA.active || !projB.active) return;
                 this.events.emit(GameEvent.Explosion, {
-                    x: (proj1.x + proj2.x) / 2,
-                    y: (proj1.y + proj2.y) / 2,
+                    x: (projA.x + projB.x) / 2,
+                    y: (projA.y + projB.y) / 2,
                     type: 'explosion',
                 });
                 this.events.emit(GameEvent.ProjectileHitProjectile);
-                proj1.destroy();
-                proj2.destroy();
+                if (projA.getColor() === sessionConfig.localColor)
+                    this.events.emit(GameEvent.ProjectilesCollide, {
+                        projectileA: this.fillProjectilePayload(projA),
+                        projectileB: this.fillProjectilePayload(projB),
+                        timestamp: Date.now(),
+                    });
+                projA.destroy();
+                projB.destroy();
             },
         );
+    }
+
+    fillProjectilePayload(proj: Projectile): ProjectileFirePayload {
+        return {
+            roomId: sessionConfig.roomId,
+            ownerId: proj.getOwner()?.getColor() ?? '',
+            projectileId: proj.getId(),
+            color: proj.getColor(),
+            timestamp: proj.getTimestamp(),
+            sequence: 0,
+        };
     }
 
     private destroyBlock(x: number, y: number, tileX: number, tileY: number) {

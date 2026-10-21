@@ -9,6 +9,7 @@ import type {
     MatchEndPayload,
     MatchStartedPayload,
     ProjectileFirePayload,
+    ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
     TankMovePayload,
@@ -67,6 +68,11 @@ export class NetworkManager {
             this.handleProjectileDestroy,
             this,
         );
+        this.scene.events.on(
+            GameEvent.ProjectilesCollide,
+            this.handleProjectilesCollide,
+            this,
+        );
         this.ready = this.hub
             .start()
             .then(() =>
@@ -122,6 +128,8 @@ export class NetworkManager {
         this.hub.sendProjectileDestroy(payload);
     private handleProjectileDestroyed = (payload: ProjectileFirePayload) =>
         this.scene.events.emit(GameEvent.ProjectileDestroyed, payload);
+    private handleProjectilesCollide = (payload: ProjectilesCollidePayload) =>
+        this.hub.sendProjectilesCollide(payload);
 
     destroy() {
         this.scene.events.off(
@@ -153,6 +161,11 @@ export class NetworkManager {
         this.scene.events.off(
             GameEvent.ProjectileDestroy,
             this.handleProjectileDestroy,
+            this,
+        );
+        this.scene.events.off(
+            GameEvent.ProjectilesCollide,
+            this.handleProjectilesCollide,
             this,
         );
         this.scene.events.off(
