@@ -176,7 +176,7 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation("Projectile fire: Id: {ConnectionId} - Color: {Color}", Context.ConnectionId, request.Color);
+        _logger.LogInformation("Projectile fire: Id: {ProjectileId} - Color: {Color}", request.ProjectileId, request.Color);
         await Clients.OthersInGroup(request.RoomId).ProjectileFired(request);
     }
 
@@ -186,8 +186,8 @@ public class GameHub : Hub<IGameClient>
             throw new HubException("roomId is required");
 
         _logger.LogInformation(
-            "Projectile destroy: Id: {ConnectionId} - Color: {Color}",
-            Context.ConnectionId,
+            "Projectile destroy: Id: {ProjectileId} - Color: {Color}",
+            request.ProjectileId,
             request.Color
         );
         await Clients.OthersInGroup(request.RoomId).ProjectileDestroyed(request);

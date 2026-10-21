@@ -200,13 +200,16 @@ export class Tank extends Physics.Arcade.Sprite {
         this.isSlow = value;
     }
 
-    fire() {
+    fire(projectilePayload?: ProjectileFirePayload) {
         if (!this.ammoGauge.getCanFire()) {
             this.scene.events.emit(GameEvent.ProjectileFireFail);
             return;
         }
 
         const tip = this.getTipTank(20);
+        const projectileId = projectilePayload
+            ? projectilePayload.projectileId
+            : crypto.randomUUID();
         this.setSparkShot();
         this.scene.time.delayedCall(GAME_CONFIG.timing.sparkLifetime, () => {
             this.sparkShot?.destroy();
@@ -215,6 +218,7 @@ export class Tank extends Physics.Arcade.Sprite {
 
         this.projectile = new Projectile(
             this.scene,
+            projectileId,
             tip[0],
             tip[1],
             this.angle,
@@ -228,7 +232,7 @@ export class Tank extends Physics.Arcade.Sprite {
             this.scene.events.emit(GameEvent.ProjectileFire, {
                 roomId: sessionConfig.roomId,
                 ownerId: this.color,
-                projectileId: this.color,
+                projectileId: this.projectile.getId(),
                 color: this.color,
                 timestamp: Date.now(),
                 sequence: this.sequence,
@@ -255,8 +259,8 @@ export class Tank extends Physics.Arcade.Sprite {
         };
     }
 
-    fireRemoteProjectile() {
-        this.fire();
+    fireRemoteProjectile(payload: ProjectileFirePayload) {
+        this.fire(payload);
     }
 
     getColor(): Color {

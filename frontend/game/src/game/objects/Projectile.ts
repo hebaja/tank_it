@@ -4,7 +4,9 @@ import { GAME_CONFIG } from '../config/game';
 import type { Tank } from './Tank';
 
 export class Projectile extends Physics.Arcade.Sprite {
-    owner: Tank | null = null;
+    private id: string;
+    private color: Color;
+    private owner: Tank | null = null;
 
     static preload(scene: Scene) {
         scene.load.image(
@@ -27,6 +29,7 @@ export class Projectile extends Physics.Arcade.Sprite {
 
     constructor(
         scene: Scene,
+        id: string,
         x: number,
         y: number,
         angle: number,
@@ -41,6 +44,8 @@ export class Projectile extends Physics.Arcade.Sprite {
 
         group.add(this);
 
+        this.id = id;
+        this.color = color;
         this.owner = owner;
         this.setCollideWorldBounds(true, 0, 0, true);
         this.scene.physics.world.on(
@@ -65,6 +70,14 @@ export class Projectile extends Physics.Arcade.Sprite {
 
     getOwner(): Tank | null {
         return this.owner;
+    }
+
+    getId(): string {
+        return this.id;
+    }
+
+    getColor(): Color {
+        return this.color;
     }
 
     update() {}

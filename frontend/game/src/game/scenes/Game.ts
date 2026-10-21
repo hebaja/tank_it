@@ -257,7 +257,7 @@ export class Game extends Scene {
             (p, t) => {
                 const proj = p as Projectile;
                 const tank = t as Tank;
-                if (proj.owner === tank) return;
+                if (proj.getOwner() === tank) return;
                 if (proj.getOwner()?.getIsLocal()) {
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
@@ -323,14 +323,16 @@ export class Game extends Scene {
 
     private destroyProjectile(proj: Projectile) {
         const owner = proj.getOwner();
+        const projectileId = proj.getId();
+        const color = proj.getColor();
         proj.destroy();
         if (!owner?.getIsLocal()) return;
 
         this.events.emit(GameEvent.ProjectileDestroy, {
             roomId: sessionConfig.roomId,
             ownerId: owner.getColor(),
-            projectileId: owner.getColor(),
-            color: owner.getColor(),
+            projectileId: projectileId,
+            color: color,
             timestamp: Date.now(),
             sequence: 0,
         } satisfies ProjectileFirePayload);
@@ -512,16 +514,14 @@ export class Game extends Scene {
     };
 
     private handleProjectileFired = (payload: ProjectileFirePayload) => {
-        this.tankRoster.get(payload.color)?.fireRemoteProjectile();
+        this.tankRoster.get(payload.color)?.fireRemoteProjectile(payload);
     };
 
     private handleProjectileDestroyed = (payload: ProjectileFirePayload) => {
         const proj = this.projectileGroup
             .getChildren()
-            .find(
-                (c) =>
-                    (c as Projectile).getOwner()?.getColor() === payload.color,
-            ) as Projectile | undefined;
+            .find((c) => (c as Projectile).getId() === payload.projectileId) as
+            Projectile | undefined;
         if (!proj) return;
         proj.destroy();
     };
