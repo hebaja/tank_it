@@ -67,7 +67,15 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 // Apply pending EF Core migrations on boot so a fresh `make up` yields a
 // working DB without manual steps (compose no longer mounts db/init).
-using (var scope = app.Services.CreateScope())
+// Opt out with ApplyMigrationsOnBoot=false — the integration-test host swaps the
+// context for a non-relational provider (see tests/TankIt.Api.Tests), which can't migrate.
+if (app.Configuration.GetValue("ApplyMigrationsOnBoot", true))
+{
+    using var scope = app.Services.CreateScope();
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+}
 
 app.Run();
+
+// Exposes the generated entry point to WebApplicationFactory<Program> in the test project.
+public partial class Program;
