@@ -21,6 +21,7 @@ import type {
     BarrelDestroyPayload,
     TankDestroyPayload,
     ProjectileFirePayload,
+    ProjectilesCollidePayload,
 } from '../../net/contracts';
 import { SoundManager } from '../managers/SoundManager';
 
@@ -99,6 +100,11 @@ export class Game extends Scene {
         this.events.on(
             GameEvent.ProjectileDestroyed,
             this.handleProjectileDestroyed,
+            this,
+        );
+        this.events.on(
+            GameEvent.ProjectilesCollided,
+            this.handleProjectilesCollided,
             this,
         );
         this.networkManager = new NetworkManager(this);
@@ -436,6 +442,11 @@ export class Game extends Scene {
             this.handleProjectileDestroyed,
             this,
         );
+        this.events.off(
+            GameEvent.ProjectilesCollided,
+            this.handleProjectilesCollided,
+            this,
+        );
     }
 
     initTanks(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
@@ -541,5 +552,11 @@ export class Game extends Scene {
             Projectile | undefined;
         if (!proj) return;
         proj.destroy();
+    };
+
+    private handleProjectilesCollided = (
+        payload: ProjectilesCollidePayload,
+    ) => {
+        console.log('collision: ', payload);
     };
 }

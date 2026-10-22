@@ -4,6 +4,7 @@ export const GameEvent = {
     ProjectileDestroy: 'projectile_destroy',
     ProjectileDestroyed: 'projectile_destroyed',
     ProjectilesCollide: 'projectiles_collide',
+    ProjectilesCollided: 'projectiles_collided',
     Explosion: 'explosion',
     ExplosionSmoke: 'explosion_smoke',
     TileDestroy: 'tileDestroy',

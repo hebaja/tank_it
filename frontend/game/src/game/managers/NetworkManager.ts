@@ -32,6 +32,7 @@ export class NetworkManager {
         this.hub.onTankDestroyed(this.handleTankDestroyed);
         this.hub.onProjectileFired(this.handleProjectileFired);
         this.hub.onProjectileDestroyed(this.handleProjectileDestroyed);
+        this.hub.onProjectilesCollided(this.handleProjectilesCollided);
         this.scene.events.on(
             GameEvent.TankMove,
             this.handleLocalTankMove,
@@ -130,6 +131,8 @@ export class NetworkManager {
         this.scene.events.emit(GameEvent.ProjectileDestroyed, payload);
     private handleProjectilesCollide = (payload: ProjectilesCollidePayload) =>
         this.hub.sendProjectilesCollide(payload);
+    private handleProjectilesCollided = (payload: ProjectilesCollidePayload) =>
+        this.scene.events.emit(GameEvent.ProjectilesCollided, payload);
 
     destroy() {
         this.scene.events.off(
@@ -181,6 +184,7 @@ export class NetworkManager {
         this.hub.offBlockDestroyed(this.handleBlockDestroyed);
         this.hub.offProjectileFired(this.handleProjectileFired);
         this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
+        this.hub.offProjectilesCollided(this.handleProjectilesCollided);
         this.hub.leaveRoom(sessionConfig.roomId).catch(() => {});
         this.hub.stop().catch(() => {});
     }
