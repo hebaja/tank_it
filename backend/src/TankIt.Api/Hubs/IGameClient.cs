@@ -15,4 +15,5 @@ public interface IGameClient
     Task TankDestroyed(TankDestroyRequest payload);
     Task ProjectileFired(ProjectileFireRequest payload);
     Task ProjectileDestroyed(ProjectileFireRequest payload);
+    Task ProjectilesCollided(ProjectilesCollideRequest payload);
 }
