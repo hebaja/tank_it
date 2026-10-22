@@ -557,6 +557,14 @@ export class Game extends Scene {
     private handleProjectilesCollided = (
         payload: ProjectilesCollidePayload,
     ) => {
-        console.log('collision: ', payload);
+        const ids = [
+            payload.projectileA.projectileId,
+            payload.projectileB.projectileId,
+        ];
+
+        this.projectileGroup
+            .getChildren()
+            .filter((c) => ids.includes((c as Projectile).getId()))
+            .forEach((proj) => (proj as Projectile).destroy());
     };
 }
