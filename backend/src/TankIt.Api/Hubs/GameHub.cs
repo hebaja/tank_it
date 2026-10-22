@@ -180,6 +180,7 @@ public class GameHub : Hub<IGameClient>
         await Clients.OthersInGroup(request.RoomId).ProjectileFired(request);
     }
 
+<<<<<<< HEAD
     public async Task ProjectileDestroy(ProjectileFireRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RoomId))
@@ -198,6 +199,15 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrWhiteSpace(request.ProjectileA.RoomId))
             throw new HubException("roomId is required");
 
+        var colors = new[] { request.ProjectileA.Color, request.ProjectileB.Color };
+
+        var excluded = _rooms
+            .GetRoomPlayers(request.ProjectileA.RoomId)
+            .Where(p => colors.Contains(p.Color))
+            .Select(p => p.ConnectionId)
+            .Distinct()
+            .ToArray();
+
         _logger.LogInformation(
             "Projectiles collided: ProjectileA: Id: {ProjectileId} - Color: {Color}",
             request.ProjectileA.ProjectileId,
@@ -208,7 +218,7 @@ public class GameHub : Hub<IGameClient>
             request.ProjectileB.ProjectileId,
             request.ProjectileB.Color
         );
-        await Clients.OthersInGroup(request.ProjectileA.RoomId).ProjectilesCollided(request);
+        await Clients.GroupExcept(request.ProjectileA.RoomId, excluded).ProjectilesCollided(request);
     }
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
