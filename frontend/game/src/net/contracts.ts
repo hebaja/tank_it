@@ -86,12 +86,6 @@ export interface ProjectilesCollidePayload {
     timestamp: number;
 }
 
-export interface ProjectilesCollidePayload {
-    projectileA: ProjectileFirePayload;
-    projectileB: ProjectileFirePayload;
-    timestamp: number;
-}
-
 /*
 
 export type HitType = 'block' | 'blockHard' | 'barrel' | 'tank' | 'projectile' | 'bounds'
