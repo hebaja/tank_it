@@ -180,7 +180,6 @@ public class GameHub : Hub<IGameClient>
         await Clients.OthersInGroup(request.RoomId).ProjectileFired(request);
     }
 
-<<<<<<< HEAD
     public async Task ProjectileDestroy(ProjectileFireRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RoomId))
