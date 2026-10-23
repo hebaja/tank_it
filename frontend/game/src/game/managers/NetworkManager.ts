@@ -8,7 +8,7 @@ import type {
     DeathWallStepPayload,
     MatchEndPayload,
     MatchStartedPayload,
-    ProjectileFirePayload,
+    ProjectilePayload,
     ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
@@ -121,13 +121,13 @@ export class NetworkManager {
         this.hub.sendTankDestroy(payload);
     private handleTankDestroyed = (payload: TankDestroyPayload) =>
         this.scene.events.emit(GameEvent.TankDestroyed, payload);
-    private handleProjectileFire = (payload: ProjectileFirePayload) =>
+    private handleProjectileFire = (payload: ProjectilePayload) =>
         this.hub.sendProjectileFire(payload);
-    private handleProjectileFired = (payload: ProjectileFirePayload) =>
+    private handleProjectileFired = (payload: ProjectilePayload) =>
         this.scene.events.emit(GameEvent.ProjectileFired, payload);
-    private handleProjectileDestroy = (payload: ProjectileFirePayload) =>
+    private handleProjectileDestroy = (payload: ProjectilePayload) =>
         this.hub.sendProjectileDestroy(payload);
-    private handleProjectileDestroyed = (payload: ProjectileFirePayload) =>
+    private handleProjectileDestroyed = (payload: ProjectilePayload) =>
         this.scene.events.emit(GameEvent.ProjectileDestroyed, payload);
     private handleProjectilesCollide = (payload: ProjectilesCollidePayload) =>
         this.hub.sendProjectilesCollide(payload);

@@ -20,7 +20,7 @@ import type {
     DeathWallStepPayload,
     BarrelDestroyPayload,
     TankDestroyPayload,
-    ProjectileFirePayload,
+    ProjectilePayload,
     ProjectilesCollidePayload,
 } from '../../net/contracts';
 import { SoundManager } from '../managers/SoundManager';
@@ -302,11 +302,16 @@ export class Game extends Scene {
         );
     }
 
-    fillProjectilePayload(proj: Projectile): ProjectileFirePayload {
+    fillProjectilePayload(proj: Projectile): ProjectilePayload {
         return {
             roomId: sessionConfig.roomId,
             ownerId: proj.getOwner()?.getColor() ?? '',
             projectileId: proj.getId(),
+            origin: {
+                x: proj.x,
+                y: proj.y,
+            },
+            angle: proj.angle,
             color: proj.getColor(),
             timestamp: proj.getTimestamp(),
             sequence: 0,
@@ -355,10 +360,15 @@ export class Game extends Scene {
             roomId: sessionConfig.roomId,
             ownerId: owner.getColor(),
             projectileId: projectileId,
+            origin: {
+                x: proj.x,
+                y: proj.y,
+            },
+            angle: proj.angle,
             color: color,
             timestamp: Date.now(),
             sequence: 0,
-        } satisfies ProjectileFirePayload);
+        } satisfies ProjectilePayload);
     }
 
     private registerSceneEvents() {
@@ -541,11 +551,11 @@ export class Game extends Scene {
         this.destroyTank(tank);
     };
 
-    private handleProjectileFired = (payload: ProjectileFirePayload) => {
+    private handleProjectileFired = (payload: ProjectilePayload) => {
         this.tankRoster.get(payload.color)?.fireRemoteProjectile(payload);
     };
 
-    private handleProjectileDestroyed = (payload: ProjectileFirePayload) => {
+    private handleProjectileDestroyed = (payload: ProjectilePayload) => {
         const proj = this.projectileGroup
             .getChildren()
             .find((c) => (c as Projectile).getId() === payload.projectileId) as

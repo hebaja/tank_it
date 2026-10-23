@@ -5,7 +5,7 @@ import type {
     DeathWallStepPayload,
     MatchEndPayload,
     MatchStartedPayload,
-    ProjectileFirePayload,
+    ProjectilePayload,
     ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
@@ -117,7 +117,7 @@ export class GameHubConnection {
             );
     }
 
-    sendProjectileFire(payload: ProjectileFirePayload): void {
+    sendProjectileFire(payload: ProjectilePayload): void {
         if (this.conn.state !== signalR.HubConnectionState.Connected) return;
         this.conn
             .send('ProjectileFire', payload)
@@ -129,7 +129,7 @@ export class GameHubConnection {
             );
     }
 
-    sendProjectileDestroy(payload: ProjectileFirePayload): void {
+    sendProjectileDestroy(payload: ProjectilePayload): void {
         if (this.conn.state !== signalR.HubConnectionState.Connected) return;
         this.conn
             .send('ProjectileDestroy', payload)
@@ -189,16 +189,16 @@ export class GameHubConnection {
     offTankDestroyed(cb: (p: TankDestroyPayload) => void): void {
         this.conn.off('TankDestroyed', cb);
     }
-    onProjectileFired(cb: (p: ProjectileFirePayload) => void): void {
+    onProjectileFired(cb: (p: ProjectilePayload) => void): void {
         this.conn.on('ProjectileFired', cb);
     }
-    offProjectileFired(cb: (p: ProjectileFirePayload) => void): void {
+    offProjectileFired(cb: (p: ProjectilePayload) => void): void {
         this.conn.off('ProjectileFired', cb);
     }
-    onProjectileDestroyed(cb: (p: ProjectileFirePayload) => void): void {
+    onProjectileDestroyed(cb: (p: ProjectilePayload) => void): void {
         this.conn.on('ProjectileDestroyed', cb);
     }
-    offProjectileDestroyed(cb: (p: ProjectileFirePayload) => void): void {
+    offProjectileDestroyed(cb: (p: ProjectilePayload) => void): void {
         this.conn.off('ProjectileDestroyed', cb);
     }
     onProjectilesCollided(cb: (p: ProjectilesCollidePayload) => void): void {

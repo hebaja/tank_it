@@ -2,6 +2,7 @@ import { Physics, Scene } from 'phaser';
 import { Color } from '../config/color.ts';
 import { GAME_CONFIG } from '../config/game';
 import type { Tank } from './Tank';
+import { Position } from '../../net/contracts.ts';
 
 export class Projectile extends Physics.Arcade.Sprite {
     private id: string;
@@ -31,15 +32,14 @@ export class Projectile extends Physics.Arcade.Sprite {
     constructor(
         scene: Scene,
         id: string,
-        x: number,
-        y: number,
+        position: Position,
         angle: number,
         color: Color,
         group: Phaser.Physics.Arcade.Group,
         owner: Tank | null = null,
         timestamp: number = Date.now(),
     ) {
-        super(scene, x, y, `projectile_${color}`);
+        super(scene, position.x, position.y, `projectile_${color}`);
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
