@@ -1,6 +1,48 @@
-import { EventEmitter } from 'node:events';
 import type { Scene } from 'phaser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+class TestEventEmitter {
+    private listeners = new Map<
+        string,
+        Array<{ callback: (...args: unknown[]) => void; context?: unknown }>
+    >();
+
+    on(
+        event: string,
+        callback: (...args: unknown[]) => void,
+        context?: unknown,
+    ) {
+        const listeners = this.listeners.get(event) ?? [];
+        listeners.push({ callback, context });
+        this.listeners.set(event, listeners);
+        return this;
+    }
+
+    off(
+        event: string,
+        callback: (...args: unknown[]) => void,
+        context?: unknown,
+    ) {
+        const listeners = this.listeners.get(event) ?? [];
+        this.listeners.set(
+            event,
+            listeners.filter(
+                (listener) =>
+                    listener.callback !== callback ||
+                    listener.context !== context,
+            ),
+        );
+        return this;
+    }
+
+    emit(event: string, ...args: unknown[]) {
+        const listeners = this.listeners.get(event) ?? [];
+        listeners.forEach((listener) =>
+            listener.callback.apply(listener.context, args),
+        );
+        return this;
+    }
+}
 
 const sessionMock = vi.hoisted(() => ({
     sessionConfig: {
@@ -132,7 +174,7 @@ const payload: ProjectilePayload = {
     sequence: 4,
 };
 
-function createScene(events: EventEmitter = new EventEmitter()) {
+function createScene(events: TestEventEmitter = new TestEventEmitter()) {
     const spark = {
         destroy: vi.fn(),
         setPosition: vi.fn(),
@@ -196,7 +238,7 @@ describe('Tank projectile lifecycle', () => {
     });
 
     it('local fire consumes ammo once and emits a fire payload', () => {
-        const events = new EventEmitter();
+        const events = new TestEventEmitter();
         const fireListener = vi.fn();
         events.on(GameEvent.ProjectileFire, fireListener);
 
@@ -229,7 +271,7 @@ describe('Tank projectile lifecycle', () => {
     });
 
     it('does not fire locally while the ammo gauge is locked', () => {
-        const events = new EventEmitter();
+        const events = new TestEventEmitter();
         const failListener = vi.fn();
         events.on(GameEvent.ProjectileFireFail, failListener);
 
@@ -254,7 +296,7 @@ describe('Tank projectile lifecycle', () => {
     });
 
     it('remote fire consumes ammo once without emitting a local payload', () => {
-        const events = new EventEmitter();
+        const events = new TestEventEmitter();
         const fireListener = vi.fn();
         events.on(GameEvent.ProjectileFire, fireListener);
 

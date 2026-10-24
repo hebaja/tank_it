@@ -1,6 +1,48 @@
-import { EventEmitter } from 'node:events';
 import type { Scene } from 'phaser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+class TestEventEmitter {
+    private listeners = new Map<
+        string,
+        Array<{ callback: (...args: unknown[]) => void; context?: unknown }>
+    >();
+
+    on(
+        event: string,
+        callback: (...args: unknown[]) => void,
+        context?: unknown,
+    ) {
+        const listeners = this.listeners.get(event) ?? [];
+        listeners.push({ callback, context });
+        this.listeners.set(event, listeners);
+        return this;
+    }
+
+    off(
+        event: string,
+        callback: (...args: unknown[]) => void,
+        context?: unknown,
+    ) {
+        const listeners = this.listeners.get(event) ?? [];
+        this.listeners.set(
+            event,
+            listeners.filter(
+                (listener) =>
+                    listener.callback !== callback ||
+                    listener.context !== context,
+            ),
+        );
+        return this;
+    }
+
+    emit(event: string, ...args: unknown[]) {
+        const listeners = this.listeners.get(event) ?? [];
+        listeners.forEach((listener) =>
+            listener.callback.apply(listener.context, args),
+        );
+        return this;
+    }
+}
 
 const sessionMock = vi.hoisted(() => ({
     sessionConfig: {
@@ -97,7 +139,7 @@ const roomJoined: RoomJoinedPayload = {
 };
 
 function createScene() {
-    const events = new EventEmitter();
+    const events = new TestEventEmitter();
     return { events } as unknown as Scene;
 }
 
