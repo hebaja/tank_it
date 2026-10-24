@@ -205,7 +205,11 @@ export class Tank extends Physics.Arcade.Sprite {
             this.scene.events.emit(GameEvent.ProjectileFireFail);
             return;
         }
+        this.spawnProjectile(payload);
+        if (this.isLocal) this.ammoGauge.consumeGauge();
+    }
 
+    spawnProjectile(payload?: ProjectilePayload) {
         const projectileId = payload
             ? payload.projectileId
             : crypto.randomUUID();
@@ -244,7 +248,6 @@ export class Tank extends Physics.Arcade.Sprite {
         this.projectile.once('destroy', () => {
             this.projectile = null;
         });
-        this.ammoGauge.consumeGauge();
     }
 
     private applyRemoteState() {
@@ -264,6 +267,7 @@ export class Tank extends Physics.Arcade.Sprite {
 
     fireRemoteProjectile(payload: ProjectilePayload) {
         this.fire(payload);
+        this.ammoGauge.consumeGauge();
     }
 
     getColor(): Color {
