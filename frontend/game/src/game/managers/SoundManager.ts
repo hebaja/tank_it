@@ -51,7 +51,7 @@ export class SoundManager {
     constructor(scene: Scene) {
         this.scene = scene;
         this.scene.events.on(
-            GameEvent.ProjectileFired,
+            GameEvent.ProjectileFire,
             this.handleProjectileFired,
             this,
         );
@@ -169,7 +169,7 @@ export class SoundManager {
 
     destroy() {
         this.scene.events.off(
-            GameEvent.ProjectileFired,
+            GameEvent.ProjectileFire,
             this.handleProjectileFired,
             this,
         );
