@@ -199,6 +199,11 @@ public class GameHub : Hub<IGameClient>
     {
         if (string.IsNullOrWhiteSpace(request.ProjectileA.RoomId))
             throw new HubException("roomId is required");
+        if (!string.Equals(
+                request.ProjectileA.RoomId,
+                request.ProjectileB.RoomId,
+                StringComparison.Ordinal))
+            throw new HubException("projectiles must belong to the same room");
 
         var colors = new[] { request.ProjectileA.Color, request.ProjectileB.Color };
 
