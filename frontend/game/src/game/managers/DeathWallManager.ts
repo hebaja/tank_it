@@ -39,15 +39,21 @@ export class DeathWallManager {
 
     applyStep(step: number): void {
         if (step <= this.step) return;
-        this.explodeWarned(() =>
-            this.scene.events.emit(GameEvent.DangerWarningFinish),
+
+        const isFinalStep = step >= DEATH_WALL_RINGS;
+
+        this.explodeWarned(
+            isFinalStep
+                ? () => this.scene.events.emit(GameEvent.DangerWarningFinish)
+                : undefined,
         );
         this.step = step;
-        this.scene.events.emit(GameEvent.DangerWarning);
-        if (step < DEATH_WALL_RINGS)
+        if (!isFinalStep) {
+            this.scene.events.emit(GameEvent.DangerWarning);
             this.forEachRingTile(step, (tile) =>
                 this.triggerDangerEffect(tile),
             );
+        }
     }
 
     destroy(): void {

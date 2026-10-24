@@ -3,6 +3,7 @@ import { GameEvent } from '../config/events';
 
 export class SoundManager {
     private scene: Scene;
+    private warning?: Phaser.Sound.BaseSound;
     private warningTimer: Phaser.Time.TimerEvent | undefined;
 
     static preload(scene: Scene) {
@@ -113,51 +114,55 @@ export class SoundManager {
     }
 
     handleProjectileFired() {
-        this.scene.sound.play('tank-fire', { volume: 0.4 });
+        this.play('tank-fire', { volume: 0.4 });
     }
 
     handleBlockDestroy() {
-        this.scene.sound.play('block-destroy', { volume: 0.4 });
+        this.play('block-destroy', { volume: 0.4 });
     }
 
     handleBarrelDestroy() {
-        this.scene.sound.play('barrel-destroy', { volume: 0.4 });
+        this.play('barrel-destroy', { volume: 0.4 });
     }
 
     handleGrayExplosion() {
-        this.scene.sound.play('gray-explosion', { volume: 0.4 });
+        this.play('gray-explosion', { volume: 0.4 });
     }
 
     handleTankDestroy() {
-        this.scene.sound.play('tank-destroy', { volume: 0.4 });
+        this.play('tank-destroy', { volume: 0.4 });
     }
 
     handleProjectileFireFail() {
-        this.scene.sound.play('tank-fire-fail', { volume: 0.1 });
+        this.play('tank-fire-fail', { volume: 0.1 });
     }
 
     handleDeathWallDestroy() {
-        this.scene.sound.play('death-wall-explode', { volume: 0.4 });
+        this.play('death-wall-explode', { volume: 0.4 });
     }
 
     handleOptionSelect() {
-        this.scene.sound.play('option-select', { volume: 0.4 });
+        this.play('option-select', { volume: 0.4 });
     }
 
     handleAmmoBarComplete() {
-        this.scene.sound.play('ammo-bar-complete', { volume: 0.4 });
+        this.play('ammo-bar-complete', { volume: 0.4 });
     }
 
     handleProjectileHitProjectile() {
-        this.scene.sound.play('gray-explosion', { volume: 0.4 });
+        this.play('gray-explosion', { volume: 0.4 });
     }
 
     handleDangerWarning() {
-        const warning = this.scene.sound.add('danger-warning', { volume: 0.2 });
-
+        this.warning ??= this.scene.sound.add('danger-warning', {
+            volume: 0.2,
+        });
+        if (this.warningTimer) return;
         this.warningTimer = this.scene.time.addEvent({
             delay: 1500,
-            callback: () => warning.play(),
+            callback: () => {
+                if (this.canPlay()) this.warning?.play();
+            },
             loop: true,
         });
     }
@@ -165,6 +170,25 @@ export class SoundManager {
     handleDangerWarningFinish() {
         this.warningTimer?.remove();
         this.warningTimer = undefined;
+        this.warning?.stop();
+        this.warning?.destroy();
+        this.warning = undefined;
+    }
+
+    private play(key: string, config?: Phaser.Types.Sound.SoundConfig) {
+        if (this.canPlay()) this.scene.sound.play(key, config);
+    }
+
+    private canPlay() {
+        if (
+            typeof document !== 'undefined' &&
+            document.visibilityState === 'hidden'
+        )
+            return false;
+        if (this.scene.sound.locked) return false;
+        const ctx = (this.scene.sound as Phaser.Sound.WebAudioSoundManager)
+            .context;
+        return !ctx || ctx.state === 'running';
     }
 
     destroy() {
