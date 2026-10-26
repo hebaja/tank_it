@@ -7,7 +7,12 @@ import { SPAWN_CORNERS } from '../config/layout';
 import { GAME_CONFIG } from '../config/game';
 import { GameEvent } from '../config/events';
 import { sessionConfig } from '../../net/sessionConfig';
-import { TankMovedPayload, TankMovePayload } from '../../net/contracts';
+import {
+    Position,
+    ProjectilePayload,
+    TankMovedPayload,
+    TankMovePayload,
+} from '../../net/contracts';
 
 type TankControls = {
     A: Input.Keyboard.Key;
@@ -16,8 +21,6 @@ type TankControls = {
     S: Input.Keyboard.Key;
     SPACE: Input.Keyboard.Key;
 };
-
-type Pair = [x: number, y: number];
 
 export class Tank extends Physics.Arcade.Sprite {
     private controlsA: TankControls;
@@ -134,8 +137,8 @@ export class Tank extends Physics.Arcade.Sprite {
         }
 
         if (this.sparkShot) {
-            const tips = this.getTipTank(36);
-            this.sparkShot.setPosition(tips[0], tips[1]);
+            const tip = this.getProjectileOrigin(36);
+            this.sparkShot.setPosition(tip.x, tip.y);
         }
     }
 
@@ -173,21 +176,22 @@ export class Tank extends Physics.Arcade.Sprite {
         return this.projectile;
     }
 
-    getTipTank(distance: number): Pair {
+    getProjectileOrigin(distance: number): Position {
         const tipX =
             this.x - Math.cos(PhaserMath.DegToRad(this.angle - 90)) * distance;
         const tipY =
             this.y - Math.sin(PhaserMath.DegToRad(this.angle - 90)) * distance;
 
-        const tips: Pair = [tipX, tipY];
-
-        return tips;
+        return {
+            x: tipX,
+            y: tipY,
+        };
     }
 
     setSparkShot() {
         this.sparkShot?.destroy();
-        const tips = this.getTipTank(36);
-        this.sparkShot = this.scene.add.sprite(tips[0], tips[1], 'spark');
+        const tip = this.getProjectileOrigin(36);
+        this.sparkShot = this.scene.add.sprite(tip.x, tip.y, 'spark');
         this.sparkShot.angle = this.angle;
         this.sparkShot.depth = GAME_CONFIG.depth.spark;
     }
@@ -196,13 +200,21 @@ export class Tank extends Physics.Arcade.Sprite {
         this.isSlow = value;
     }
 
-    fire() {
+    fire(payload?: ProjectilePayload) {
         if (!this.ammoGauge.getCanFire()) {
             this.scene.events.emit(GameEvent.ProjectileFireFail);
             return;
         }
+        this.spawnProjectile(payload);
+        if (this.isLocal) this.ammoGauge.consumeGauge();
+    }
 
-        const tip = this.getTipTank(20);
+    spawnProjectile(payload?: ProjectilePayload) {
+        const projectileId = payload
+            ? payload.projectileId
+            : crypto.randomUUID();
+        const origin = payload ? payload.origin : this.getProjectileOrigin(20);
+        const angle = payload ? payload.angle : this.angle;
         this.setSparkShot();
         this.scene.time.delayedCall(GAME_CONFIG.timing.sparkLifetime, () => {
             this.sparkShot?.destroy();
@@ -211,21 +223,31 @@ export class Tank extends Physics.Arcade.Sprite {
 
         this.projectile = new Projectile(
             this.scene,
-            tip[0],
-            tip[1],
-            this.angle,
+            projectileId,
+            origin,
+            angle,
             this.color,
             this.projectileGroup,
             this,
+            Date.now(),
         );
         this.projectile.depth = GAME_CONFIG.depth.projectile;
 
-        this.scene.events.emit(GameEvent.ProjectileFired, this.projectile);
+        if (this.isLocal)
+            this.scene.events.emit(GameEvent.ProjectileFire, {
+                roomId: sessionConfig.roomId,
+                ownerId: this.color,
+                projectileId: this.projectile.getId(),
+                origin: origin,
+                angle: angle,
+                color: this.color,
+                timestamp: Date.now(),
+                sequence: this.sequence,
+            } satisfies ProjectilePayload);
 
         this.projectile.once('destroy', () => {
             this.projectile = null;
         });
-        this.ammoGauge.consumeGauge();
     }
 
     private applyRemoteState() {
@@ -243,7 +265,16 @@ export class Tank extends Physics.Arcade.Sprite {
         };
     }
 
+    fireRemoteProjectile(payload: ProjectilePayload) {
+        this.fire(payload);
+        this.ammoGauge.consumeGauge();
+    }
+
     getColor(): Color {
         return this.color;
+    }
+
+    getIsLocal(): boolean {
+        return this.isLocal;
     }
 }

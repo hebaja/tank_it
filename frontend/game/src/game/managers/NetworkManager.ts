@@ -8,6 +8,8 @@ import type {
     DeathWallStepPayload,
     MatchEndPayload,
     MatchStartedPayload,
+    ProjectilePayload,
+    ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
     TankMovePayload,
@@ -28,6 +30,9 @@ export class NetworkManager {
         this.hub.onBlockDestroyed(this.handleBlockDestroyed);
         this.hub.onBarrelDestroyed(this.handleBarrelDestroyed);
         this.hub.onTankDestroyed(this.handleTankDestroyed);
+        this.hub.onProjectileFired(this.handleProjectileFired);
+        this.hub.onProjectileDestroyed(this.handleProjectileDestroyed);
+        this.hub.onProjectilesCollided(this.handleProjectilesCollided);
         this.scene.events.on(
             GameEvent.TankMove,
             this.handleLocalTankMove,
@@ -54,6 +59,21 @@ export class NetworkManager {
             this.handleTankDestroy,
             this,
         );
+        this.scene.events.on(
+            GameEvent.ProjectileFire,
+            this.handleProjectileFire,
+            this,
+        );
+        this.scene.events.on(
+            GameEvent.ProjectileDestroy,
+            this.handleProjectileDestroy,
+            this,
+        );
+        this.scene.events.on(
+            GameEvent.ProjectilesCollide,
+            this.handleProjectilesCollide,
+            this,
+        );
         this.ready = this.hub
             .start()
             .then(() =>
@@ -70,6 +90,10 @@ export class NetworkManager {
                 console.warn('[NetworkManager] connect/join failed', err);
                 throw err;
             });
+    }
+
+    getConnectionId(): string | null {
+        return this.hub.getConnectionId();
     }
 
     private handleLocalTankMove = (payload: TankMovePayload) =>
@@ -97,6 +121,18 @@ export class NetworkManager {
         this.hub.sendTankDestroy(payload);
     private handleTankDestroyed = (payload: TankDestroyPayload) =>
         this.scene.events.emit(GameEvent.TankDestroyed, payload);
+    private handleProjectileFire = (payload: ProjectilePayload) =>
+        this.hub.sendProjectileFire(payload);
+    private handleProjectileFired = (payload: ProjectilePayload) =>
+        this.scene.events.emit(GameEvent.ProjectileFired, payload);
+    private handleProjectileDestroy = (payload: ProjectilePayload) =>
+        this.hub.sendProjectileDestroy(payload);
+    private handleProjectileDestroyed = (payload: ProjectilePayload) =>
+        this.scene.events.emit(GameEvent.ProjectileDestroyed, payload);
+    private handleProjectilesCollide = (payload: ProjectilesCollidePayload) =>
+        this.hub.sendProjectilesCollide(payload);
+    private handleProjectilesCollided = (payload: ProjectilesCollidePayload) =>
+        this.scene.events.emit(GameEvent.ProjectilesCollided, payload);
 
     destroy() {
         this.scene.events.off(
@@ -121,6 +157,21 @@ export class NetworkManager {
             this,
         );
         this.scene.events.off(
+            GameEvent.ProjectileFire,
+            this.handleProjectileFire,
+            this,
+        );
+        this.scene.events.off(
+            GameEvent.ProjectileDestroy,
+            this.handleProjectileDestroy,
+            this,
+        );
+        this.scene.events.off(
+            GameEvent.ProjectilesCollide,
+            this.handleProjectilesCollide,
+            this,
+        );
+        this.scene.events.off(
             GameEvent.BlockDestroy,
             this.handleBlockDestroy,
             this,
@@ -131,6 +182,9 @@ export class NetworkManager {
         this.hub.offBarrelDestroyed(this.handleBarrelDestroyed);
         this.hub.offTankDestroyed(this.handleTankDestroyed);
         this.hub.offBlockDestroyed(this.handleBlockDestroyed);
+        this.hub.offProjectileFired(this.handleProjectileFired);
+        this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
+        this.hub.offProjectilesCollided(this.handleProjectilesCollided);
         this.hub.leaveRoom(sessionConfig.roomId).catch(() => {});
         this.hub.stop().catch(() => {});
     }

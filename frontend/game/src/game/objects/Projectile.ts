@@ -2,9 +2,13 @@ import { Physics, Scene } from 'phaser';
 import { Color } from '../config/color.ts';
 import { GAME_CONFIG } from '../config/game';
 import type { Tank } from './Tank';
+import { Position } from '../../net/contracts.ts';
 
 export class Projectile extends Physics.Arcade.Sprite {
-    owner: Tank | null = null;
+    private id: string;
+    private color: Color;
+    private owner: Tank | null = null;
+    private timestamp: number;
 
     static preload(scene: Scene) {
         scene.load.image(
@@ -27,21 +31,25 @@ export class Projectile extends Physics.Arcade.Sprite {
 
     constructor(
         scene: Scene,
-        x: number,
-        y: number,
+        id: string,
+        position: Position,
         angle: number,
         color: Color,
         group: Phaser.Physics.Arcade.Group,
         owner: Tank | null = null,
+        timestamp: number = Date.now(),
     ) {
-        super(scene, x, y, `projectile_${color}`);
+        super(scene, position.x, position.y, `projectile_${color}`);
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
         group.add(this);
 
+        this.id = id;
+        this.color = color;
         this.owner = owner;
+        this.timestamp = timestamp;
         this.setCollideWorldBounds(true, 0, 0, true);
         this.scene.physics.world.on(
             'worldbounds',
@@ -61,6 +69,22 @@ export class Projectile extends Physics.Arcade.Sprite {
 
     destroy(fromScene?: boolean): void {
         super.destroy(fromScene);
+    }
+
+    getOwner(): Tank | null {
+        return this.owner;
+    }
+
+    getId(): string {
+        return this.id;
+    }
+
+    getColor(): Color {
+        return this.color;
+    }
+
+    getTimestamp(): number {
+        return this.timestamp;
     }
 
     update() {}

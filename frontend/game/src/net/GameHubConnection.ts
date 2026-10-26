@@ -5,6 +5,8 @@ import type {
     DeathWallStepPayload,
     MatchEndPayload,
     MatchStartedPayload,
+    ProjectilePayload,
+    ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
     TankMovePayload,
@@ -16,12 +18,17 @@ const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game';
 export class GameHubConnection {
     private conn: signalR.HubConnection;
     private started: Promise<void> | null = null;
+    private connectionId: string | null = null;
 
     constructor(hubUrl: string = DEFAULT_HUB_URL) {
         this.conn = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl)
             .withAutomaticReconnect()
             .build();
+    }
+
+    getConnectionId(): string | null {
+        return this.connectionId;
     }
 
     async start(): Promise<void> {
@@ -35,11 +42,13 @@ export class GameHubConnection {
     }
 
     async joinRoom(roomId: string, color: string): Promise<RoomJoinedPayload> {
-        return await this.conn.invoke<RoomJoinedPayload>(
+        const joined = await this.conn.invoke<RoomJoinedPayload>(
             'JoinRoom',
             roomId,
             color,
         );
+        this.connectionId = joined.connectionId;
+        return joined;
     }
     async leaveRoom(roomId: string): Promise<void> {
         await this.conn.invoke('LeaveRoom', roomId);
@@ -108,6 +117,42 @@ export class GameHubConnection {
             );
     }
 
+    sendProjectileFire(payload: ProjectilePayload): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('ProjectileFire', payload)
+            .catch((err) =>
+                console.warn(
+                    '[GameHubConnection] ProjectileFire send failed',
+                    err,
+                ),
+            );
+    }
+
+    sendProjectileDestroy(payload: ProjectilePayload): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('ProjectileDestroy', payload)
+            .catch((err) =>
+                console.warn(
+                    '[GameHubConnection] ProjectileDestroy send failed',
+                    err,
+                ),
+            );
+    }
+
+    sendProjectilesCollide(payload: ProjectilesCollidePayload): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('ProjectilesCollide', payload)
+            .catch((err) =>
+                console.warn(
+                    '[GameHubConnection] ProjectilesCollide send failed',
+                    err,
+                ),
+            );
+    }
+
     onTankMoved(cb: (p: TankMovedPayload) => void): void {
         this.conn.on('TankMoved', cb);
     }
@@ -143,6 +188,24 @@ export class GameHubConnection {
     }
     offTankDestroyed(cb: (p: TankDestroyPayload) => void): void {
         this.conn.off('TankDestroyed', cb);
+    }
+    onProjectileFired(cb: (p: ProjectilePayload) => void): void {
+        this.conn.on('ProjectileFired', cb);
+    }
+    offProjectileFired(cb: (p: ProjectilePayload) => void): void {
+        this.conn.off('ProjectileFired', cb);
+    }
+    onProjectileDestroyed(cb: (p: ProjectilePayload) => void): void {
+        this.conn.on('ProjectileDestroyed', cb);
+    }
+    offProjectileDestroyed(cb: (p: ProjectilePayload) => void): void {
+        this.conn.off('ProjectileDestroyed', cb);
+    }
+    onProjectilesCollided(cb: (p: ProjectilesCollidePayload) => void): void {
+        this.conn.on('ProjectilesCollided', cb);
+    }
+    offProjectilesCollided(cb: (p: ProjectilesCollidePayload) => void): void {
+        this.conn.off('ProjectilesCollided', cb);
     }
 
     get state(): signalR.HubConnectionState {

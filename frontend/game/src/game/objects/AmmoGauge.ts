@@ -9,6 +9,7 @@ export class AmmoGauge extends GameObjects.Container {
     private bg: Phaser.GameObjects.Rectangle;
     private alarmOn: boolean = false;
     private alarmTween?: Phaser.Tweens.Tween;
+    private rechargeTween?: Phaser.Tweens.Tween;
     private recharging: boolean = false;
     private canFire: boolean = true;
     private counter: number = HUD.initialAmmo;
@@ -91,7 +92,13 @@ export class AmmoGauge extends GameObjects.Container {
     }
 
     destroy(fromScene?: boolean): void {
-        this.scene?.events.off(Scenes.Events.UPDATE, this.update, this);
+        const scene = this.scene;
+        scene?.events.off(Scenes.Events.UPDATE, this.update, this);
+        this.alarmTween?.stop();
+        this.rechargeTween?.stop();
+        this.alarmTween = undefined;
+        this.rechargeTween = undefined;
+        if (scene) scene.tweens.killTweensOf(this.fill);
         super.destroy(fromScene);
     }
 
@@ -118,18 +125,21 @@ export class AmmoGauge extends GameObjects.Container {
         this.bg.setFillStyle(0x000000);
         this.canFire = false;
 
-        this.scene.tweens.add({
+        this.rechargeTween = this.scene.tweens.add({
             targets: this,
             gaugeWidth: HUD.gaugeWidth,
             duration: HUD.rechargeMs,
             ease: 'Sine.easeOut',
             onUpdate: () => {
+                if (!this.active) return;
                 this.fill.width = this.gaugeWidth;
             },
             onComplete: () => {
+                this.rechargeTween = undefined;
+                if (!this.scene || !this.active) return;
                 this.recharging = false;
                 this.counter = HUD.initialAmmo;
-                this.quantity.setText(`x${this.counter}`);
+                this.quantity?.setText(`x${this.counter}`);
                 this.canFire = true;
                 this.scene.events.emit(GameEvent.AmmoBarComplete);
             },
