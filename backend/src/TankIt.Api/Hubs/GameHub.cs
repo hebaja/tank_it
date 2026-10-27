@@ -91,7 +91,7 @@ public class GameHub : Hub<IGameClient>
 
     public async Task TankMove(TankMoveRequest request)
     {
-        if (string.IsNullOrEmpty(request.RoomId))
+        if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
         _logger.LogInformation("Tank moved: {RoomId} - {PlayerId} - {X}:{Y} - {Rotation}",
