@@ -11,8 +11,22 @@ permissions:
 
 jobs:
     quality-gates:
-        name: Quality gates
+        name: ci
         runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_USER: tankit
+                    POSTGRES_PASSWORD: tankit_dev
+                    POSTGRES_DB: tankit
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U tankit -d tankit"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
         env:
             HUSKY: 0
         steps:
@@ -45,10 +59,14 @@ jobs:
               working-directory: frontend/app
               run: yarn install --frozen-lockfile
 
+            - name: Install Playwright browser
+              working-directory: frontend/app
+              run: yarn playwright install --with-deps chromium
+
             - name: Set up .NET
               uses: actions/setup-dotnet@v4
               with:
-                  dotnet-version: 10.0.111
+                  dotnet-version: 10.0.113
 
             - name: Run frontend gates
               run: make lint-frontend typecheck-frontend build test-frontend

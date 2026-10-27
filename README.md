@@ -74,6 +74,21 @@ and pre-push runs `make lint typecheck build test`. The pre-push checks need Nod
 Run the `*-frontend` or `*-backend` targets to run one side of a check locally, such as
 `make lint-frontend typecheck-frontend test-frontend`.
 
+### Tests
+
+`make test-frontend` runs game and lobby unit tests, a mocked lobby browser test, and full-stack
+browser tests against the actual API, PostgreSQL database, SignalR hub, and Phaser game. Start
+the database before running E2E locally:
+
+```bash
+docker compose up -d db
+cd frontend/app && yarn playwright install chromium
+```
+
+Run only the browser flows with `cd frontend/app && yarn test:e2e`. The backend unit and hub tests
+run with `make test-backend`; they use in-memory collaborators and do not need Postgres. `make
+test` runs both frontend and backend suites.
+
 ### Game core — local (without Docker)
 
 ```bash
