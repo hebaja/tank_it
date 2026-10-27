@@ -4,13 +4,18 @@ using TankIt.Api.Hubs.Dtos;
 
 namespace TankIt.Api.Services;
 
-public sealed class DeathWallTimer(string roomId, IHubContext<GameHub, IGameClient> hub, ILogger logger)
+public sealed class DeathWallTimer(
+    string roomId,
+    IHubContext<GameHub, IGameClient> hub,
+    ILogger logger,
+    TimeProvider? timeProvider = null)
 {
     public static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(60);
     public static readonly TimeSpan RingInterval = TimeSpan.FromSeconds(15);
     public const int MaxStep = 6;
 
     private readonly CancellationTokenSource _cts = new();
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private int _started;
     private int _step = -1;
 
@@ -29,10 +34,10 @@ public sealed class DeathWallTimer(string roomId, IHubContext<GameHub, IGameClie
     {
         try
         {
-            await Task.Delay(StartDelay, ct);
+            await Task.Delay(StartDelay, _timeProvider, ct);
             await SendStep(0);
 
-            using var timer = new PeriodicTimer(RingInterval);
+            using var timer = new PeriodicTimer(RingInterval, _timeProvider);
             for (int step = 1; step <= MaxStep && await timer.WaitForNextTickAsync(ct); step++)
                 await SendStep(step);
         }

@@ -4,11 +4,16 @@ using TankIt.Api.Hubs;
 
 namespace TankIt.Api.Services;
 
-public sealed class DeathWallService(IHubContext<GameHub, IGameClient> hub, ILogger<DeathWallService> logger)
+public sealed class DeathWallService(
+    IHubContext<GameHub, IGameClient> hub,
+    ILogger<DeathWallService> logger,
+    TimeProvider? timeProvider = null)
 {
     private readonly ConcurrentDictionary<string, DeathWallTimer> _timers = new();
 
-    public void EnsureStarted(string roomId) => _timers.GetOrAdd(roomId, id => new DeathWallTimer(id, hub, logger)).Start();
+    public void EnsureStarted(string roomId) => _timers
+        .GetOrAdd(roomId, id => new DeathWallTimer(id, hub, logger, timeProvider))
+        .Start();
 
     public void Restart(string roomId)
     {
