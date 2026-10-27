@@ -13,7 +13,8 @@ import type {
     TankMovedPayload,
 } from './contracts';
 
-const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game';
+const DEFAULT_HUB_URL =
+    import.meta.env.VITE_HUB_URL ?? 'http://localhost:8080/hubs/game';
 
 export class GameHubConnection {
     private conn: signalR.HubConnection;
