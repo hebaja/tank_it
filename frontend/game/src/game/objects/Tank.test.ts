@@ -161,6 +161,7 @@ vi.mock('../../net/sessionConfig', () => sessionMock);
 import type { ProjectilePayload } from '../../net/contracts';
 import { GameEvent } from '../config/events';
 import { Color } from '../config/color';
+import type { TankMovedPayload } from '../../net/contracts';
 import { Tank } from './Tank';
 
 const payload: ProjectilePayload = {
@@ -174,7 +175,16 @@ const payload: ProjectilePayload = {
     sequence: 4,
 };
 
-function createScene(events: TestEventEmitter = new TestEventEmitter()) {
+function createScene(
+    events: TestEventEmitter = new TestEventEmitter(),
+    keys = {
+        A: { isDown: false },
+        D: { isDown: false },
+        W: { isDown: false },
+        S: { isDown: false },
+        SPACE: { isDown: false },
+    },
+) {
     const spark = {
         destroy: vi.fn(),
         setPosition: vi.fn(),
@@ -187,17 +197,16 @@ function createScene(events: TestEventEmitter = new TestEventEmitter()) {
         input: {
             keyboard: {
                 addKeys: vi.fn(() => ({
-                    A: { isDown: false },
-                    D: { isDown: false },
-                    W: { isDown: false },
-                    S: { isDown: false },
-                    SPACE: { isDown: false },
+                    ...keys,
                 })),
             },
         },
         physics: {
             add: { existing: vi.fn() },
-            velocityFromAngle: vi.fn(() => ({ x: 0, y: 0 })),
+            velocityFromAngle: vi.fn((angle: number, speed: number) => ({
+                x: angle,
+                y: speed,
+            })),
         },
         add: {
             existing: vi.fn(),
@@ -230,7 +239,7 @@ function createTank(isLocal: boolean) {
     };
 }
 
-describe('Tank projectile lifecycle', () => {
+describe('Tank', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         ammoMock.instances.length = 0;
@@ -343,5 +352,73 @@ describe('Tank projectile lifecycle', () => {
 
         expect(origin.x).toBeCloseTo(x, 6);
         expect(origin.y).toBeCloseTo(y, 6);
+    });
+
+    it('moves local tanks from input and emits sequenced movement state', () => {
+        const events = new TestEventEmitter();
+        const moveListener = vi.fn();
+        events.on(GameEvent.TankMove, moveListener);
+        const keys = {
+            A: { isDown: true },
+            D: { isDown: false },
+            W: { isDown: false },
+            S: { isDown: true },
+            SPACE: { isDown: false },
+        };
+        const scene = createScene(events, keys);
+        (scene as unknown as { time: { now: number } }).time.now = 100;
+        const tank = new Tank(
+            scene,
+            100,
+            200,
+            90,
+            Color.blue,
+            { add: vi.fn() } as never,
+            { add: vi.fn() } as never,
+            true,
+        );
+
+        tank.update();
+
+        expect(tank.angle).toBe(88);
+        expect(scene.physics.velocityFromAngle).toHaveBeenCalledWith(-2, 150);
+        expect(moveListener).toHaveBeenCalledWith(
+            expect.objectContaining({
+                roomId: 'room-1',
+                playerId: Color.blue,
+                position: { x: 100, y: 200 },
+                rotation: 88,
+                sequence: 0,
+            }),
+        );
+    });
+
+    it('applies the latest received state to remote tanks during update', () => {
+        const scene = createScene();
+        const tank = new Tank(
+            scene,
+            100,
+            200,
+            90,
+            Color.red,
+            { add: vi.fn() } as never,
+            { add: vi.fn() } as never,
+            false,
+        );
+        const remote: TankMovedPayload = {
+            roomId: 'room-1',
+            playerId: Color.red,
+            position: { x: 320, y: 440 },
+            rotation: 180,
+            sequence: 2,
+            timestamp: 123,
+        };
+
+        tank.receiveRemoteState(remote);
+        tank.update();
+
+        expect(tank.x).toBe(320);
+        expect(tank.y).toBe(440);
+        expect(tank.angle).toBe(180);
     });
 });
