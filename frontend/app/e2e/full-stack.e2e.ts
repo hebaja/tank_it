@@ -69,7 +69,9 @@ test('real lobby reflects another player joining and leaving', async ({
     ]);
 
     await green.getByRole('button', { name: 'Leave' }).click();
-    await expect(blue.locator('#player-list .player-name')).toHaveText('Blue');
+    await expect(blue.locator('#player-list .player-name')).toHaveText([
+        'Blue',
+    ]);
     await expect(green.locator('#join-form')).toBeVisible();
     await blue.getByRole('button', { name: 'Leave' }).click();
 });
