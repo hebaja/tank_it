@@ -193,17 +193,17 @@ export class SoundManager {
 
     destroy() {
         this.scene.events.off(
-            GameEvent.ProjectileFire,
+            GameEvent.ProjectileFireSfx,
             this.handleProjectileFired,
             this,
         );
         this.scene.events.off(
-            GameEvent.BlockDestroy,
+            GameEvent.BlockDestroySfx,
             this.handleBlockDestroy,
             this,
         );
         this.scene.events.off(
-            GameEvent.BarrelDestroy,
+            GameEvent.BarrelDestroySfx,
             this.handleBarrelDestroy,
             this,
         );
@@ -213,7 +213,7 @@ export class SoundManager {
             this,
         );
         this.scene.events.off(
-            GameEvent.TankDestroy,
+            GameEvent.TankDestroySfx,
             this.handleTankDestroy,
             this,
         );
