@@ -223,6 +223,7 @@ export class Game extends Scene {
                         },
                     });
                 }
+                this.events.emit(GameEvent.BlockDestroySfx);
                 this.destroyProjectile(proj);
             },
         );

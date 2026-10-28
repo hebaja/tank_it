@@ -18,6 +18,7 @@ export const GameEvent = {
     DeathWallStep: 'death_wall_step',
     BlockDestroy: 'block_destroy',
     BlockDestroyed: 'block_destroyed',
+    BlockDestroySfx: 'block_destroy_sfx',
     BarrelDestroy: 'barrel_destroy',
     BarrelDestroyed: 'barrel_destroyed',
     TankDestroy: 'tank_destroy',
