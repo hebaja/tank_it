@@ -75,7 +75,7 @@ export class SoundManager {
         this.startMusic();
 
         this.scene.events.on(
-            GameEvent.ProjectileFire,
+            GameEvent.ProjectileFireSfx,
             this.handleProjectileFired,
             this,
         );
