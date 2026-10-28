@@ -57,7 +57,7 @@ export class SoundManager {
             this,
         );
         this.scene.events.on(
-            GameEvent.BlockDestroy,
+            GameEvent.BlockDestroySfx,
             this.handleBlockDestroy,
             this,
         );
