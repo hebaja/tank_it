@@ -274,6 +274,7 @@ export class Game extends Scene {
                         y: tank.y,
                     });
                 }
+                this.events.emit(GameEvent.TankDestroySfx);
                 this.destroyTank(tank);
                 this.destroyProjectile(proj);
             },
