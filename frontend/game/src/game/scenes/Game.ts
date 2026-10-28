@@ -254,6 +254,7 @@ export class Game extends Scene {
                         index: barrel.getIndex(),
                     });
                 }
+                this.events.emit(GameEvent.BarrelDestroySfx);
                 this.destroyProjectile(proj);
             },
         );
