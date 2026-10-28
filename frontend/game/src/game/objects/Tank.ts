@@ -244,7 +244,7 @@ export class Tank extends Physics.Arcade.Sprite {
                 timestamp: Date.now(),
                 sequence: this.sequence,
             } satisfies ProjectilePayload);
-
+        this.scene.events.emit(GameEvent.ProjectileFireSfx);
         this.projectile.once('destroy', () => {
             this.projectile = null;
         });

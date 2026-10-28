@@ -52,7 +52,7 @@ export class SoundManager {
     constructor(scene: Scene) {
         this.scene = scene;
         this.scene.events.on(
-            GameEvent.ProjectileFire,
+            GameEvent.ProjectileFireSfx,
             this.handleProjectileFired,
             this,
         );

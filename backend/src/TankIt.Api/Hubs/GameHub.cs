@@ -94,12 +94,12 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrEmpty(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation("Tank moved: {RoomId} - {PlayerId} - {X}:{Y} - {Rotation}",
-            request.RoomId,
-            request.PlayerId,
-            request.Position.X,
-            request.Position.Y,
-            request.Rotation);
+        //_logger.LogInformation("Tank moved: {RoomId} - {PlayerId} - {X}:{Y} - {Rotation}",
+        //    request.RoomId,
+        //    request.PlayerId,
+        //    request.Position.X,
+        //    request.Position.Y,
+        //    request.Rotation);
 
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
     }
