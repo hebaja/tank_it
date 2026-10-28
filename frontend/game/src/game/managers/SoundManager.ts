@@ -85,7 +85,7 @@ export class SoundManager {
             this,
         );
         this.scene.events.on(
-            GameEvent.BarrelDestroy,
+            GameEvent.BarrelDestroySfx,
             this.handleBarrelDestroy,
             this,
         );

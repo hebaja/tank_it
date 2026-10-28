@@ -21,6 +21,7 @@ export const GameEvent = {
     BlockDestroySfx: 'block_destroy_sfx',
     BarrelDestroy: 'barrel_destroy',
     BarrelDestroyed: 'barrel_destroyed',
+    BarrelDestroySfx: 'barrel_destroy_sfx',
     TankDestroy: 'tank_destroy',
     TankDestroyed: 'tank_destroyed',
     ProjectileFireFail: 'project_fire_fail',
