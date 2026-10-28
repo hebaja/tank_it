@@ -95,7 +95,7 @@ export class SoundManager {
             this,
         );
         this.scene.events.on(
-            GameEvent.TankDestroy,
+            GameEvent.TankDestroySfx,
             this.handleTankDestroy,
             this,
         );
