@@ -93,7 +93,7 @@ erDiagram
         int elo_delta
     }
     player_stats {
-        uuid user_id PK_FK
+        uuid user_id "PK_FK"
         int matches_played
         int wins
         int kills
@@ -148,7 +148,7 @@ explicitly for auditability.
 **End-of-match check.** After every completed match in a championship, the backend recomputes
 each participant's cumulative `SUM(points)`. If nobody has reached `target_score`, the series
 continues. If exactly one participant has, they're champion. Because the check only runs after
-a match completes, two participants can only cross the threshold *simultaneously*, in the same
+a match completes, two participants can only cross the threshold _simultaneously_, in the same
 deciding match — which is exactly your dark=11/green=12 example: unequal totals, green wins
 outright, no tie-break needed.
 
@@ -168,27 +168,27 @@ GROUP BY u.id, u.display_name
 ORDER BY total_points DESC, total_kills DESC, matches_won DESC;
 ```
 
-**Tie-break cascade**, applied only when two or more participants land on the *same* total
+**Tie-break cascade**, applied only when two or more participants land on the _same_ total
 `points` at/above `target_score`:
 
 1. **More kills** — `SUM(kills)` across the championship's matches (in the query above).
 2. **More matches won** — `COUNT(placement = 1)` across the championship's matches (also above).
-3. **Head-to-head** — *not* "who scored more points in shared matches": in a fixed-roster
+3. **Head-to-head** — _not_ "who scored more points in shared matches": in a fixed-roster
    championship every match is shared, so that sum is always identical to `total_points` and
    would resolve nothing (caught this by testing against a real database — the naive version
    is a no-op). The meaningful version instead counts, pairwise, how many times one tied
    player placed better than the other:
-   ```sql
-   SELECT a.user_id, COUNT(*) FILTER (WHERE a.placement < b.placement) AS times_placed_better
-   FROM match_participants a
-   JOIN match_participants b ON a.match_id = b.match_id AND a.user_id <> b.user_id
-   WHERE a.user_id IN ($tiedUserIds) AND b.user_id IN ($tiedUserIds)
-   GROUP BY a.user_id;
-   ```
-   For a 3+-way tie this only answers pairwise questions, not a clean ranking — fall straight
-   to rule 4 for ties wider than 2 players.
-4. **Sudden-death decider match** *(added here, not explicitly agreed on — flag if you'd
-   rather leave this undefined or handle it differently)*: if still tied after all of the
+    ```sql
+    SELECT a.user_id, COUNT(*) FILTER (WHERE a.placement < b.placement) AS times_placed_better
+    FROM match_participants a
+    JOIN match_participants b ON a.match_id = b.match_id AND a.user_id <> b.user_id
+    WHERE a.user_id IN ($tiedUserIds) AND b.user_id IN ($tiedUserIds)
+    GROUP BY a.user_id;
+    ```
+    For a 3+-way tie this only answers pairwise questions, not a clean ranking — fall straight
+    to rule 4 for ties wider than 2 players.
+4. **Sudden-death decider match** _(added here, not explicitly agreed on — flag if you'd
+   rather leave this undefined or handle it differently)_: if still tied after all of the
    above — including the case where the tied players split their head-to-head record evenly,
    which is a real, reachable outcome, verified with test data — the tied players play one
    more match. Its winner is champion outright. No new schema needed: it's just another
