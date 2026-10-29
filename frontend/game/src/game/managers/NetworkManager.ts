@@ -187,6 +187,11 @@ export class NetworkManager {
             this.handleBlockDestroy,
             this,
         );
+        this.scene.events.off(
+            GameEvent.ProjectileFireFail,
+            this.handleProjectileFireFail,
+            this,
+        );
         this.hub.offTankMoved(this.handleTankMoved);
         this.hub.offMatchStarted(this.handleMatchStarted);
         this.hub.offDeathWallStep(this.handleDeathWallStep);
