@@ -12,6 +12,7 @@ import type {
     ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
+    TankInfoPayload,
     TankMovePayload,
     TankMovedPayload,
 } from '../../net/contracts';
@@ -74,6 +75,11 @@ export class NetworkManager {
             this.handleProjectilesCollide,
             this,
         );
+        this.scene.events.on(
+            GameEvent.ProjectileFireFail,
+            this.handleProjectileFireFail,
+            this,
+        );
         this.ready = this.hub
             .start()
             .then(() =>
@@ -133,6 +139,8 @@ export class NetworkManager {
         this.hub.sendProjectilesCollide(payload);
     private handleProjectilesCollided = (payload: ProjectilesCollidePayload) =>
         this.scene.events.emit(GameEvent.ProjectilesCollided, payload);
+    private handleProjectileFireFail = (payload: TankInfoPayload) =>
+        this.hub.sendProjectileFireFail(payload);
 
     destroy() {
         this.scene.events.off(
@@ -185,6 +193,7 @@ export class NetworkManager {
         this.hub.offProjectileFired(this.handleProjectileFired);
         this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.offProjectilesCollided(this.handleProjectilesCollided);
+        this.hub.offProjectileFireFail(this.handleProjectileFireFail);
         this.hub.leaveRoom(sessionConfig.roomId).catch(() => {});
         this.hub.stop().catch(() => {});
     }
