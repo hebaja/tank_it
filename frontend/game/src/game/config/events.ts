@@ -26,6 +26,7 @@ export const GameEvent = {
     TankDestroyed: 'tank_destroyed',
     TankDestroySfx: 'tank_destroy_sfx',
     ProjectileFireFail: 'project_fire_fail',
+    ProjectileFireFailed: 'project_fire_failed',
     DeathWallExplode: 'death_wall_explode',
     DangerWarning: 'danger_warning',
     DangerWarningFinish: 'danger_warning_finish',
