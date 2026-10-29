@@ -1,0 +1,57 @@
+name: CI
+
+on:
+    pull_request:
+        branches:
+            - develop
+            - main
+
+permissions:
+    contents: read
+
+jobs:
+    quality-gates:
+        name: Quality gates
+        runs-on: ubuntu-latest
+        env:
+            HUSKY: 0
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: yarn
+                  cache-dependency-path: |
+                      yarn.lock
+                      frontend/game/yarn.lock
+                      frontend/app/yarn.lock
+
+            - name: Enable Yarn Classic
+              run: |
+                  corepack enable
+                  corepack prepare yarn@1.22.22 --activate
+
+            - name: Install shared tooling
+              run: yarn install --frozen-lockfile
+
+            - name: Install game dependencies
+              working-directory: frontend/game
+              run: yarn install --frozen-lockfile
+
+            - name: Install app dependencies
+              working-directory: frontend/app
+              run: yarn install --frozen-lockfile
+
+            - name: Set up .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: 10.0.111
+
+            - name: Run frontend gates
+              run: make lint-frontend typecheck-frontend build test-frontend
+
+            - name: Run backend gates
+              run: make lint-backend typecheck-backend test-backend

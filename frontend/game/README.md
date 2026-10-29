@@ -13,25 +13,42 @@ Angular, or Vue — TBD, see `frontend/app/README.md`).
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `yarn install` | Install dependencies |
-| `yarn dev` | Launch a dev server at `http://localhost:8080` |
-| `yarn build` | Production build into `dist/` |
+| Command                               | Description                                                        |
+| ------------------------------------- | ------------------------------------------------------------------ |
+| `yarn install`                        | Install dependencies                                               |
+| `yarn dev`                            | Launch a dev server at `http://localhost:8080`                     |
+| `yarn build`                          | Production build into `dist/`                                      |
+| `yarn typecheck`                      | Check TypeScript without emitting files                            |
 | `yarn dev-nolog` / `yarn build-nolog` | Same as above without Phaser's anonymous usage ping (see `log.js`) |
+
+Shared quality commands run from the repository root: `yarn lint:game` checks this package,
+and `yarn format:check` verifies formatting across both frontends. `yarn format` applies it.
 
 ## Structure
 
-| Path | Description |
-|------|-------------|
-| `index.html` | Standalone dev harness for the game canvas. |
-| `public/assets` | Sprites, tilemaps, fonts. |
-| `src/main.ts` | Bootstraps the game into `#game-container`. |
-| `src/game/main.ts` | Phaser game config + entry point. |
-| `src/game/scenes` | Phaser scenes (`Game.ts` is the match scene). |
-| `src/game/objects` | `Tank`, `Projectile`, `Barrel`, `Oil`, `AmmoGauge`. |
+| Path                | Description                                         |
+| ------------------- | --------------------------------------------------- |
+| `index.html`        | Standalone dev harness for the game canvas.         |
+| `public/assets`     | Sprites, tilemaps, fonts.                           |
+| `src/main.ts`       | Bootstraps the game into `#game-container`.         |
+| `src/game/main.ts`  | Phaser game config + entry point.                   |
+| `src/game/scenes`   | Phaser scenes (`Game.ts` is the match scene).       |
+| `src/game/objects`  | `Tank`, `Projectile`, `Barrel`, `Oil`, `AmmoGauge`. |
 | `src/game/managers` | `ExplosionManager` and other cross-cutting systems. |
-| `src/game/config` | Static config: colors, layout constants. |
+| `src/game/config`   | Static config: colors, layout constants.            |
+
+## Docker (with hot reload)
+
+The game can be run through Docker Compose with automatic hot reload. From the repo root:
+
+```bash
+docker compose --profile dev up
+```
+
+This starts the database, backend, and the Vite dev server. The source code is mounted as a
+volume, so changes to `src/` are detected instantly and trigger a hot reload in the browser.
+
+The dev server is accessible at `http://localhost:5173`.
 
 ## Status
 

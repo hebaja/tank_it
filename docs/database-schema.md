@@ -1,10 +1,12 @@
 # Database Schema — Tank It!
 
-Postgres. Source of truth for the raw DDL is [`db/init/schema.sql`](../db/init/schema.sql),
-auto-applied on first container boot via Postgres's `docker-entrypoint-initdb.d` mechanism. Once
-the backend is scaffolded, replace that hand-maintained bootstrap with EF Core migrations
-(`dotnet ef migrations add InitialCreate`) generated from the entity classes in
-`backend/src/TankIt.Api/Data/` — keep the two in sync until then.
+Postgres. Source of truth for the DDL is the EF Core migration in
+[`backend/src/TankIt.Api/Migrations/`](../backend/src/TankIt.Api/Migrations/), generated
+from the entity classes in `backend/src/TankIt.Api/Data/` (`AppDbContext.OnModelCreating`
+holds lengths, defaults, CHECKs, and index names). [`db/init/schema.sql`](../db/init/schema.sql)
+is a frozen reference baseline — manually kept equivalent, no longer applied automatically.
+When the model changes: update `AppDbContext`, `make db-migration-add name=...`, verify the
+generated migration, then update this doc.
 
 Scope: this schema covers exactly the modules the team has committed to (see `docs/GDD.md` §5)
 — standard User Management + auth, Remote auth (OAuth), Game stats & match history, and
@@ -202,5 +204,6 @@ ORDER BY total_points DESC, total_kills DESC, matches_won DESC;
 - Health checks — the buffer "Health check / status page" module is a stateless liveness
   endpoint (backend process + DB connectivity check), not persisted state.
 
-If the team later decides to add any of these, extend this file and `db/init/schema.sql`
-together rather than improvising a table ad hoc in the backend.
+If the team later decides to add any of these, extend this file and add an EF Core
+migration (`make db-migration-add name=...`) rather than improvising a table ad hoc
+in the backend.

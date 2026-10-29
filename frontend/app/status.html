@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TankIt - Status do Sistema</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            width: 350px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        .status-item {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .badge.ok { background-color: #2e7d32; color: white; }
+        .badge.error { background-color: #c62828; color: white; }
+        .badge.pending { background-color: #616161; color: white; }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        button:hover {
+            background-color: #115293;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Status do Sistema</h1>
+
+        <div class="status-item">
+            <span>API Backend:</span>
+            <span id="api-status" class="badge">Verificando...</span>
+        </div>
+
+        <div class="status-item">
+            <span>Banco de Dados:</span>
+            <span id="db-status" class="badge">Verificando...</span>
+        </div>
+
+        <div class="status-item">
+            <span>Latência (DB):</span>
+            <span id="db-latency">-</span>
+        </div>
+
+        <div class="status-item">
+            <span>Detalhes:</span>
+            <span id="meta-status">-</span>
+        </div>
+
+        <button id="retry-btn">Tentar Novamente</button>
+    </div>
+
+    <script src="./status.js" defer></script>
+</body>
+</html>

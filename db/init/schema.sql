@@ -1,4 +1,8 @@
 -- Tank It! — initial Postgres schema
+-- NOTE: frozen reference baseline, NO LONGER mounted by docker-compose.
+-- Migrations in backend/src/TankIt.Api/Migrations/ are the source of truth
+-- (`make db-migrate`, or auto-applied on API boot). Keep this file in sync
+-- manually when the model changes; compare with `dotnet ef migrations script`.
 -- Mounted by docker-compose into the postgres container's /docker-entrypoint-initdb.d/
 -- on first boot. Once the backend picks up EF Core migrations
 -- (`dotnet ef migrations add InitialCreate`), this file becomes the reference/seed
@@ -65,6 +69,8 @@ CREATE TABLE championships (
     completed_at  TIMESTAMPTZ
 );
 CREATE INDEX idx_championships_status ON championships(status);
+CREATE INDEX idx_championships_created_by ON championships(created_by);
+CREATE INDEX idx_championships_winner_id ON championships(winner_id);
 
 CREATE TABLE championship_participants (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -76,6 +82,7 @@ CREATE TABLE championship_participants (
     CHECK (is_ai = true OR user_id IS NOT NULL)
 );
 CREATE INDEX idx_championship_participants_championship_id ON championship_participants(championship_id);
+CREATE INDEX idx_championship_participants_user_id ON championship_participants(user_id);
 -- one seat per human player per championship (AI rows are exempt: user_id is NULL)
 CREATE UNIQUE INDEX uq_championship_participants_user_per_championship
     ON championship_participants(championship_id, user_id) WHERE user_id IS NOT NULL;
@@ -101,6 +108,7 @@ CREATE TABLE matches (
 );
 CREATE INDEX idx_matches_status ON matches(status);
 CREATE INDEX idx_matches_championship_id ON matches(championship_id);
+CREATE INDEX idx_matches_winner_id ON matches(winner_id);
 -- match order within a championship must be unique (no two matches share a sequence slot)
 CREATE UNIQUE INDEX uq_matches_championship_sequence
     ON matches(championship_id, sequence_number) WHERE championship_id IS NOT NULL;

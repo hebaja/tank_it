@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # Node (frontend/game, frontend/app)
 node_modules
+.husky/_/
 dist
 dist-ssr
 *.local

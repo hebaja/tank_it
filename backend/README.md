@@ -6,22 +6,29 @@ see `docs/GDD.md` §4.3 for the full justification.
 
 ## Status
 
-Hand-written skeleton, **not yet buildable/runnable** — no `dotnet` SDK was available in the
-environment that scaffolded this, so nothing here has been restored or compiled. Before first
-run:
+Buildable and runnable (.NET 10 SDK). First run from the repo root:
+
+```bash
+make up           # db boots empty, backend auto-applies EF Core migrations on boot
+curl localhost:8080/health
+```
+
+Manual migration control (db container must be up):
 
 ```bash
 cd backend
-dotnet --version          # confirm your installed SDK; bump TargetFramework in the .csproj
-                           # away from net8.0 if you're on something newer
-dotnet restore
-dotnet ef migrations add InitialCreate -p src/TankIt.Api -s src/TankIt.Api
-dotnet run --project src/TankIt.Api
+dotnet --version          # 10.x; global.json pins 10.0.111 with rollForward latestMajor
+dotnet restore && dotnet build
+cd .. && make db-migrate              # apply pending migrations
+make db-migration-add name=AddFoo     # scaffold a new migration
+dotnet run --project backend/src/TankIt.Api   # local run vs localhost Postgres
 ```
 
-The `dotnet ef migrations add` step needs `dotnet-ef` installed (`dotnet tool install --global
-dotnet-ef`). Once migrations exist, `db/init/schema.sql` becomes a reference/seed baseline —
-keep `docs/database-schema.md` in sync with whatever the migrations actually produce.
+Migrations in `src/TankIt.Api/Migrations/` are the schema source of truth —
+`db/init/schema.sql` is a frozen reference baseline (no longer mounted by
+docker-compose). Keep `docs/database-schema.md` in sync with what the
+migrations produce. The API also calls `Database.Migrate()` on boot, so fresh
+`make up` deployments self-heal; `make db-migrate` remains for explicit runs.
 
 `Program.cs` chains `.UseSnakeCaseNamingConvention()` (via the `EFCore.NamingConventions`
 package) specifically so migrations emit `snake_case` columns/tables matching
