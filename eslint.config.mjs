@@ -20,7 +20,18 @@ export default defineConfig([
     },
     {
         files: [
+            'frontend/app/e2e/**/*.ts',
+            'frontend/app/playwright.config.ts',
+        ],
+        extends: [js.configs.recommended, tseslint.configs.recommended],
+        languageOptions: {
+            globals: globals.node,
+        },
+    },
+    {
+        files: [
             'frontend/app/vite.config.mjs',
+            'frontend/app/vite.config.e2e.mjs',
             'frontend/game/vite/**/*.mjs',
             'frontend/game/log.js',
         ],

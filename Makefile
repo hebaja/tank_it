@@ -56,6 +56,7 @@ test: test-frontend test-backend
 test-frontend:
 	cd frontend/game && yarn test
 	cd frontend/app && yarn test
+	cd frontend/app && yarn test:e2e
 
 test-backend: typecheck-backend
 	dotnet test backend/TankIt.sln --no-build --no-restore --configuration Release
