@@ -183,6 +183,11 @@ export class NetworkManager {
             this,
         );
         this.scene.events.off(
+            GameEvent.ProjectileFireFail,
+            this.handleProjectileFireFail,
+            this,
+        );
+        this.scene.events.off(
             GameEvent.BlockDestroy,
             this.handleBlockDestroy,
             this,
