@@ -23,7 +23,7 @@ import type {
     ProjectilePayload,
     ProjectilesCollidePayload,
 } from '../../net/contracts';
-import { SoundManager } from '../managers/SoundManager';
+import { MusicTrack, SoundManager } from '../managers/SoundManager';
 
 export class Game extends Scene {
     barrelGroup: Phaser.Physics.Arcade.Group;
@@ -41,6 +41,7 @@ export class Game extends Scene {
     private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private isShuttingDown: boolean = false;
+    private musicTrack: MusicTrack;
 
     constructor() {
         super('Game');
@@ -48,6 +49,7 @@ export class Game extends Scene {
 
     init() {
         this.isShuttingDown = false;
+        this.musicTrack = SoundManager.pickMusicTrack();
     }
 
     preload() {
@@ -65,7 +67,7 @@ export class Game extends Scene {
         Barrel.preload(this);
         SpeedSystem.preload(this);
         AmmoGauge.preload(this);
-        SoundManager.preload(this);
+        SoundManager.preload(this, this.musicTrack);
     }
 
     create() {
@@ -163,7 +165,7 @@ export class Game extends Scene {
         this.matchManager.reset();
         this.explosionManager = new ExplosionManager(this);
         this.speedSystem = new SpeedSystem(this, this.tankGroup);
-        this.soundManager = new SoundManager(this);
+        this.soundManager = new SoundManager(this, this.musicTrack);
     }
 
     private createBarrels(map: Tilemaps.Tilemap) {
