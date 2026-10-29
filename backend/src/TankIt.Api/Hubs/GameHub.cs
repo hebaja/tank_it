@@ -227,6 +227,14 @@ public class GameHub : Hub<IGameClient>
         await Clients.GroupExcept(request.ProjectileA.RoomId, excluded).ProjectilesCollided(request);
     }
 
+    public async Task ProjectileFireFail(ProjectileFireFailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoomId))
+            throw new HubException("roomId is required");
+        _logger.LogInformation("Projectile fire failed {Color}", request.Color);
+        await Clients.OthersInGroup(request.RoomId).ProjectileFireFailed(request);
+    }
+
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
     // TODO: OnDisconnectedAsync override -> mark player disconnected, start reconnection grace
     //       period per the proposal's "handle disconnection/reconnection gracefully" requirement.
