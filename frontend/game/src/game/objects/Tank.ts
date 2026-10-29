@@ -38,6 +38,7 @@ export class Tank extends Physics.Arcade.Sprite {
     private lastSentY = 0;
     private lastSentAngle = 0;
     private sequence = 0;
+    private controlMode: 'human' | 'ai' = 'human';
     private static readonly SEND_INTERVAL_MS = 5;
     private static readonly POS_EPSILON = 0.5;
     private static readonly ANGLE_EPSILON = 0.5;
@@ -96,6 +97,91 @@ export class Tank extends Physics.Arcade.Sprite {
         super.destroy(fromScene);
     }
 
+    moveForward() {
+        const velocity = this.scene.physics.velocityFromAngle(
+            this.angle - 90 + 180,
+            this.speed,
+        );
+        this.setVelocity(velocity.x, velocity.y);
+    }
+
+    moveBackward() {
+        const velocity = this.scene.physics.velocityFromAngle(
+            this.angle - 90,
+            this.speed,
+        );
+        this.setVelocity(velocity.x, velocity.y);
+    }
+
+    turnLeft() {
+        this.angle -= this.turnSpeed;
+    }
+
+    turnRight() {
+        this.angle += this.turnSpeed;
+    }
+
+    applyAction(action: number) {
+        switch (action) {
+            case 0:
+                this.speed = 0;
+                break;
+            case 1:
+                this.moveForward();
+                break;
+            case 2:
+                this.moveBackward();
+                break;
+            case 3:
+                this.turnLeft();
+                break;
+            case 4:
+                this.turnRight();
+                break;
+            case 5:
+                this.fire();
+                break;
+        }
+    }
+
+    humanControl() {
+        if (this.controlsA.A.isDown) {
+            this.applyAction(3);
+        }
+        if (this.controlsA.D.isDown) {
+            this.applyAction(4);
+        }
+        if (this.controlsA.S.isDown) {
+            this.applyAction(2);
+        }
+        if (this.controlsA.W.isDown) {
+            this.applyAction(1);
+        }
+        if (Input.Keyboard.JustDown(this.controlsA.SPACE)) {
+            this.applyAction(5);
+        }
+    }
+
+    aiControl() {
+        this.applyAction(3);
+    }
+
+    getObservation(
+        enemyTank: Tank,
+    ): [number, number, number, number, number, number] {
+        const dx =
+            (enemyTank.x - this.x) / this.scene.physics.world.bounds.width;
+        const dy =
+            (enemyTank.y - this.y) / this.scene.physics.world.bounds.height;
+        const angle = this.angle / 180;
+        const canFire = this.ammoGauge.getCanFire() ? 1 : 0;
+        const isSlow = this.isSlow ? 1 : 0;
+        const targetAngle =
+            (Math.atan2(enemyTank.y - this.y, enemyTank.x - this.x) * 180) /
+            Math.PI;
+        return [angle, dx, dy, canFire, isSlow, targetAngle];
+    }
+
     update() {
         if (this.body) this.setVelocity(0, 0);
         if (this.isSlow) {
@@ -105,37 +191,17 @@ export class Tank extends Physics.Arcade.Sprite {
             this.turnSpeed = GAME_CONFIG.tank.turnSpeed;
             this.speed = GAME_CONFIG.tank.speed;
         }
-
         if (this.isLocal && this.body) {
-            if (this.controlsA.A.isDown) {
-                this.angle -= this.turnSpeed;
+            if (this.controlMode === 'human') {
+                this.humanControl();
             }
-            if (this.controlsA.D.isDown) {
-                this.angle += this.turnSpeed;
-            }
-            if (this.controlsA.S.isDown) {
-                const velocity = this.scene.physics.velocityFromAngle(
-                    this.angle - 90,
-                    this.speed,
-                );
-                this.setVelocity(velocity.x, velocity.y);
-            }
-            if (this.controlsA.W.isDown) {
-                const velocity = this.scene.physics.velocityFromAngle(
-                    this.angle - 90 + 180,
-                    this.speed,
-                );
-                this.setVelocity(velocity.x, velocity.y);
+            if (this.controlMode === 'ai') {
+                this.aiControl();
             }
             this.maybeSendTankMove();
-
-            if (Input.Keyboard.JustDown(this.controlsA.SPACE)) {
-                this.fire();
-            }
         } else {
             this.applyRemoteState();
         }
-
         if (this.sparkShot) {
             const tip = this.getProjectileOrigin(36);
             this.sparkShot.setPosition(tip.x, tip.y);
