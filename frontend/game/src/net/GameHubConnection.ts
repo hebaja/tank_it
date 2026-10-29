@@ -220,8 +220,11 @@ export class GameHubConnection {
     offProjectilesCollided(cb: (p: ProjectilesCollidePayload) => void): void {
         this.conn.off('ProjectilesCollided', cb);
     }
-    offProjectileFireFail(cb: (p: TankInfoPayload) => void): void {
-        this.conn.off('ProjectileFireFail', cb);
+    onProjectileFireFailed(cb: (p: TankInfoPayload) => void): void {
+        this.conn.on('ProjectileFireFailed', cb);
+    }
+    offProjectileFireFailed(cb: (p: TankInfoPayload) => void): void {
+        this.conn.off('ProjectileFireFailed', cb);
     }
 
     get state(): signalR.HubConnectionState {
