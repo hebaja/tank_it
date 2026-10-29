@@ -12,6 +12,7 @@ import type {
     ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
+    TankInfoPayload,
     TankMovePayload,
     TankMovedPayload,
 } from '../../net/contracts';
@@ -33,6 +34,7 @@ export class NetworkManager {
         this.hub.onProjectileFired(this.handleProjectileFired);
         this.hub.onProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.onProjectilesCollided(this.handleProjectilesCollided);
+        this.hub.onProjectileFireFailed(this.handleProjectileFireFailed);
         this.scene.events.on(
             GameEvent.TankMove,
             this.handleLocalTankMove,
@@ -72,6 +74,11 @@ export class NetworkManager {
         this.scene.events.on(
             GameEvent.ProjectilesCollide,
             this.handleProjectilesCollide,
+            this,
+        );
+        this.scene.events.on(
+            GameEvent.ProjectileFireFail,
+            this.handleProjectileFireFail,
             this,
         );
         this.ready = this.hub
@@ -133,6 +140,10 @@ export class NetworkManager {
         this.hub.sendProjectilesCollide(payload);
     private handleProjectilesCollided = (payload: ProjectilesCollidePayload) =>
         this.scene.events.emit(GameEvent.ProjectilesCollided, payload);
+    private handleProjectileFireFail = (payload: TankInfoPayload) =>
+        this.hub.sendProjectileFireFail(payload);
+    private handleProjectileFireFailed = (payload: TankInfoPayload) =>
+        this.scene.events.emit(GameEvent.ProjectileFireFailed, payload);
 
     destroy() {
         this.scene.events.off(
@@ -172,8 +183,18 @@ export class NetworkManager {
             this,
         );
         this.scene.events.off(
+            GameEvent.ProjectileFireFail,
+            this.handleProjectileFireFail,
+            this,
+        );
+        this.scene.events.off(
             GameEvent.BlockDestroy,
             this.handleBlockDestroy,
+            this,
+        );
+        this.scene.events.off(
+            GameEvent.ProjectileFireFail,
+            this.handleProjectileFireFail,
             this,
         );
         this.hub.offTankMoved(this.handleTankMoved);
@@ -185,6 +206,7 @@ export class NetworkManager {
         this.hub.offProjectileFired(this.handleProjectileFired);
         this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.offProjectilesCollided(this.handleProjectilesCollided);
+        this.hub.offProjectileFireFailed(this.handleProjectileFireFailed);
         this.hub.leaveRoom(sessionConfig.roomId).catch(() => {});
         this.hub.stop().catch(() => {});
     }

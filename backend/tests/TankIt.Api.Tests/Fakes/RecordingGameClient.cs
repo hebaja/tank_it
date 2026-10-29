@@ -17,6 +17,7 @@ internal sealed class RecordingGameClient : IGameClient
     public List<ProjectileFireRequest> ProjectileFires { get; } = [];
     public List<ProjectileFireRequest> ProjectileDestroys { get; } = [];
     public List<ProjectilesCollideRequest> ProjectileCollisions { get; } = [];
+    public List<ProjectileFireFailRequest> ProjectileFireFails { get; } = [];
 
     public Task TankMoved(TankMoveRequest payload)
     {
@@ -87,6 +88,12 @@ internal sealed class RecordingGameClient : IGameClient
     public Task ProjectilesCollided(ProjectilesCollideRequest payload)
     {
         ProjectileCollisions.Add(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task ProjectileFireFailed(ProjectileFireFailRequest payload)
+    {
+        ProjectileFireFails.Add(payload);
         return Task.CompletedTask;
     }
 }

@@ -107,6 +107,11 @@ export class Game extends Scene {
             this.handleProjectilesCollided,
             this,
         );
+        this.events.on(
+            GameEvent.ProjectileFireFailed,
+            this.handleProjectileFireFailed,
+            this,
+        );
         this.networkManager = new NetworkManager(this);
     }
 
@@ -221,6 +226,7 @@ export class Game extends Scene {
                         },
                     });
                 }
+                this.events.emit(GameEvent.BlockDestroySfx);
                 this.destroyProjectile(proj);
             },
         );
@@ -253,6 +259,7 @@ export class Game extends Scene {
                         index: barrel.getIndex(),
                     });
                 }
+                this.events.emit(GameEvent.BarrelDestroySfx);
                 this.destroyProjectile(proj);
             },
         );
@@ -272,6 +279,7 @@ export class Game extends Scene {
                         y: tank.y,
                     });
                 }
+                this.events.emit(GameEvent.TankDestroySfx);
                 this.destroyTank(tank);
                 this.destroyProjectile(proj);
             },
@@ -576,5 +584,9 @@ export class Game extends Scene {
             .getChildren()
             .filter((c) => ids.includes((c as Projectile).getId()))
             .forEach((proj) => (proj as Projectile).destroy());
+    };
+
+    private handleProjectileFireFailed = () => {
+        this.events.emit(GameEvent.ProjectileFireFail);
     };
 }

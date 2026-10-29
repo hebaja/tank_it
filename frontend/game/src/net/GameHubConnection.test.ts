@@ -39,6 +39,7 @@ import type {
     ProjectilePayload,
     ProjectilesCollidePayload,
     RoomJoinedPayload,
+    TankInfoPayload,
 } from './contracts';
 import { GameHubConnection } from './GameHubConnection';
 
@@ -62,6 +63,11 @@ const collision: ProjectilesCollidePayload = {
         color: 'red',
     },
     timestamp: 112,
+};
+
+const fireFail: TankInfoPayload = {
+    roomId: 'room-1',
+    color: 'blue',
 };
 
 const roomJoined: RoomJoinedPayload = {
@@ -116,6 +122,17 @@ describe('GameHubConnection projectile lifecycle', () => {
         );
     });
 
+    it('sends the fire fail payload on ProjectileFireFail', () => {
+        const hub = new GameHubConnection();
+
+        hub.sendProjectileFireFail(fireFail);
+
+        expect(signalRMock.connection.send).toHaveBeenCalledWith(
+            'ProjectileFireFail',
+            fireFail,
+        );
+    });
+
     it('does not send while disconnected', () => {
         signalRMock.connection.state =
             signalRMock.HubConnectionState.Disconnected;
@@ -124,6 +141,7 @@ describe('GameHubConnection projectile lifecycle', () => {
         hub.sendProjectileFire(payload);
         hub.sendProjectileDestroy(payload);
         hub.sendProjectilesCollide(collision);
+        hub.sendProjectileFireFail(fireFail);
 
         expect(signalRMock.connection.send).not.toHaveBeenCalled();
     });
@@ -175,6 +193,23 @@ describe('GameHubConnection projectile lifecycle', () => {
         expect(signalRMock.connection.off).toHaveBeenCalledWith(
             'ProjectilesCollided',
             onCollided,
+        );
+    });
+
+    it('subscribes and unsubscribes to the fire fail event', () => {
+        const hub = new GameHubConnection();
+        const onFailed = vi.fn();
+
+        hub.onProjectileFireFailed(onFailed);
+        hub.offProjectileFireFailed(onFailed);
+
+        expect(signalRMock.connection.on).toHaveBeenCalledWith(
+            'ProjectileFireFailed',
+            onFailed,
+        );
+        expect(signalRMock.connection.off).toHaveBeenCalledWith(
+            'ProjectileFireFailed',
+            onFailed,
         );
     });
 
