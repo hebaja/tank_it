@@ -29,11 +29,16 @@ export class LobbyHubConnection {
         await this.conn.stop();
     }
 
-    async joinRoom(roomId: string, color: string): Promise<RoomStatusPayload> {
+    async joinRoom(
+        roomId: string,
+        color: string,
+        isChamp: boolean,
+    ): Promise<RoomStatusPayload> {
         return await this.conn.invoke<RoomStatusPayload>(
             'JoinRoom',
             roomId,
             color,
+            isChamp,
         );
     }
 

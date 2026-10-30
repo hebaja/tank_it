@@ -58,6 +58,7 @@ async function joinRoom() {
     clearError();
     const roomId = roomIdInput.value.trim() || 'local-dev-room';
     const color = colorSelect.value;
+    const isChamp = true;
 
     joinBtn.disabled = true;
     joinBtn.textContent = 'Joining…';
@@ -66,7 +67,7 @@ async function joinRoom() {
         hub = new LobbyHubConnection(HUB_URL);
         await hub.start();
 
-        const status = await hub.joinRoom(roomId, color);
+        const status = await hub.joinRoom(roomId, color, isChamp);
 
         currentRoomId = roomId;
         currentColor = color;
