@@ -53,6 +53,11 @@ typecheck-backend: backend-restore
 
 test: test-frontend test-backend
 
+# Local-only end-to-end suite (Playwright) — never part of CI, see e2e/README.md.
+test-e2e: dev
+	cd e2e && yarn install --frozen-lockfile
+	cd e2e && yarn test
+
 test-frontend:
 	cd frontend/game && yarn test
 	cd frontend/app && yarn test
@@ -75,4 +80,4 @@ db-migrate:
 db-migration-add name=MigrationName:
 	cd backend && dotnet ef migrations add $(name) -p src/TankIt.Api -s src/TankIt.Api
 
-.PHONY: all up down build rebuild logs clean fclean ps install dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend backend-restore db-migrate db-migration-add
+.PHONY: all up down build rebuild logs clean fclean ps install dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend test-e2e backend-restore db-migrate db-migration-add
