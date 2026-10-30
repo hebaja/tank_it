@@ -41,14 +41,14 @@ public class GameHub : Hub<IGameClient>
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color)
+    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color, bool isChamp)
     {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
         if (string.IsNullOrWhiteSpace(color))
             throw new HubException("color is required");
 
-        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId}", roomId, color, Context.ConnectionId);
+        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId} - {isChamp}", roomId, color, Context.ConnectionId, isChamp);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId, color);
