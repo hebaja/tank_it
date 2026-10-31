@@ -20,6 +20,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<MapService>();
 builder.Services.AddSingleton<RoomService>();
 builder.Services.AddSingleton<DeathWallService>();
+builder.Services.AddSingleton<ChampionshipService>();
 
 // Auth: Identity password hashing + JWT bearer. Key comes from
 // config/env (JWT_SIGNING_KEY) — never hardcoded; fail fast if missing/short.

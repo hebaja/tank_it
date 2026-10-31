@@ -10,4 +10,5 @@ public sealed class RoomJoinedDto
     public long RoomCreatedAt { get; init; } = 0;
     public PlayerInfo[] Players { get; init; } = [];
     public int DeathWallStep { get; init; } = -1;
+    public Guid? ChampionshipId { get; init; } = new Guid();
 }

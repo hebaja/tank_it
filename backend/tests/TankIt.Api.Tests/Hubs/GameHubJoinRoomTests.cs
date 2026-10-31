@@ -14,7 +14,7 @@ public sealed class GameHubJoinRoomTests
     {
         var fixture = new HubFixture();
 
-        var joined = await fixture.Hub.JoinRoom(RoomId, "blue", false);
+        var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "");
 
         Assert.Equal(ConnectionId, joined.ConnectionId);
         Assert.Equal(RoomId, joined.RoomId);
@@ -34,7 +34,7 @@ public sealed class GameHubJoinRoomTests
     {
         var fixture = new HubFixture();
 
-        await fixture.Hub.JoinRoom(RoomId, "blue", false);
+        await fixture.Hub.JoinRoom(RoomId, "blue", "");
 
         var playerJoined = Assert.Single(fixture.Captured.PlayerJoins);
         Assert.Equal(ConnectionId, playerJoined.ConnectionId);
@@ -52,7 +52,7 @@ public sealed class GameHubJoinRoomTests
     {
         var fixture = new HubFixture();
 
-        await Assert.ThrowsAsync<HubException>(() => fixture.Hub.JoinRoom(roomId, color, false));
+        await Assert.ThrowsAsync<HubException>(() => fixture.Hub.JoinRoom(roomId, color, ""));
 
         fixture.DeathWall.Stop(roomId);
     }

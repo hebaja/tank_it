@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging.Abstractions;
 using TankIt.Api.Hubs.Dtos;
+using TankIt.Api.Models;
 using TankIt.Api.Services;
 
 namespace TankIt.Api.Hubs;
@@ -9,9 +11,10 @@ public class GameHub : Hub<IGameClient>
     private readonly ILogger<GameHub> _logger;
     private readonly RoomService _rooms;
     private readonly DeathWallService _deathWall;
+    private readonly ChampionshipService _championships;
 
-    public GameHub(ILogger<GameHub> logger, RoomService rooms, DeathWallService deathWall)
-        => (_logger, _rooms, _deathWall) = (logger, rooms, deathWall);
+    public GameHub(ILogger<GameHub> logger, RoomService rooms, DeathWallService deathWall, ChampionshipService championships)
+        => (_logger, _rooms, _deathWall, _championships) = (logger, rooms, deathWall, championships);
 
     public override async Task OnConnectedAsync()
     {
@@ -41,19 +44,39 @@ public class GameHub : Hub<IGameClient>
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color, bool isChamp)
+    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color, string champId)
     {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
         if (string.IsNullOrWhiteSpace(color))
             throw new HubException("color is required");
 
-        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId} - {isChamp}", roomId, color, Context.ConnectionId, isChamp);
+        Guid? championshipId = null;
+        if (!string.IsNullOrWhiteSpace(champId))
+        {
+            if (!Guid.TryParse(champId, out var parsedChampionshipId))
+                throw new HubException("champId must be a valid GUID");
+
+            championshipId = parsedChampionshipId;
+        }
+
+        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId} - {champId}", roomId, color, Context.ConnectionId, champId);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId, color);
         _rooms.TrackRoomCreation(roomId);
         _deathWall.EnsureStarted(roomId);
+
+        if (championshipId is Guid id)
+        {
+            var (championship, created) = _championships.GetOrCreate(id);
+
+            _logger.LogInformation(
+                "Championship {ChampionshipId} {State} for connection {ConnectionId}",
+                championship.Id,
+                created ? "created" : "reused",
+                Context.ConnectionId);
+        }
 
         var barrels = _rooms.GetOrCreateBarrels(roomId);
         var players = _rooms.GetRoomPlayers(roomId);
@@ -61,7 +84,8 @@ public class GameHub : Hub<IGameClient>
         await Clients.OthersInGroup(roomId).PlayerJoined(new PlayerJoinedDto
         {
             ConnectionId = Context.ConnectionId,
-            Color = color
+            Color = color,
+            ChampionshipId = championshipId
         });
 
         return new RoomJoinedDto
@@ -71,7 +95,8 @@ public class GameHub : Hub<IGameClient>
             RandomBarrelPositions = barrels,
             RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
             Players = players,
-            DeathWallStep = _deathWall.GetStep(roomId)
+            DeathWallStep = _deathWall.GetStep(roomId),
+            ChampionshipId = championshipId
         };
     }
 
