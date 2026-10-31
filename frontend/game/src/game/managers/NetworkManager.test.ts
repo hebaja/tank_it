@@ -136,6 +136,7 @@ const roomJoined: RoomJoinedPayload = {
     players: [],
     randomBarrelPositions: [],
     deathWallStep: -1,
+    championshipId: '',
 };
 
 function createScene() {

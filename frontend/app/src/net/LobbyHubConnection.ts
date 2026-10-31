@@ -32,13 +32,13 @@ export class LobbyHubConnection {
     async joinRoom(
         roomId: string,
         color: string,
-        isChamp: boolean,
+        champId: string,
     ): Promise<RoomStatusPayload> {
         return await this.conn.invoke<RoomStatusPayload>(
             'JoinRoom',
             roomId,
             color,
-            isChamp,
+            champId,
         );
     }
 

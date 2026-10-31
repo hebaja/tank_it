@@ -44,13 +44,13 @@ export class GameHubConnection {
     async joinRoom(
         roomId: string,
         color: string,
-        isChamp: boolean,
+        champId: string,
     ): Promise<RoomJoinedPayload> {
         const joined = await this.conn.invoke<RoomJoinedPayload>(
             'JoinRoom',
             roomId,
             color,
-            isChamp,
+            champId,
         );
         this.connectionId = joined.connectionId;
         return joined;

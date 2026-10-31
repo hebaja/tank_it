@@ -20,9 +20,9 @@ public sealed class ChampionshipService(ILogger<ChampionshipService> logger)
 
         if (_championships.TryAdd(id, championship))
         {
-             _logger.LogInformation(
-                "Championship {ChampionshipId} created in memory",
-                id);
+            _logger.LogInformation(
+        "Championship {ChampionshipId} created in memory",
+            id);
 
             return (championship, true);
         }

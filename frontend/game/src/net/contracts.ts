@@ -21,6 +21,7 @@ export interface RoomJoinedPayload {
     players: PlayerInfo[];
     deathWallStep: number;
     randomBarrelPositions: Position[];
+    championshipId: string;
 }
 
 export type TankMovedPayload = TankMovePayload;

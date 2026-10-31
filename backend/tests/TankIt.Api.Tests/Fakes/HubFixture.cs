@@ -16,6 +16,7 @@ internal sealed class HubFixture
     public RecordingGameClient Captured { get; } = new();
     public DeathWallService DeathWall { get; }
     public RoomService Rooms { get; }
+    public ChampionshipService Championships { get; }
     public GameHub Hub { get; }
 
     public HubFixture(string connectionId = DefaultConnectionId)
@@ -23,7 +24,8 @@ internal sealed class HubFixture
         var hubContext = new Mock<IHubContext<GameHub, IGameClient>>();
         DeathWall = new DeathWallService(hubContext.Object, NullLogger<DeathWallService>.Instance);
         Rooms = new RoomService(new MapService(), DeathWall, NullLogger<RoomService>.Instance);
-        Hub = new GameHub(NullLogger<GameHub>.Instance, Rooms, DeathWall)
+        Championships = new ChampionshipService(NullLogger<ChampionshipService>.Instance);
+        Hub = new GameHub(NullLogger<GameHub>.Instance, Rooms, DeathWall, Championships)
         {
             Context = new TestHubCallerContext(connectionId),
             Clients = Clients.Object,
