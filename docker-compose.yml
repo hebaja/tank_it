@@ -86,6 +86,7 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - VITE_GAME_URL=http://localhost:5173
+      - VITE_API_URL=http://localhost:${BACKEND_PORT:-8080}
     ports:
       - "3000:3000"
     depends_on:

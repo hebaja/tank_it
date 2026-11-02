@@ -4,11 +4,11 @@
     "packageManager": "yarn@1.22.22",
     "scripts": {
         "prepare": "husky",
-        "lint": "eslint 'frontend/{app,game}/src/**/*.{js,jsx,ts,tsx}' 'frontend/app/vite.config.mjs' 'frontend/game/vite/**/*.mjs' frontend/game/log.js --max-warnings=0",
+        "lint": "eslint 'frontend/{app,game}/src/**/*.{js,jsx,ts,tsx}' 'frontend/app/vite.config.mjs' 'frontend/game/vite/**/*.mjs' frontend/game/log.js 'e2e/**/*.{js,mjs,ts}' --max-warnings=0",
         "lint:app": "eslint 'frontend/app/src/**/*.{js,jsx,ts,tsx}' frontend/app/vite.config.mjs --max-warnings=0",
         "lint:game": "eslint 'frontend/game/src/**/*.{js,jsx,ts,tsx}' 'frontend/game/vite/**/*.mjs' frontend/game/log.js --max-warnings=0",
-        "format": "prettier --write 'frontend/{app,game}/src/**/*.{js,jsx,ts,tsx,css}' 'frontend/{app,game}/index.html' 'frontend/{app,game}/package.json' 'frontend/{app,game}/README.md' 'frontend/app/vite.config.mjs' 'frontend/game/vite/**/*.mjs' 'eslint.config.mjs' '.prettierrc.json' '.github/workflows/ci.yml' 'package.json' 'README.md'",
-        "format:check": "prettier --check 'frontend/{app,game}/src/**/*.{js,jsx,ts,tsx,css}' 'frontend/{app,game}/index.html' 'frontend/{app,game}/package.json' 'frontend/{app,game}/README.md' 'frontend/app/vite.config.mjs' 'frontend/game/vite/**/*.mjs' 'eslint.config.mjs' '.prettierrc.json' '.github/workflows/ci.yml' 'package.json' 'README.md'"
+        "format": "prettier --write 'frontend/{app,game}/src/**/*.{js,jsx,ts,tsx,css}' 'frontend/{app,game}/index.html' 'frontend/{app,game}/package.json' 'frontend/{app,game}/README.md' 'frontend/app/vite.config.mjs' 'frontend/game/vite/**/*.mjs' 'e2e/**/*.{js,mjs,ts,json,md}' 'eslint.config.mjs' '.prettierrc.json' '.github/workflows/ci.yml' 'package.json' 'README.md'",
+        "format:check": "prettier --check 'frontend/{app,game}/src/**/*.{js,jsx,ts,tsx,css}' 'frontend/{app,game}/index.html' 'frontend/{app,game}/package.json' 'frontend/{app,game}/README.md' 'frontend/app/vite.config.mjs' 'frontend/game/vite/**/*.mjs' 'e2e/**/*.{js,mjs,ts,json,md}' 'eslint.config.mjs' '.prettierrc.json' '.github/workflows/ci.yml' 'package.json' 'README.md'"
     },
     "dependencies": {
         "@microsoft/signalr": "^10.0.11"
@@ -25,6 +25,10 @@
     },
     "lint-staged": {
         "frontend/{app,game}/src/**/*.{js,jsx,ts,tsx}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "e2e/**/*.{js,mjs,ts}": [
             "eslint --fix",
             "prettier --write"
         ],

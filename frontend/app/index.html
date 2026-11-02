@@ -3,53 +3,16 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234caf50'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='19' font-weight='bold' fill='%23101418' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E"
+        />
         <link rel="stylesheet" href="/src/style.css" />
-        <title>Tank It! — Lobby</title>
+        <title>Tank It!</title>
     </head>
 
     <body>
-        <main class="landing">
-            <h1>Tank It!</h1>
-            <p class="subtitle">
-                Enter a room ID, pick your tank color, then join.
-            </p>
-
-            <!-- Pre-join form -->
-            <section id="join-form" class="join-form">
-                <div class="room-input">
-                    <label for="room-id">Room ID:</label>
-                    <input
-                        type="text"
-                        id="room-id"
-                        placeholder="local-dev-room"
-                        value="local-dev-room"
-                    />
-                </div>
-                <div class="color">
-                    <label for="color">Tank Color:</label>
-                    <select id="color" name="color">
-                        <option value="blue" selected>Blue</option>
-                        <option value="green">Green</option>
-                        <option value="red">Red</option>
-                        <option value="dark">Dark</option>
-                    </select>
-                </div>
-                <button id="join-btn" type="button">Join</button>
-            </section>
-
-            <!-- Post-join room box (hidden until joined) -->
-            <section id="room-box" class="room-box hidden">
-                <h2>Room: <span id="room-id-display"></span></h2>
-                <p class="hint">Waiting for players…</p>
-                <ul id="player-list" class="player-list"></ul>
-                <button id="start-btn" type="button" class="hidden">
-                    Start Game
-                </button>
-                <button id="leave-btn" type="button">Leave</button>
-            </section>
-
-            <p id="error" class="error hidden"></p>
-        </main>
-        <script type="module" src="/src/main.ts"></script>
+        <div id="root"></div>
+        <script type="module" src="/src/main.tsx"></script>
     </body>
 </html>

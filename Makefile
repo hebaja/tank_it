@@ -63,6 +63,11 @@ typecheck-backend: backend-restore
 
 test: test-frontend test-backend
 
+# Local-only end-to-end suite (Playwright) — never part of CI, see e2e/README.md.
+test-e2e: dev
+	cd e2e && yarn install --frozen-lockfile
+	cd e2e && yarn test
+
 test-frontend:
 	cd frontend/game && yarn test
 	cd frontend/app && yarn test
@@ -151,4 +156,4 @@ db-migration-add name=MigrationName:
 	heroku-login heroku-check heroku-build heroku-push heroku-release \
 	deploy-heroku deploy-heroku-fast heroku-logs heroku-health heroku-rollback \
 	lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend \
-	test test-frontend test-backend backend-restore db-migrate db-migration-add
+	test test-frontend test-backend test-e2e backend-restore db-migrate db-migration-add
