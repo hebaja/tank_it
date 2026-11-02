@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # --- Landing / lobby (served at /) -----------------------------------------
-FROM node:20-alpine AS landing
+FROM node:22-alpine AS landing
 WORKDIR /src/frontend/app
 RUN corepack enable
 COPY frontend/app/package.json frontend/app/yarn.lock ./
@@ -15,7 +15,7 @@ ENV VITE_HUB_URL=$VITE_HUB_URL \
 RUN yarn build
 
 # --- Phaser game (served at /play/) ----------------------------------------
-FROM node:20-alpine AS game
+FROM node:22-alpine AS game
 WORKDIR /src/frontend/game
 RUN corepack enable
 COPY frontend/game/package.json frontend/game/yarn.lock ./
