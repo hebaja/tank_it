@@ -1,12 +1,24 @@
-import { Scene } from 'phaser';
+import { Scene, Sound } from 'phaser';
 import { GameEvent } from '../config/events';
+
+export const MUSIC_TRACKS = ['track01', 'track02', 'track03'] as const;
+export const MUSIC_VOLUME = 0.15;
+export type MusicTrack = (typeof MUSIC_TRACKS)[number];
 
 export class SoundManager {
     private scene: Scene;
     private warning?: Phaser.Sound.BaseSound;
     private warningTimer: Phaser.Time.TimerEvent | undefined;
+    private musicIntro?: Phaser.Sound.BaseSound;
+    private musicLoop?: Phaser.Sound.BaseSound;
+    private musicTrack: MusicTrack;
+    private isDestroyed: boolean = false;
 
-    static preload(scene: Scene) {
+    static pickMusicTrack() {
+        return MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)];
+    }
+
+    static preload(scene: Scene, musicTrack: MusicTrack) {
         scene.load.audio('tank-fire', [
             'sounds/sfx/tank_fire.ogg',
             'sounds/sfx/tank_fire.mp3',
@@ -47,10 +59,21 @@ export class SoundManager {
             'sounds/sfx/ammo_bar_complete.ogg',
             'sounds/sfx/ammo_bar_complete.mp3',
         ]);
+        scene.load.audio(`music-${musicTrack}-intro`, [
+            `sounds/music/${musicTrack}_intro.ogg`,
+            `sounds/music/${musicTrack}_intro.mp3`,
+        ]);
+        scene.load.audio(`music-${musicTrack}-loop`, [
+            `sounds/music/${musicTrack}_loop.ogg`,
+            `sounds/music/${musicTrack}_loop.mp3`,
+        ]);
     }
 
-    constructor(scene: Scene) {
+    constructor(scene: Scene, musicTrack: MusicTrack) {
         this.scene = scene;
+        this.musicTrack = musicTrack;
+        this.startMusic();
+
         this.scene.events.on(
             GameEvent.ProjectileFire,
             this.handleProjectileFired,
@@ -191,7 +214,30 @@ export class SoundManager {
         return !ctx || ctx.state === 'running';
     }
 
+    private startMusic() {
+        const introKey = `music-${this.musicTrack}-intro`;
+        const loopKey = `music-${this.musicTrack}-loop`;
+
+        this.musicIntro = this.scene.sound.add(introKey, {
+            volume: MUSIC_VOLUME,
+        });
+        this.musicLoop = this.scene.sound.add(loopKey, {
+            volume: MUSIC_VOLUME,
+            loop: true,
+        });
+
+        this.musicIntro.once(Sound.Events.COMPLETE, this.startMusicLoop, this);
+        this.musicIntro.play();
+    }
+
+    private startMusicLoop() {
+        if (this.isDestroyed) return;
+        this.musicLoop?.play();
+    }
+
     destroy() {
+        this.isDestroyed = true;
+
         this.scene.events.off(
             GameEvent.ProjectileFire,
             this.handleProjectileFired,
@@ -252,5 +298,10 @@ export class SoundManager {
             this.handleProjectileHitProjectile,
             this,
         );
+        this.musicIntro?.off(Sound.Events.COMPLETE, this.startMusicLoop, this);
+        this.musicIntro?.destroy();
+        this.musicLoop?.destroy();
+        this.musicIntro = undefined;
+        this.musicLoop = undefined;
     }
 }
