@@ -179,7 +179,9 @@ export class Tank extends Physics.Arcade.Sprite {
         const targetAngle =
             (Math.atan2(enemyTank.y - this.y, enemyTank.x - this.x) * 180) /
             Math.PI;
-        return [angle, dx, dy, canFire, isSlow, targetAngle];
+        const cannonAngle = this.angle + 90;
+        const deltaAngle = targetAngle - cannonAngle;
+        return [angle, dx, dy, canFire, isSlow, deltaAngle];
     }
 
     update() {
