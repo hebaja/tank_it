@@ -35,3 +35,8 @@ appsettings.*.local.json
 *.ntvs*
 *.njsproj
 *.sw?
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
