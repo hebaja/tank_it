@@ -267,6 +267,7 @@ export class Game extends Scene {
                 const tank = t as Tank;
                 if (proj.getOwner() === tank) return;
                 if (proj.getOwner()?.getIsLocal()) {
+                    proj.getOwner()?.addReward(50);
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
                         color: tank.getColor(),
@@ -274,6 +275,7 @@ export class Game extends Scene {
                         y: tank.y,
                     });
                 }
+                tank.addReward(-50);
                 this.destroyTank(tank);
                 this.destroyProjectile(proj);
             },
@@ -496,6 +498,12 @@ export class Game extends Scene {
             );
             this.tankRoster.set(color, tank);
         });
+        if (this.tankRoster.get(Color.blue) && this.tankRoster.get(Color.red)) {
+            const blueTank = this.tankRoster.get(Color.blue)!;
+            const redTank = this.tankRoster.get(Color.red)!;
+            blueTank.setEnemyTank(redTank);
+            redTank.setEnemyTank(blueTank);
+        }
     }
 
     private handleTankMoved = (payload: TankMovedPayload) =>

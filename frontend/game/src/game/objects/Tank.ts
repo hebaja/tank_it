@@ -38,7 +38,10 @@ export class Tank extends Physics.Arcade.Sprite {
     private lastSentY = 0;
     private lastSentAngle = 0;
     private sequence = 0;
-    private controlMode: 'human' | 'ai' = 'human';
+    private controlMode: 'human' | 'ai' = 'ai';
+    private enemyTank: Tank | null = null;
+    private nextAiShotAt: number = 0;
+    private accumulatedReward: number = 0;
     private static readonly SEND_INTERVAL_MS = 5;
     private static readonly POS_EPSILON = 0.5;
     private static readonly ANGLE_EPSILON = 0.5;
@@ -121,10 +124,27 @@ export class Tank extends Physics.Arcade.Sprite {
         this.angle += this.turnSpeed;
     }
 
+    addReward(value: number) {
+        this.accumulatedReward += value;
+    }
+
+    consumeReward(): number {
+        const reward = this.accumulatedReward;
+        this.accumulatedReward = 0;
+        return reward;
+    }
+
+    isEpisodeDone(): boolean {
+        const enemyDestroyed =
+            this.enemyTank !== null && !this.enemyTank.active;
+
+        return !this.active || enemyDestroyed;
+    }
+
     applyAction(action: number) {
         switch (action) {
             case 0:
-                this.speed = 0;
+                this.setVelocity(0, 0);
                 break;
             case 1:
                 this.moveForward();
@@ -163,7 +183,22 @@ export class Tank extends Physics.Arcade.Sprite {
     }
 
     aiControl() {
-        this.applyAction(3);
+        if (!this.enemyTank || !this.enemyTank.active) return;
+        const observation = this.getObservation(this.enemyTank);
+        const deltaAngle = observation[5];
+        const canFire = observation[3];
+        if (deltaAngle > 0.01) {
+            this.applyAction(4);
+        } else if (deltaAngle < -0.01) {
+            this.applyAction(3);
+        } else if (canFire && this.scene.time.now >= this.nextAiShotAt) {
+            this.applyAction(5);
+            this.nextAiShotAt = this.scene.time.now + 300;
+        }
+    }
+
+    setEnemyTank(enemyTank: Tank) {
+        this.enemyTank = enemyTank;
     }
 
     getObservation(
@@ -180,8 +215,10 @@ export class Tank extends Physics.Arcade.Sprite {
             (Math.atan2(enemyTank.y - this.y, enemyTank.x - this.x) * 180) /
             Math.PI;
         const cannonAngle = this.angle + 90;
-        const deltaAngle = targetAngle - cannonAngle;
-        return [angle, dx, dy, canFire, isSlow, deltaAngle];
+        let deltaAngle = targetAngle - cannonAngle;
+        if (deltaAngle > 180) deltaAngle -= 360;
+        else if (deltaAngle < -180) deltaAngle += 360;
+        return [angle, dx, dy, canFire, isSlow, deltaAngle / 180];
     }
 
     update() {
