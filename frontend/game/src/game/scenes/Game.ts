@@ -42,6 +42,7 @@ export class Game extends Scene {
     private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private isShuttingDown: boolean = false;
     private musicTrack: MusicTrack;
+    private championshipId: string;
 
     constructor() {
         super('Game');
@@ -266,12 +267,18 @@ export class Game extends Scene {
                 const proj = p as Projectile;
                 const tank = t as Tank;
                 if (proj.getOwner() === tank) return;
+                const place = this.matchManager.generatePlacement(tank);
+
+                console.log(place);
+
                 if (proj.getOwner()?.getIsLocal()) {
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
+                        championshipId: this.championshipId,
                         color: tank.getColor(),
                         x: tank.x,
                         y: tank.y,
+                        matchPlacement: place,
                     });
                 }
                 this.destroyTank(tank);
@@ -503,6 +510,7 @@ export class Game extends Scene {
 
     private handleRoomJoined = (payload: RoomJoinedPayload) => {
         this.barrelPos = payload.randomBarrelPositions;
+        this.championshipId = payload.championshipId;
 
         if (this.map) {
             this.createBarrels(this.map);
@@ -520,7 +528,7 @@ export class Game extends Scene {
 
         this.isShuttingDown = true;
         this.scene.stop('Overlay');
-        this.scene.restart();
+        //this.scene.restart();
     };
 
     private handleDeathWallStep = (p: DeathWallStepPayload) =>

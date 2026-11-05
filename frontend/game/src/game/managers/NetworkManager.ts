@@ -80,7 +80,6 @@ export class NetworkManager {
                 this.hub.joinRoom(
                     sessionConfig.roomId,
                     sessionConfig.localColor,
-                    sessionConfig.champId,
                 ),
             )
             .then((dto) => {
@@ -106,7 +105,7 @@ export class NetworkManager {
     private handleMatchStarted = (payload: MatchStartedPayload) =>
         this.scene.events.emit(GameEvent.MatchStarted, payload);
     private handleRestartRequested = () => {
-        this.hub.sendStartMatch(sessionConfig.roomId);
+        this.hub.sendStartMatch(sessionConfig.roomId, sessionConfig.champId);
     };
     private handleDeathWallStep = (p: DeathWallStepPayload) =>
         this.scene.events.emit(GameEvent.DeathWallStep, p);
@@ -186,7 +185,9 @@ export class NetworkManager {
         this.hub.offProjectileFired(this.handleProjectileFired);
         this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.offProjectilesCollided(this.handleProjectilesCollided);
-        this.hub.leaveRoom(sessionConfig.roomId).catch(() => {});
+        this.hub
+            .leaveRoom(sessionConfig.roomId, sessionConfig.champId)
+            .catch(() => {});
         this.hub.stop().catch(() => {});
     }
 }

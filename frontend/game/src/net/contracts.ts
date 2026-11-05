@@ -40,13 +40,13 @@ export type Position = {
 
 export interface MatchEndPayload {
     roomId: string;
-    placements: MatchPlacement[];
+    championshipId: string;
 }
 
 export type MatchPlacement = {
     color: Color;
     points: number;
-    place: number;
+    placement: number;
     timestamp: number;
 };
 
@@ -67,9 +67,11 @@ export interface BarrelDestroyPayload {
 
 export interface TankDestroyPayload {
     roomId: string;
+    championshipId: string;
     color: Color;
     x: number;
     y: number;
+    matchPlacement: MatchPlacement;
 }
 
 export interface ProjectilePayload {

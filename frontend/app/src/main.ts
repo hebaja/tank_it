@@ -58,7 +58,7 @@ async function joinRoom() {
     clearError();
     const roomId = roomIdInput.value.trim() || 'local-dev-room';
     const color = colorSelect.value;
-    const champId = '80391777-4e65-4f49-8eea-97ad1941998a';
+    //const champId = '80391777-4e65-4f49-8eea-97ad1941998a';
 
     joinBtn.disabled = true;
     joinBtn.textContent = 'Joining…';
@@ -67,13 +67,15 @@ async function joinRoom() {
         hub = new LobbyHubConnection(HUB_URL);
         await hub.start();
 
-        const status = await hub.joinRoom(roomId, color, champId);
+        const status = await hub.joinRoom(roomId, color);
 
         currentRoomId = roomId;
         currentColor = color;
         myConnectionId =
             status.players.find((p) => p.color === color && p.connectionId)
                 ?.connectionId ?? '';
+
+        console.log(status.championshipId);
 
         // Store connectionId from the returned players list (the one matching our color)
         // If not found (race), fallback: we'll get it from PlayerJoined event

@@ -41,22 +41,17 @@ export class GameHubConnection {
         await this.conn.stop();
     }
 
-    async joinRoom(
-        roomId: string,
-        color: string,
-        champId: string,
-    ): Promise<RoomJoinedPayload> {
+    async joinRoom(roomId: string, color: string): Promise<RoomJoinedPayload> {
         const joined = await this.conn.invoke<RoomJoinedPayload>(
             'JoinRoom',
             roomId,
             color,
-            champId,
         );
         this.connectionId = joined.connectionId;
         return joined;
     }
-    async leaveRoom(roomId: string): Promise<void> {
-        await this.conn.invoke('LeaveRoom', roomId);
+    async leaveRoom(roomId: string, champId: string): Promise<void> {
+        await this.conn.invoke('LeaveRoom', roomId, champId);
     }
 
     sendTankMove(payload: TankMovePayload): void {
@@ -77,10 +72,10 @@ export class GameHubConnection {
             );
     }
 
-    sendStartMatch(roomId: string): void {
+    sendStartMatch(roomId: string, champId: string): void {
         if (this.conn.state !== signalR.HubConnectionState.Connected) return;
         this.conn
-            .send('StartMatch', roomId)
+            .send('StartMatch', roomId, champId)
             .catch((err) =>
                 console.warn('[GameHubConnection] StartMatch send failed', err),
             );

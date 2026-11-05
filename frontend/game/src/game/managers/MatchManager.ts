@@ -1,15 +1,9 @@
 import { Scene } from 'phaser';
 import { Tank } from '../objects/Tank';
-import { Color } from '../config/color';
 import { GAME_CONFIG } from '../config/game';
 import { GameEvent } from '../config/events';
-
-export interface MatchPlacement {
-    color: Color;
-    points: number;
-    place: number;
-    timestamp: number;
-}
+import { sessionConfig } from '../../net/sessionConfig';
+import { MatchPlacement } from '../../net/contracts';
 
 export interface MatchResult {
     placements: MatchPlacement[];
@@ -39,15 +33,22 @@ export class MatchManager {
         this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this);
     }
 
-    recordPlacement(tank: Tank) {
+    generatePlacement(tank: Tank): MatchPlacement | undefined {
         if (tank.active) {
-            this.placements.push({
+            return {
                 color: tank.getColor(),
                 points: this.points++,
-                place: this.place--,
+                placement: this.place--,
                 timestamp: Date.now(),
-            });
+            };
         }
+        return undefined;
+    }
+
+    recordPlacement(tank: Tank) {
+        const placement = this.generatePlacement(tank);
+
+        if (placement) this.placements.push(placement);
 
         if (this.placements.length >= 1) {
             for (let i = this.placements.length - 1; i > 0; i--) {
@@ -70,14 +71,16 @@ export class MatchManager {
                 this.recordPlacement(winner);
                 this.ended = true;
                 this.scene.events.emit(GameEvent.MatchEnd, {
-                    roomId: 'local-dev-room',
+                    roomId: sessionConfig.roomId,
+                    championshipId: sessionConfig.champId,
                     placements: this.placements,
                 });
             }
         } else if (tankCount === 0) {
             this.ended = true;
             this.scene.events.emit(GameEvent.MatchEnd, {
-                roomId: 'local-dev-room',
+                roomId: sessionConfig.roomId,
+                championshipId: sessionConfig.champId,
                 placements: this.placements,
             });
         }

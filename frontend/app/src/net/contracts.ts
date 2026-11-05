@@ -5,6 +5,7 @@ export interface PlayerInfo {
 
 export interface RoomStatusPayload {
     roomId: string;
+    championshipId: string;
     players: PlayerInfo[];
     randomBarrelPositions: BarrelPos[];
     roomCreatedAt: number;
