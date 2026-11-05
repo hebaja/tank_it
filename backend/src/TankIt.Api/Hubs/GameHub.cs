@@ -44,66 +44,94 @@ public class GameHub : Hub<IGameClient>
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color, string champId)
+    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color)
     {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
         if (string.IsNullOrWhiteSpace(color))
             throw new HubException("color is required");
 
-        Guid? championshipId = null;
-        if (!string.IsNullOrWhiteSpace(champId))
-        {
-            if (!Guid.TryParse(champId, out var parsedChampionshipId))
-                throw new HubException("champId must be a valid GUID");
+        // Guid? championshipId = ResolveChampionshipId(champId);
 
-            championshipId = parsedChampionshipId;
-        }
-
-        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId} - {champId}", roomId, color, Context.ConnectionId, champId);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId, color);
         _rooms.TrackRoomCreation(roomId);
         _deathWall.EnsureStarted(roomId);
 
-        if (championshipId is Guid id)
-        {
-            var (championship, created) = _championships.GetOrCreate(id);
+        // if (championshipId is Guid id)
+        // {
+            var (championship, created) = _championships.GetOrCreateByRoomId(roomId);
 
             _logger.LogInformation(
                 "Championship {ChampionshipId} {State} for connection {ConnectionId}",
                 championship.Id,
                 created ? "created" : "reused",
                 Context.ConnectionId);
-        }
+
+            var participant = new ChampionshipParticipant
+            {
+                ChampionshipId = championship.Id,
+                IsAi = false,
+                TankColor = color,
+            };
+
+            championship.Participants.Add(participant);
+            // championshipId = championship.Id;
+        // }
+        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId} - {Id}", 
+                roomId, color, Context.ConnectionId, championship.Id);
 
         var barrels = _rooms.GetOrCreateBarrels(roomId);
         var players = _rooms.GetRoomPlayers(roomId);
+
+        //_logger.LogInformation("--> created champ id {championshipId}: ", championship.Id);
 
         await Clients.OthersInGroup(roomId).PlayerJoined(new PlayerJoinedDto
         {
             ConnectionId = Context.ConnectionId,
             Color = color,
-            ChampionshipId = championshipId
+            ChampionshipId = championship.Id
         });
 
         return new RoomJoinedDto
         {
             ConnectionId = Context.ConnectionId,
             RoomId = roomId,
+            ChampionshipId = championship.Id,
             RandomBarrelPositions = barrels,
             RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
             Players = players,
-            DeathWallStep = _deathWall.GetStep(roomId),
-            ChampionshipId = championshipId
+            DeathWallStep = _deathWall.GetStep(roomId)
         };
     }
 
-    public async Task LeaveRoom(string roomId)
+    private Guid? ResolveChampionshipId(string? champId, bool mustExist = false)
+    {
+        if (string.IsNullOrWhiteSpace(champId))
+            return null;
+
+        if (!Guid.TryParse(champId, out var id))
+            throw new HubException("champId must be a valid GUID");
+
+        if (mustExist && !_championships.TryGet(id, out _))
+            throw new HubException($"Championship {id} not found");
+
+        return id;
+    }
+
+    public async Task LeaveRoom(string roomId, string champId)
     {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
+
+        Guid? championshipId = ResolveChampionshipId(champId, mustExist: true);
+
+        var color = _rooms.GetRoomPlayers(roomId)
+            .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)?.Color;
+
+        if (championshipId is Guid id && color is not null)
+            _championships.TryRemoveParticipant(id, color);
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackLeave(roomId, Context.ConnectionId);
@@ -119,12 +147,14 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrEmpty(request.RoomId))
             throw new HubException("roomId is required");
 
+        /*
         _logger.LogInformation("Tank moved: {RoomId} - {PlayerId} - {X}:{Y} - {Rotation}",
             request.RoomId,
             request.PlayerId,
             request.Position.X,
             request.Position.Y,
             request.Rotation);
+            */
 
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
     }
@@ -136,9 +166,19 @@ public class GameHub : Hub<IGameClient>
 
         _logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
 
+        if (!_championships.TryGetByRoomId(roomId, out var championship))
+            throw new HubException($"Championship for Room {roomId} not found");
+        else
+        {
+            _championships.TryStartNextMatch(championship.Id, out var match);
+            _logger.LogInformation("->> Match started {Id}", match.Id);
+
+        }
+
         var barrels = _rooms.GetOrCreateBarrels(roomId);
 
         _deathWall.Restart(roomId);
+
 
         await Clients.Group(roomId).MatchStarted(new MatchStartedDto
         {
@@ -147,19 +187,31 @@ public class GameHub : Hub<IGameClient>
         });
     }
 
-    public async Task MatchEnd(TankPlacementRequest request)
+    public async Task MatchEnd(MatchEndRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation("Game ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
+        _logger.LogInformation("Match ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
+        Guid? championshipId = ResolveChampionshipId(request.ChampionshipId, mustExist: true);
+        if (championshipId is Guid id)
+        {
+            if (!_championships.TryGetLastMatch(id, out var match) || match is null)
+                throw new HubException($"No match found for championship {id}");
 
-        await Clients.OthersInGroup(request.RoomId).GameEnded(request);
+            match.Status = MatchStatus.Completed;
+            match.EndedAt = DateTimeOffset.UtcNow;
+            //TODO set placement for match and championship
+
+            _logger.LogInformation("Championship {Id} - Match {Id} ended", id, match.Id);
+        }
+
+
+        await Clients.OthersInGroup(request.RoomId).MatchEnded(request);
 
         _deathWall.Stop(request.RoomId);
 
         // TODO This evicting room must not be called when championship is activated for example;
-        // TODO We have to check how to deal with this situation
         //_rooms.TryEvictRoom(request.RoomId);
     }
 
@@ -191,8 +243,25 @@ public class GameHub : Hub<IGameClient>
     {
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
+        
+        // Guid? championshipId = ResolveChampionshipId(request.ChampionshipId, mustExist: true);
+        // if (championshipId is Guid id)
+        // {
+            if (!_championships.TryGetByRoomId(request.RoomId, out var championship))
+                throw new HubException($"Could not retrieve last match for championship in Room {request.RoomId}");
 
-        _logger.LogInformation("Tank destroyed: Color {Color}", request.Color);
+            _logger.LogInformation("--> Receive: {Id} Championship {Count}", request.ChampionshipId, championship?.Matches.Count);
+
+
+            var match = championship?.Matches.ElementAt(0);
+
+
+            //TODO set placement for match and championship
+
+            _logger.LogInformation("Championship {Id} - Match {Id} - tank destroyed -> color={Color}, placement={Placement}, points={Points}",
+                    championship?.Id, match?.Id, request.Color, request.MatchPlacement.Placement, request.MatchPlacement.Points);
+        // }
+
         await Clients.OthersInGroup(request.RoomId).TankDestroyed(request);
     }
 
