@@ -12,6 +12,7 @@ public enum ChampionshipStatus
 public class Championship
 {
     public Guid Id { get; set; }
+    public string RoomId { get; set; } = "";
     public ChampionshipStatus Status { get; set; } = ChampionshipStatus.Pending;
     public short PlayerCount { get; set; } // 2-4, fixed for every match in the series
     public short TargetScore { get; set; } // 4p -> 10, 3p -> 7, 2p -> 5

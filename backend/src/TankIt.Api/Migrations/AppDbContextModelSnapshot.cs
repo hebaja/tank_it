@@ -48,6 +48,11 @@ namespace TankIt.Api.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("player_count");
 
+                    b.Property<string>("RoomId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("room_id");
+
                     b.Property<DateTimeOffset?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("started_at");
