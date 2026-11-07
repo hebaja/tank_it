@@ -76,18 +76,17 @@ Run the `*-frontend` or `*-backend` targets to run one side of a check locally, 
 
 ### Tests
 
-`make test-frontend` runs game and lobby unit tests, a mocked lobby browser test, and full-stack
-browser tests against the actual API, PostgreSQL database, SignalR hub, and Phaser game. Start
-the database before running E2E locally:
+`make test-frontend` runs the game and app unit tests. Playwright browser tests are separate and
+local-only; they exercise auth and lobby flows against the running stack:
 
 ```bash
-docker compose up -d db
-cd frontend/app && yarn playwright install chromium
+make test-e2e
 ```
 
-Run only the browser flows with `cd frontend/app && yarn test:e2e`. The backend unit and hub tests
-run with `make test-backend`; they use in-memory collaborators and do not need Postgres. `make
-test` runs both frontend and backend suites.
+The `test-e2e` target starts the dev stack, installs the Playwright suite's dependencies from
+`e2e/`, and runs the browser tests. The backend unit and hub tests run with `make test-backend`;
+they use in-memory collaborators and do not need Postgres. `make test` runs frontend unit and
+backend suites, without the local-only Playwright suite.
 
 ### Game core — local (without Docker)
 

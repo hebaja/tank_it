@@ -59,10 +59,6 @@ jobs:
               working-directory: frontend/app
               run: yarn install --frozen-lockfile
 
-            - name: Install Playwright browser
-              working-directory: frontend/app
-              run: yarn playwright install --with-deps chromium
-
             - name: Set up .NET
               uses: actions/setup-dotnet@v4
               with:
