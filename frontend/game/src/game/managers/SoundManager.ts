@@ -75,17 +75,17 @@ export class SoundManager {
         this.startMusic();
 
         this.scene.events.on(
-            GameEvent.ProjectileFire,
+            GameEvent.ProjectileFireSfx,
             this.handleProjectileFired,
             this,
         );
         this.scene.events.on(
-            GameEvent.BlockDestroy,
+            GameEvent.BlockDestroySfx,
             this.handleBlockDestroy,
             this,
         );
         this.scene.events.on(
-            GameEvent.BarrelDestroy,
+            GameEvent.BarrelDestroySfx,
             this.handleBarrelDestroy,
             this,
         );
@@ -95,7 +95,7 @@ export class SoundManager {
             this,
         );
         this.scene.events.on(
-            GameEvent.TankDestroy,
+            GameEvent.TankDestroySfx,
             this.handleTankDestroy,
             this,
         );
@@ -239,17 +239,17 @@ export class SoundManager {
         this.isDestroyed = true;
 
         this.scene.events.off(
-            GameEvent.ProjectileFire,
+            GameEvent.ProjectileFireSfx,
             this.handleProjectileFired,
             this,
         );
         this.scene.events.off(
-            GameEvent.BlockDestroy,
+            GameEvent.BlockDestroySfx,
             this.handleBlockDestroy,
             this,
         );
         this.scene.events.off(
-            GameEvent.BarrelDestroy,
+            GameEvent.BarrelDestroySfx,
             this.handleBarrelDestroy,
             this,
         );
@@ -259,7 +259,7 @@ export class SoundManager {
             this,
         );
         this.scene.events.off(
-            GameEvent.TankDestroy,
+            GameEvent.TankDestroySfx,
             this.handleTankDestroy,
             this,
         );

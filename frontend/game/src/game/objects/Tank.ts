@@ -213,7 +213,10 @@ export class Tank extends Physics.Arcade.Sprite {
 
     fire(payload?: ProjectilePayload) {
         if (!this.ammoGauge.getCanFire()) {
-            this.scene.events.emit(GameEvent.ProjectileFireFail);
+            this.scene.events.emit(GameEvent.ProjectileFireFail, {
+                roomId: sessionConfig.roomId,
+                color: sessionConfig.localColor,
+            });
             return;
         }
         this.spawnProjectile(payload);
@@ -255,7 +258,7 @@ export class Tank extends Physics.Arcade.Sprite {
                 timestamp: Date.now(),
                 sequence: this.sequence,
             } satisfies ProjectilePayload);
-
+        this.scene.events.emit(GameEvent.ProjectileFireSfx);
         this.projectile.once('destroy', () => {
             this.projectile = null;
         });

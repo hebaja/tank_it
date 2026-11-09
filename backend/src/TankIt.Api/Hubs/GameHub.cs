@@ -94,12 +94,12 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrEmpty(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation("Tank moved: {RoomId} - {PlayerId} - {X}:{Y} - {Rotation}",
-            request.RoomId,
-            request.PlayerId,
-            request.Position.X,
-            request.Position.Y,
-            request.Rotation);
+        //_logger.LogInformation("Tank moved: {RoomId} - {PlayerId} - {X}:{Y} - {Rotation}",
+        //    request.RoomId,
+        //    request.PlayerId,
+        //    request.Position.X,
+        //    request.Position.Y,
+        //    request.Rotation);
 
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
     }
@@ -225,6 +225,14 @@ public class GameHub : Hub<IGameClient>
             request.ProjectileB.Color
         );
         await Clients.GroupExcept(request.ProjectileA.RoomId, excluded).ProjectilesCollided(request);
+    }
+
+    public async Task ProjectileFireFail(ProjectileFireFailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoomId))
+            throw new HubException("roomId is required");
+        _logger.LogInformation("Projectile fire failed {Color}", request.Color);
+        await Clients.OthersInGroup(request.RoomId).ProjectileFireFailed(request);
     }
 
     // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
