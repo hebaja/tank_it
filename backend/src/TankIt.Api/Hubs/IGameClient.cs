@@ -8,9 +8,7 @@ public interface IGameClient
     Task PlayerJoined(PlayerJoinedDto payload);
     Task PlayerLeft(PlayerLeftDto payload);
     Task MatchStarted(MatchStartedDto payload);
-    //
-//    Task GameEnded(TankPlacementRequest payload);
-    //
+    Task MatchEnded(ChampionshipMatchInfoDto payload);
     Task DeathWallStep(DeathWallStepDto payload);
     Task BlockDestroyed(BlockDestroyRequest destroy);
     Task BarrelDestroyed(BarrelDestroyRequest payload);

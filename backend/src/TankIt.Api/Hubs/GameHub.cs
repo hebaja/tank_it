@@ -170,7 +170,35 @@ public class GameHub : Hub<IGameClient>
             throw new HubException($"Championship for Room {roomId} not found");
         else
         {
+             var currentPlayers = _rooms.GetRoomPlayers(roomId);
+            var currentColors = currentPlayers.Select(p => p.Color).ToHashSet();
+            var staleParticipants = championship.Participants
+                .Where(p => !currentColors.Contains(p.TankColor))
+                .ToList();
+            foreach (var stale in staleParticipants)
+            championship.Participants.Remove(stale);
+
+
+            var existingColors = championship.Participants.Select(p => p.TankColor).ToHashSet();
+            foreach (var player in currentPlayers)
+            {
+                if (!existingColors.Contains(player.Color))
+                {
+                    championship.Participants.Add(new ChampionshipParticipant
+                    {
+                        ChampionshipId = championship.Id,
+                        IsAi = false,
+                        TankColor = player.Color,
+                    });
+                }
+            }
+
+
+
             _championships.TryStartNextMatch(championship.Id, out var match);
+
+
+
             _logger.LogInformation("->> Match started {Id}", match.Id);
 
         }
@@ -193,21 +221,102 @@ public class GameHub : Hub<IGameClient>
             throw new HubException("roomId is required");
 
         _logger.LogInformation("Match ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
+
+
+        
+
         Guid? championshipId = ResolveChampionshipId(request.ChampionshipId, mustExist: true);
         if (championshipId is Guid id)
         {
+            if(!_championships.TryGet(id,out var championship))
+                throw new HubException($"No championship found for {id}");
+
             if (!_championships.TryGetLastMatch(id, out var match) || match is null)
                 throw new HubException($"No match found for championship {id}");
 
             match.Status = MatchStatus.Completed;
             match.EndedAt = DateTimeOffset.UtcNow;
             //TODO set placement for match and championship
+            //
+            foreach (var p in match.Participants)
+            {
+               var placement = request.Placements.FirstOrDefault(pl => pl.IsWinner);
+               if (placement != null)
+               {
+                   var winner = match.Participants.FirstOrDefault(p => p.TankColor == placement.Color);
+                   winner?.Placement = placement.Placement;
+                   winner?.Points = placement.Points;
+                   match.WinnerId = winner?.Id;
+               }
+            }
 
-            _logger.LogInformation("Championship {Id} - Match {Id} ended", id, match.Id);
+            //
+            //TODO update championship participants here based on match participants and check if there's winner
+            //
+
+            foreach (var mp in match.Participants)
+            {
+                var champParticipant = championship.Participants
+                    .FirstOrDefault(cp => cp.TankColor == mp.TankColor);
+                if (champParticipant is not null)
+                {
+                    champParticipant.Points = (short)((champParticipant.Points ?? 0) + (mp.Points ?? 0));
+                }
+            }
+
+            var winners = championship.Participants
+                .Where(cp => (cp.Points ?? 0) >= championship.Ft)
+                .ToArray();
+
+            if (winners.Length > 0)
+            {
+                var champion = winners
+                    .OrderBy(w => w.Points ?? short.MaxValue)
+                    .First();
+
+                championship.WinnerId = champion.Id;
+                championship.Status = ChampionshipStatus.Completed;
+                championship.CompletedAt = DateTimeOffset.UtcNow;
+                _logger.LogInformation(
+                    "Championship {ChampionshipId} won by {Color} with {Points} points (tie-break: placement {Placement})",
+                    championship.Id, champion.TankColor, champion.Points, champion.Placement);
+            }
+
+            string[] displayNames = [
+               "asdrubal",
+               "gertrudes",
+               "cremilda",
+               "robisberto"
+            ];
+            var i = 0;
+
+
+            _logger.LogInformation("Participants: {Number}", match.Participants.Count);
+
+            var tanksScore = match.Participants
+                .Select(p => new TankScoreInfo
+                {
+                    Label = p.IsAi ? "AI" : p.User?.DisplayName ?? p.TankColor,
+                    User = displayNames[i++],
+                    Color = p.TankColor,
+                    Score = p.Points
+                }).ToArray();
+
+            var cmi = new ChampionshipMatchInfoDto
+            {
+                RoomId = request.RoomId,
+                Ft = 10, // TODO Need to work on this
+                TanksScore = tanksScore,
+                ChampionshipStatus = championship.Status,
+                WinnerId = championship.WinnerId
+            };
+            
+            await Clients.Group(request.RoomId).MatchEnded(cmi);
+
         }
 
 
-        await Clients.OthersInGroup(request.RoomId).MatchEnded(request);
+
 
         _deathWall.Stop(request.RoomId);
 
@@ -250,11 +359,12 @@ public class GameHub : Hub<IGameClient>
             if (!_championships.TryGetByRoomId(request.RoomId, out var championship))
                 throw new HubException($"Could not retrieve last match for championship in Room {request.RoomId}");
 
-            _logger.LogInformation("--> Receive: {Id} Championship {Count}", request.ChampionshipId, championship?.Matches.Count);
-
 
             var match = championship?.Matches.ElementAt(0);
 
+            var participant = match?.Participants.FirstOrDefault(p => p.TankColor == request.Color);
+            participant?.Placement = request.MatchPlacement.Placement;
+            participant?.Points = request.MatchPlacement.Points;
 
             //TODO set placement for match and championship
 
