@@ -50,8 +50,5 @@ jobs:
               with:
                   dotnet-version: 10.0.111
 
-            - name: Run frontend gates
-              run: make lint-frontend typecheck-frontend build test-frontend
-
-            - name: Run backend gates
-              run: make lint-backend typecheck-backend test-backend
+            - name: Run quality gates
+              run: make ci
