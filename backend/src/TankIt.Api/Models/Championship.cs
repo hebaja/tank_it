@@ -20,6 +20,7 @@ public class Championship
     public User? Winner { get; set; }
     public Guid? CreatedBy { get; set; }
     public User? Creator { get; set; }
+    public short Ft { get; set; } = 10;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }

@@ -44,6 +44,10 @@ namespace TankIt.Api.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
+                    b.Property<short>("Ft")
+                        .HasColumnType("smallint")
+                        .HasColumnName("ft");
+
                     b.Property<short>("PlayerCount")
                         .HasColumnType("smallint")
                         .HasColumnName("player_count");
@@ -118,6 +122,14 @@ namespace TankIt.Api.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_ai");
+
+                    b.Property<short?>("Placement")
+                        .HasColumnType("smallint")
+                        .HasColumnName("placement");
+
+                    b.Property<short?>("Points")
+                        .HasColumnType("smallint")
+                        .HasColumnName("points");
 
                     b.Property<string>("TankColor")
                         .IsRequired()
