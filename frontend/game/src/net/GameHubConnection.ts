@@ -4,6 +4,7 @@ import type {
     BlockDestroyPayload,
     DeathWallStepPayload,
     MatchEndPayload,
+    MatchEndedPayload,
     MatchStartedPayload,
     ProjectilePayload,
     ProjectilesCollidePayload,
@@ -50,7 +51,7 @@ export class GameHubConnection {
         this.connectionId = joined.connectionId;
         return joined;
     }
-    async leaveRoom(roomId: string, champId: string): Promise<void> {
+    async leaveRoom(roomId: string, champId?: string): Promise<void> {
         await this.conn.invoke('LeaveRoom', roomId, champId);
     }
 
@@ -72,7 +73,7 @@ export class GameHubConnection {
             );
     }
 
-    sendStartMatch(roomId: string, champId: string): void {
+    sendStartMatch(roomId: string, champId?: string): void {
         if (this.conn.state !== signalR.HubConnectionState.Connected) return;
         this.conn
             .send('StartMatch', roomId, champId)
@@ -206,6 +207,12 @@ export class GameHubConnection {
     }
     offProjectilesCollided(cb: (p: ProjectilesCollidePayload) => void): void {
         this.conn.off('ProjectilesCollided', cb);
+    }
+    onMatchEnded(cb: (p: MatchEndedPayload) => void): void {
+        this.conn.on('MatchEnded', cb);
+    }
+    offMatchEnded(cb: (p: MatchEndedPayload) => void): void {
+        this.conn.off('MatchEnded', cb);
     }
 
     get state(): signalR.HubConnectionState {

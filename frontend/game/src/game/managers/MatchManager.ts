@@ -33,20 +33,24 @@ export class MatchManager {
         this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this);
     }
 
-    generatePlacement(tank: Tank): MatchPlacement | undefined {
+    generatePlacement(
+        tank: Tank,
+        isWinner: boolean,
+    ): MatchPlacement | undefined {
         if (tank.active) {
             return {
                 color: tank.getColor(),
                 points: this.points++,
                 placement: this.place--,
                 timestamp: Date.now(),
+                isWinner: isWinner,
             };
         }
         return undefined;
     }
 
-    recordPlacement(tank: Tank) {
-        const placement = this.generatePlacement(tank);
+    recordPlacement(tank: Tank, isWinner: boolean) {
+        const placement = this.generatePlacement(tank, isWinner);
 
         if (placement) this.placements.push(placement);
 
@@ -68,7 +72,7 @@ export class MatchManager {
         if (this.ended) return;
         if (tankCount === 1 && winner) {
             if (this.placements.length < 4) {
-                this.recordPlacement(winner);
+                this.recordPlacement(winner, true);
                 this.ended = true;
                 this.scene.events.emit(GameEvent.MatchEnd, {
                     roomId: sessionConfig.roomId,

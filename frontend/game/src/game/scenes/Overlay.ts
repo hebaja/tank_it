@@ -9,9 +9,8 @@ interface TankScoreInfo {
     isWinner: boolean;
 }
 
-interface MatchInfo {
+interface ChampionshipMatchInfo {
     roomId: string;
-    isChampionship: boolean;
     ft: number;
     tanks: TankScoreInfo[];
 }
@@ -30,9 +29,8 @@ export class Overlay extends Scene {
     private screenHeight!: number;
     private LABEL_OFFSET: number = 30;
     private CONTENT_OFFSET: number = 12;
-    private matchInfo: MatchInfo = {
+    private matchInfo: ChampionshipMatchInfo = {
         roomId: 'local-dev-room',
-        isChampionship: false,
         ft: 10,
         tanks: [
             {
@@ -100,8 +98,8 @@ export class Overlay extends Scene {
                 repeat: -1,
             });
         }
-        if (this.matchInfo.isChampionship) this.createScorePanel();
-        else this.createRetryButton();
+        this.createScorePanel();
+        // else this.createRetryButton();
     }
 
     createRetryButton() {

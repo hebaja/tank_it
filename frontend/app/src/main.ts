@@ -23,6 +23,7 @@ let hub: LobbyHubConnection | null = null;
 let currentRoomId = '';
 let currentColor = '';
 let myConnectionId = '';
+let championshipId = '';
 
 function showError(msg: string) {
     errorEl.textContent = msg;
@@ -71,11 +72,11 @@ async function joinRoom() {
 
         currentRoomId = roomId;
         currentColor = color;
+        championshipId = status.championshipId;
+
         myConnectionId =
             status.players.find((p) => p.color === color && p.connectionId)
                 ?.connectionId ?? '';
-
-        console.log(status.championshipId);
 
         // Store connectionId from the returned players list (the one matching our color)
         // If not found (race), fallback: we'll get it from PlayerJoined event
@@ -118,6 +119,7 @@ function handlePlayerJoined(payload: PlayerJoinedPayload) {
         `li[data-conn="${payload.connectionId}"]`,
     );
     if (!existing) {
+        console.log(payload);
         const li = document.createElement('li');
         li.dataset.conn = payload.connectionId;
         const swatch = document.createElement('span');
@@ -177,7 +179,7 @@ function startMatch() {
 function redirectToGame() {
     if (!currentRoomId || !currentColor) return;
     const gameUrl = import.meta.env.VITE_GAME_URL ?? 'http://localhost:5173';
-    const url = `${gameUrl}?roomId=${encodeURIComponent(currentRoomId)}&color=${encodeURIComponent(currentColor)}`;
+    const url = `${gameUrl}?roomId=${encodeURIComponent(currentRoomId)}&color=${encodeURIComponent(currentColor)}&champId=${encodeURIComponent(championshipId)}`;
 
     if (hub) {
         hub.offPlayerJoined(handlePlayerJoined);

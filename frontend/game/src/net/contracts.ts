@@ -41,6 +41,7 @@ export type Position = {
 export interface MatchEndPayload {
     roomId: string;
     championshipId: string;
+    placements: MatchPlacement[];
 }
 
 export type MatchPlacement = {
@@ -48,6 +49,7 @@ export type MatchPlacement = {
     points: number;
     placement: number;
     timestamp: number;
+    isWinner: boolean;
 };
 
 export interface MatchStartedPayload {
@@ -89,4 +91,19 @@ export interface ProjectilesCollidePayload {
     projectileA: ProjectilePayload;
     projectileB: ProjectilePayload;
     timestamp: number;
+}
+
+export interface MatchEndedPayload {
+    roomId: string;
+    ft: number;
+    tanksScore: TankScoreInfo[];
+    championshipStatus: string;
+    winnerId: string;
+}
+
+export interface TankScoreInfo {
+    label: string;
+    user: string;
+    color: string;
+    score: number;
 }

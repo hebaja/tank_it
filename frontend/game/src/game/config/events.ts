@@ -28,6 +28,7 @@ export const GameEvent = {
     OptionSelect: 'option_select',
     AmmoBarComplete: 'ammo_bar_complete',
     ProjectileHitProjectile: 'projectile_hit_projectile',
+    MatchEnded: 'match_ended',
 };
 
 export type GameEventKey = (typeof GameEvent)[keyof typeof GameEvent];

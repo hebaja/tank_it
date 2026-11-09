@@ -22,6 +22,7 @@ import type {
     TankDestroyPayload,
     ProjectilePayload,
     ProjectilesCollidePayload,
+    MatchEndedPayload,
 } from '../../net/contracts';
 import { MusicTrack, SoundManager } from '../managers/SoundManager';
 
@@ -110,6 +111,7 @@ export class Game extends Scene {
             this.handleProjectilesCollided,
             this,
         );
+        this.events.on(GameEvent.MatchEnded, this.handleMatchEnded, this);
         this.networkManager = new NetworkManager(this);
     }
 
@@ -267,9 +269,6 @@ export class Game extends Scene {
                 const proj = p as Projectile;
                 const tank = t as Tank;
                 if (proj.getOwner() === tank) return;
-                const place = this.matchManager.generatePlacement(tank);
-
-                console.log(place);
 
                 if (proj.getOwner()?.getIsLocal()) {
                     this.events.emit(GameEvent.TankDestroy, {
@@ -278,7 +277,10 @@ export class Game extends Scene {
                         color: tank.getColor(),
                         x: tank.x,
                         y: tank.y,
-                        matchPlacement: place,
+                        matchPlacement: this.matchManager.generatePlacement(
+                            tank,
+                            false,
+                        ),
                     });
                 }
                 this.destroyTank(tank);
@@ -355,7 +357,7 @@ export class Game extends Scene {
             y: tank.y,
             type: 'explosion',
         });
-        this.matchManager.recordPlacement(tank);
+        this.matchManager.recordPlacement(tank, false);
     }
 
     private destroyProjectile(proj: Projectile) {
@@ -401,7 +403,7 @@ export class Game extends Scene {
                         y: tank.y,
                         type: GameEvent.Explosion,
                     });
-                    this.matchManager.recordPlacement(tank);
+                    // this.matchManager.recordPlacement(tank);
                     tank.destroy();
                 }
             });
@@ -586,5 +588,9 @@ export class Game extends Scene {
             .getChildren()
             .filter((c) => ids.includes((c as Projectile).getId()))
             .forEach((proj) => (proj as Projectile).destroy());
+    };
+
+    private handleMatchEnded = (payload: MatchEndedPayload) => {
+        console.log(payload);
     };
 }

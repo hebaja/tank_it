@@ -7,6 +7,7 @@ import type {
     BlockDestroyPayload,
     DeathWallStepPayload,
     MatchEndPayload,
+    MatchEndedPayload,
     MatchStartedPayload,
     ProjectilePayload,
     ProjectilesCollidePayload,
@@ -33,6 +34,7 @@ export class NetworkManager {
         this.hub.onProjectileFired(this.handleProjectileFired);
         this.hub.onProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.onProjectilesCollided(this.handleProjectilesCollided);
+        this.hub.onMatchEnded(this.handleMatchEnded);
         this.scene.events.on(
             GameEvent.TankMove,
             this.handleLocalTankMove,
@@ -133,6 +135,8 @@ export class NetworkManager {
         this.hub.sendProjectilesCollide(payload);
     private handleProjectilesCollided = (payload: ProjectilesCollidePayload) =>
         this.scene.events.emit(GameEvent.ProjectilesCollided, payload);
+    private handleMatchEnded = (payload: MatchEndedPayload) =>
+        this.scene.events.emit(GameEvent.MatchEnded, payload);
 
     destroy() {
         this.scene.events.off(
@@ -185,6 +189,7 @@ export class NetworkManager {
         this.hub.offProjectileFired(this.handleProjectileFired);
         this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.offProjectilesCollided(this.handleProjectilesCollided);
+        this.hub.offMatchEnded(this.handleMatchEnded);
         this.hub
             .leaveRoom(sessionConfig.roomId, sessionConfig.champId)
             .catch(() => {});
