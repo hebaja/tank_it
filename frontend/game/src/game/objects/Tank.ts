@@ -19,11 +19,15 @@ type TankControls = {
     D: Input.Keyboard.Key;
     W: Input.Keyboard.Key;
     S: Input.Keyboard.Key;
+    LEFT: Input.Keyboard.Key;
+    RIGHT: Input.Keyboard.Key;
+    UP: Input.Keyboard.Key;
+    DOWN: Input.Keyboard.Key;
     SPACE: Input.Keyboard.Key;
 };
 
 export class Tank extends Physics.Arcade.Sprite {
-    private controlsA: TankControls;
+    private controls: TankControls;
     private projectile: Projectile | null = null;
     private ammoGauge: AmmoGauge;
     private sparkShot?: Phaser.GameObjects.Sprite;
@@ -79,11 +83,15 @@ export class Tank extends Physics.Arcade.Sprite {
         this.angle = angle;
 
         if (this.isLocal)
-            this.controlsA = keyboard.addKeys({
+            this.controls = keyboard.addKeys({
                 A: Input.Keyboard.KeyCodes.A,
                 D: Input.Keyboard.KeyCodes.D,
                 W: Input.Keyboard.KeyCodes.W,
                 S: Input.Keyboard.KeyCodes.S,
+                LEFT: Input.Keyboard.KeyCodes.LEFT,
+                RIGHT: Input.Keyboard.KeyCodes.RIGHT,
+                UP: Input.Keyboard.KeyCodes.UP,
+                DOWN: Input.Keyboard.KeyCodes.DOWN,
                 SPACE: Input.Keyboard.KeyCodes.SPACE,
             }) as TankControls;
         this.ammoGauge = new AmmoGauge(scene, color, SPAWN_CORNERS[color]);
@@ -97,6 +105,9 @@ export class Tank extends Physics.Arcade.Sprite {
     }
 
     update() {
+        const isMoving =
+            this.body?.velocity.x !== 0 || this.body?.velocity.y !== 0;
+
         if (this.body) this.setVelocity(0, 0);
         if (this.isSlow) {
             this.turnSpeed = GAME_CONFIG.tank.turnSpeedSlow;
@@ -107,20 +118,20 @@ export class Tank extends Physics.Arcade.Sprite {
         }
 
         if (this.isLocal && this.body) {
-            if (this.controlsA.A.isDown) {
-                this.angle -= this.turnSpeed;
+            if (this.controls.A.isDown || this.controls.LEFT.isDown) {
+                this.angle -= isMoving ? this.turnSpeed + 1 : this.turnSpeed;
             }
-            if (this.controlsA.D.isDown) {
-                this.angle += this.turnSpeed;
+            if (this.controls.D.isDown || this.controls.RIGHT.isDown) {
+                this.angle += isMoving ? this.turnSpeed + 1 : this.turnSpeed;
             }
-            if (this.controlsA.S.isDown) {
+            if (this.controls.S.isDown || this.controls.DOWN.isDown) {
                 const velocity = this.scene.physics.velocityFromAngle(
                     this.angle - 90,
                     this.speed,
                 );
                 this.setVelocity(velocity.x, velocity.y);
             }
-            if (this.controlsA.W.isDown) {
+            if (this.controls.W.isDown || this.controls.UP.isDown) {
                 const velocity = this.scene.physics.velocityFromAngle(
                     this.angle - 90 + 180,
                     this.speed,
@@ -129,7 +140,7 @@ export class Tank extends Physics.Arcade.Sprite {
             }
             this.maybeSendTankMove();
 
-            if (Input.Keyboard.JustDown(this.controlsA.SPACE)) {
+            if (Input.Keyboard.JustDown(this.controls.SPACE)) {
                 this.fire();
             }
         } else {
