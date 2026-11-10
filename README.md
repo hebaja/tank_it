@@ -124,6 +124,20 @@ Compose images, so it additionally needs Docker Compose.
 Run the `*-frontend` or `*-backend` targets to run one side of a check locally, such as
 `make lint-frontend typecheck-frontend test-frontend`.
 
+### Tests
+
+`make test-frontend` runs the game and app unit tests. Playwright browser tests are separate and
+local-only; they exercise auth and lobby flows against the running stack:
+
+```bash
+make test-e2e
+```
+
+The `test-e2e` target starts the dev stack, installs the Playwright suite's dependencies from
+`e2e/`, and runs the browser tests. The backend unit and hub tests run with `make test-backend`;
+they use in-memory collaborators and do not need Postgres. `make test` runs frontend unit and
+backend suites, without the local-only Playwright suite.
+
 ### Game core — local (without Docker)
 
 ```bash
