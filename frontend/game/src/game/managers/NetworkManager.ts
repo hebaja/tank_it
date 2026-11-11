@@ -9,6 +9,7 @@ import type {
     MatchEndPayload,
     MatchEndedPayload,
     MatchStartedPayload,
+    PlayerJoinedPayload,
     ProjectilePayload,
     ProjectilesCollidePayload,
     RoomJoinedPayload,
@@ -35,6 +36,7 @@ export class NetworkManager {
         this.hub.onProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.onProjectilesCollided(this.handleProjectilesCollided);
         this.hub.onMatchEnded(this.handleMatchEnded);
+        this.hub.onPlayerJoined(this.handlePlayerJoined);
         this.scene.events.on(
             GameEvent.TankMove,
             this.handleLocalTankMove,
@@ -106,6 +108,9 @@ export class NetworkManager {
         this.hub.sendMatchEnd(payload);
     private handleMatchStarted = (payload: MatchStartedPayload) =>
         this.scene.events.emit(GameEvent.MatchStarted, payload);
+    private handlePlayerJoined = (payload: PlayerJoinedPayload) =>
+        this.scene.events.emit(GameEvent.PlayerJoined, payload);
+
     private handleRestartRequested = () => {
         this.hub.sendStartMatch(sessionConfig.roomId, sessionConfig.champId);
     };

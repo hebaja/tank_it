@@ -6,6 +6,7 @@ import type {
     MatchEndPayload,
     MatchEndedPayload,
     MatchStartedPayload,
+    PlayerJoinedPayload,
     ProjectilePayload,
     ProjectilesCollidePayload,
     RoomJoinedPayload,
@@ -213,6 +214,12 @@ export class GameHubConnection {
     }
     offMatchEnded(cb: (p: MatchEndedPayload) => void): void {
         this.conn.off('MatchEnded', cb);
+    }
+    onPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {
+        this.conn.on('PlayerJoined', cb);
+    }
+    offPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {
+        this.conn.off('PlayerJoined', cb);
     }
 
     get state(): signalR.HubConnectionState {

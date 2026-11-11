@@ -24,6 +24,12 @@ export interface RoomJoinedPayload {
     championshipId: string;
 }
 
+export interface PlayerJoinedPayload {
+    connectionId: string;
+    color: string;
+    championshipId?: string;
+}
+
 export type TankMovedPayload = TankMovePayload;
 
 export interface BlockDestroyPayload {
@@ -49,7 +55,7 @@ export type MatchPlacement = {
     points: number;
     placement: number;
     timestamp: number;
-    isWinner: boolean;
+    isMatchWinner: boolean;
 };
 
 export interface MatchStartedPayload {
@@ -95,10 +101,13 @@ export interface ProjectilesCollidePayload {
 
 export interface MatchEndedPayload {
     roomId: string;
+    championshipStatus: string;
+    isChampionship: boolean;
+    championshipId: string;
     ft: number;
     tanksScore: TankScoreInfo[];
-    championshipStatus: string;
-    winnerId: string;
+    matchWinnerId: string;
+    champinshipWinnerId: string;
 }
 
 export interface TankScoreInfo {
@@ -106,4 +115,6 @@ export interface TankScoreInfo {
     user: string;
     color: string;
     score: number;
+    isMatchWinner: boolean;
+    isChampionshipWinner: boolean;
 }

@@ -28,6 +28,7 @@ export const GameEvent = {
     OptionSelect: 'option_select',
     AmmoBarComplete: 'ammo_bar_complete',
     ProjectileHitProjectile: 'projectile_hit_projectile',
+    PlayerJoined: 'player_joined',
     MatchEnded: 'match_ended',
 };
 
