@@ -1,19 +1,6 @@
 import { Scene } from 'phaser';
 import { GameEvent } from '../config/events';
-
-interface TankScoreInfo {
-    label: string;
-    user: string;
-    color: string;
-    score: number;
-    isWinner: boolean;
-}
-
-interface ChampionshipMatchInfo {
-    roomId: string;
-    ft: number;
-    tanks: TankScoreInfo[];
-}
+import { MatchEndedPayload } from '../../net/contracts';
 
 export class Overlay extends Scene {
     private retryBtn: Phaser.GameObjects.Container;
@@ -29,6 +16,9 @@ export class Overlay extends Scene {
     private screenHeight!: number;
     private LABEL_OFFSET: number = 30;
     private CONTENT_OFFSET: number = 12;
+    private matchInfo: MatchEndedPayload;
+
+    /*
     private matchInfo: ChampionshipMatchInfo = {
         roomId: 'local-dev-room',
         ft: 10,
@@ -63,6 +53,7 @@ export class Overlay extends Scene {
             },
         ],
     };
+    */
 
     constructor() {
         super('Overlay');
@@ -81,6 +72,20 @@ export class Overlay extends Scene {
             frameWidth: 32,
             frameHeight: 32,
         });
+    }
+
+    init(data: MatchEndedPayload) {
+        this.matchInfo = data;
+        console.log(data);
+        // data === payload de scene.launch()
+        // this.matchInfo = {
+        //     roomId: data.roomId,
+        //     ft: data.ft,
+        //     tanksScore: data.tanksScore.map(t => ({
+        //         ...t,
+        //         isWinner: t.label === data.winnerId,
+        //     })),
+        // };
     }
 
     create() {
@@ -187,16 +192,18 @@ export class Overlay extends Scene {
             )
             .setOrigin(0.5);
 
-        for (let i = 0; i < this.matchInfo.tanks.length; i++) {
+        for (let i = 0; i < this.matchInfo.tanksScore.length; i++) {
             labels.push(
                 this.createTankScore(
-                    this.matchInfo.tanks[i].label,
-                    this.matchInfo.tanks[i].user,
-                    this.matchInfo.tanks[i].color,
+                    this.matchInfo.tanksScore[i].label,
+                    this.matchInfo.tanksScore[i].user,
+                    this.matchInfo.tanksScore[i].color,
                     this.CONTENT_OFFSET,
                     this.CONTENT_OFFSET + this.LABEL_OFFSET * i,
-                    this.matchInfo.tanks[i].score,
-                    this.matchInfo.tanks[i].isWinner,
+                    this.matchInfo.tanksScore[i].score,
+                    // this.matchInfo.tanksScore[i].isWinner,
+                    false,
+                    false,
                 ),
             );
         }
@@ -214,7 +221,8 @@ export class Overlay extends Scene {
         x: number,
         y: number,
         score: number,
-        isWinner: boolean,
+        isMatchWinner: boolean,
+        isChampionshipWinner: boolean,
     ) {
         const tokens = [];
         const tankLabel = this.createTankLabel(tankText, color);
@@ -253,7 +261,7 @@ export class Overlay extends Scene {
             tankLabel.height - userLabel.height,
         );
         const labelContainer = this.add.container(0, 0, [tankLabel, userLabel]);
-        if (isWinner)
+        if (isChampionshipWinner)
             labelContainer.add(
                 this.add
                     .sprite(
