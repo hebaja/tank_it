@@ -3,7 +3,7 @@ namespace TankIt.Api.Services;
 using System.Collections.Concurrent;
 using TankIt.Api.Hubs.Dtos;
 
-public sealed class RoomService(MapService map, DeathWallService deathWall, ILogger<RoomService> logger)
+public sealed class RoomService(MapService map, DeathWallService deathWall, ChampionshipService championships, ILogger<RoomService> logger)
 {
     private readonly MapService _map = map;
     private readonly ILogger<RoomService> _logger = logger;
@@ -12,6 +12,7 @@ public sealed class RoomService(MapService map, DeathWallService deathWall, ILog
     private readonly ConcurrentDictionary<string, long> _roomCreatedAt = new();
     private readonly ConcurrentDictionary<string, PlayerInfo> _players = new();
     private readonly DeathWallService _deathWall = deathWall;
+    private readonly ChampionshipService _championships = championships;
 
     public BarrelPositionsDto[] GetOrCreateBarrels(string roomId)
     {
@@ -50,6 +51,13 @@ public sealed class RoomService(MapService map, DeathWallService deathWall, ILog
 
         foreach (var connId in connections)
             _players.TryRemove(connId, out _);
+
+        _championships.TryGetByRoomId(roomId, out var championship);
+
+        championship?.Participants.Clear(); //TODO maybe not needed for db
+        championship?.Status = Models.ChampionshipStatus.Completed;
+        championship?.Matches.Clear();//TODO maybe not needed for db
+
 
         _logger.LogInformation("Room {RoomId} evicted", roomId);
     }
