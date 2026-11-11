@@ -164,6 +164,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(p => p.TankColor).HasMaxLength(10);
             e.Property(p => p.ShotsFired).HasDefaultValue(0);
             e.Property(p => p.Hits).HasDefaultValue(0);
+            e.Property(p => p.IsMatchWinner).HasDefaultValue(false);
+            e.Property(p => p.IsChampionshipWinner).HasDefaultValue(false);
             e.Property(p => p.Kills).HasDefaultValue(0);
             e.ToTable(t => t.HasCheckConstraint(
                 "match_participants_is_ai_user_id_check",

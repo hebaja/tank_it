@@ -8,6 +8,8 @@ public class MatchParticipant
     public Guid? UserId { get; set; } // null = AI opponent
     public User? User { get; set; }
     public bool IsAi { get; set; }
+    public bool IsMatchWinner { get; set; }
+    public bool IsChampionshipWinner { get; set; }
     public required string TankColor { get; set; }
     public short? Placement { get; set; } // 1 = winner; null until match ends
     public short? Points { get; set; } // match.PlayerCount - Placement; null until match ends
