@@ -6,5 +6,6 @@ public sealed class MatchPlacementDto
     public short Points { get; init; } = 0;
     public short Placement { get; init; } = 0;
     public long Timestamp { get; init; } = 0;
-    public bool IsWinner { get; init; }
+    public bool IsMatchWinner { get; init; }
+    public bool IsChampionshipWinner { get; init; }
 }

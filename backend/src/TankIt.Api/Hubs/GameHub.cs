@@ -223,8 +223,6 @@ public class GameHub : Hub<IGameClient>
         _logger.LogInformation("Match ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
 
 
-        
-
         Guid? championshipId = ResolveChampionshipId(request.ChampionshipId, mustExist: true);
         if (championshipId is Guid id)
         {
@@ -236,18 +234,20 @@ public class GameHub : Hub<IGameClient>
 
             match.Status = MatchStatus.Completed;
             match.EndedAt = DateTimeOffset.UtcNow;
-            //TODO set placement for match and championship
-            //
-            foreach (var p in match.Participants)
+
+            // TankDestroy already set Placement/Points per participant during match
+            // Just resolve winner from placements
+            var matchWinnerPlacement = request.Placements.FirstOrDefault(pl => pl.IsMatchWinner);
+            if (matchWinnerPlacement != null)
             {
-               var placement = request.Placements.FirstOrDefault(pl => pl.IsWinner);
-               if (placement != null)
-               {
-                   var winner = match.Participants.FirstOrDefault(p => p.TankColor == placement.Color);
-                   winner?.Placement = placement.Placement;
-                   winner?.Points = placement.Points;
-                   match.WinnerId = winner?.Id;
-               }
+                var matchWinner = match.Participants
+                    .FirstOrDefault(p => p.TankColor == matchWinnerPlacement.Color);
+                match.WinnerId = matchWinner?.Id;
+
+                matchWinner?.Placement = matchWinnerPlacement.Placement;
+                matchWinner?.Points = matchWinnerPlacement.Points;
+                matchWinner?.IsMatchWinner = matchWinnerPlacement.IsMatchWinner;
+                matchWinner?.IsChampionshipWinner = matchWinnerPlacement.IsChampionshipWinner;
             }
 
             //
@@ -256,30 +256,45 @@ public class GameHub : Hub<IGameClient>
 
             foreach (var mp in match.Participants)
             {
-                var champParticipant = championship.Participants
+                var champParticipant = championship?.Participants
                     .FirstOrDefault(cp => cp.TankColor == mp.TankColor);
                 if (champParticipant is not null)
                 {
                     champParticipant.Points = (short)((champParticipant.Points ?? 0) + (mp.Points ?? 0));
+                    //TODO Need to calc position/placements
                 }
             }
 
-            var winners = championship.Participants
+            var winners = championship?.Participants
                 .Where(cp => (cp.Points ?? 0) >= championship.Ft)
                 .ToArray();
 
-            if (winners.Length > 0)
+            if (winners?.Length > 0)
             {
-                var champion = winners
-                    .OrderBy(w => w.Points ?? short.MaxValue)
-                    .First();
+                var pointsGroup = winners.GroupBy(w => w.Points ?? 0);
+                var tie = pointsGroup.FirstOrDefault(g => g.Count() > 1);
 
-                championship.WinnerId = champion.Id;
-                championship.Status = ChampionshipStatus.Completed;
-                championship.CompletedAt = DateTimeOffset.UtcNow;
-                _logger.LogInformation(
-                    "Championship {ChampionshipId} won by {Color} with {Points} points (tie-break: placement {Placement})",
-                    championship.Id, champion.TankColor, champion.Points, champion.Placement);
+                if (tie is not null)
+                {
+                    _logger.LogWarning(
+                        "Tie detected among winners at {Points} points ({Colors}). Championship continues.",
+                        tie.Key, string.Join(", ", tie.Select(w => w.TankColor)));
+
+                    //TODO Deal tie condition here
+                }
+                else
+                {
+                    var champion = winners
+                        .OrderBy(w => w.Points ?? short.MaxValue)
+                        .First();
+
+                    championship?.WinnerId = champion.Id;
+                    championship?.Status = ChampionshipStatus.Completed;
+                    championship?.CompletedAt = DateTimeOffset.UtcNow;
+                    _logger.LogInformation(
+                        "Championship {ChampionshipId} won by {Color} with {Points} points (tie-break: placement {Placement})",
+                        championship?.Id, champion.TankColor, champion.Points, champion.Placement);
+                }
             }
 
             string[] displayNames = [
@@ -299,16 +314,39 @@ public class GameHub : Hub<IGameClient>
                     Label = p.IsAi ? "AI" : p.User?.DisplayName ?? p.TankColor,
                     User = displayNames[i++],
                     Color = p.TankColor,
-                    Score = p.Points
+                    Score = p.Points,
+                    IsMatchWinner = p.IsMatchWinner,
+                    IsChampionshipWinner = p.IsChampionshipWinner
                 }).ToArray();
+
+            foreach (var t in tanksScore)
+            {
+                _logger.LogInformation("--> {Color} + {Points}", t.Color, t.Score);
+            }
+
+    /*        
+    roomId: string;
+    championshipStatus: string;
+   -> isChampionship: boolean;
+   -> championshipId: string;
+    ft: number;
+    tanksScore: TankScoreInfo[];
+   -> matchWinnerId: string;
+   -> champinshipWinnerId: string;
+    */
+
+    // TODO ----> Also need to determine match and champioship Winner
 
             var cmi = new ChampionshipMatchInfoDto
             {
                 RoomId = request.RoomId,
                 Ft = 10, // TODO Need to work on this
-                TanksScore = tanksScore,
+                IsChampioship = true,
+                ChampionshipId = championship.Id,
                 ChampionshipStatus = championship.Status,
-                WinnerId = championship.WinnerId
+                MatchWinnerId = match.WinnerId,
+                ChampionshipWinnerId = championship.WinnerId,
+                TanksScore = tanksScore
             };
             
             await Clients.Group(request.RoomId).MatchEnded(cmi);
@@ -360,13 +398,19 @@ public class GameHub : Hub<IGameClient>
                 throw new HubException($"Could not retrieve last match for championship in Room {request.RoomId}");
 
 
-            var match = championship?.Matches.ElementAt(0);
+            _championships.TryGetLastMatch(championship.Id, out var match);
 
             var participant = match?.Participants.FirstOrDefault(p => p.TankColor == request.Color);
             participant?.Placement = request.MatchPlacement.Placement;
             participant?.Points = request.MatchPlacement.Points;
+            participant?.IsMatchWinner = request.MatchPlacement.IsMatchWinner;
+            participant?.IsChampionshipWinner = request.MatchPlacement.IsChampionshipWinner;
 
             //TODO set placement for match and championship
+            // foreach (var p in match.Participants)
+            // {
+            //     _logger.LogInformation("--> {Color} + {Points}", p.TankColor, p.Points);
+            // }
 
             _logger.LogInformation("Championship {Id} - Match {Id} - tank destroyed -> color={Color}, placement={Placement}, points={Points}",
                     championship?.Id, match?.Id, request.Color, request.MatchPlacement.Placement, request.MatchPlacement.Points);
