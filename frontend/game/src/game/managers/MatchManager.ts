@@ -1,6 +1,5 @@
 import { Scene } from 'phaser';
 import { Tank } from '../objects/Tank';
-import { GAME_CONFIG } from '../config/game';
 import { GameEvent } from '../config/events';
 import { sessionConfig } from '../../net/sessionConfig';
 import { MatchPlacement } from '../../net/contracts';
@@ -12,14 +11,14 @@ export interface MatchResult {
 export class MatchManager {
     private scene: Scene;
     private placements: MatchPlacement[] = [];
-    private place: number = 3;
+    private place: number = 0;
     private points: number = 0;
     private ended: boolean = false;
 
     constructor(scene: Scene) {
         this.scene = scene;
 
-        this.scene.events.once(GameEvent.MatchEnd, this.handleMatchEnd, this);
+        // this.scene.events.once(GameEvent.MatchEnd, this.handleMatchEnd, this);
     }
 
     reset() {
@@ -30,7 +29,7 @@ export class MatchManager {
     }
 
     destroy() {
-        this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this);
+        // this.scene.events.off(GameEvent.MatchEnd, this.handleMatchEnd, this);
     }
 
     generatePlacement(
@@ -43,7 +42,7 @@ export class MatchManager {
                 points: this.points++,
                 placement: this.place--,
                 timestamp: Date.now(),
-                isWinner: isWinner,
+                isMatchWinner: isWinner,
             };
         }
         return undefined;
@@ -66,12 +65,14 @@ export class MatchManager {
                     this.placements[i - 1].points = this.placements[i].points;
             }
         }
+        return placement;
     }
 
-    checkEnd(tankCount: number, winner: Tank | undefined) {
+    checkEnd(tankGroup: Phaser.Physics.Arcade.Group) {
         if (this.ended) return;
-        if (tankCount === 1 && winner) {
-            if (this.placements.length < 4) {
+        if (tankGroup.getLength() === 1) {
+            const winner = tankGroup.getFirstAlive() as Tank | undefined;
+            if (this.placements.length < 4 && winner) {
                 this.recordPlacement(winner, true);
                 this.ended = true;
                 this.scene.events.emit(GameEvent.MatchEnd, {
@@ -80,7 +81,7 @@ export class MatchManager {
                     placements: this.placements,
                 });
             }
-        } else if (tankCount === 0) {
+        } else if (tankGroup.getLength() === 0) {
             this.ended = true;
             this.scene.events.emit(GameEvent.MatchEnd, {
                 roomId: sessionConfig.roomId,
@@ -90,14 +91,18 @@ export class MatchManager {
         }
     }
 
-    private handleMatchEnd(data: MatchResult): void {
-        this.scene.time.delayedCall(
-            GAME_CONFIG.timing.matchEndOverlayDelay,
-            () => {
-                this.scene.scene.pause();
-                this.scene.scene.launch('Overlay');
-                console.log(data);
-            },
-        );
+    // private handleMatchEnd(data: MatchResult): void {
+    //     this.scene.time.delayedCall(
+    //         GAME_CONFIG.timing.matchEndOverlayDelay,
+    //         () => {
+    //             this.scene.scene.pause();
+    //             this.scene.scene.launch('Overlay');
+    //             console.log(data);
+    //         },
+    //     );
+    // }
+
+    setPlace(place: number) {
+        this.place = place;
     }
 }
