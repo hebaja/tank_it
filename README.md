@@ -36,24 +36,63 @@ Access the game at `http://localhost:5173`.
 make prod
 ```
 
+### Heroku
+
+Live deployment: <https://tank-it-f8dfda805723.herokuapp.com/>. The production
+image serves the landing page at `/`, the game at `/play/`, and the API/SignalR
+from the same origin.
+
+```bash
+make heroku-login   # once per machine/session
+make deploy-heroku  # make ci -> build -> push -> release
+make heroku-health
+```
+
+See [`docs/deployment-heroku.md`](docs/deployment-heroku.md) for first-time
+setup, config vars, rollback, and troubleshooting.
+
 ### Makefile commands
 
-| Command          | Description                                                               |
-| ---------------- | ------------------------------------------------------------------------- |
-| `make up`        | Start default services in background                                      |
-| `make down`      | Stop default services                                                     |
-| `make build`     | Build Docker images and both frontends for production                     |
-| `make rebuild`   | Rebuild and restart in background                                         |
-| `make logs`      | Follow logs                                                               |
-| `make clean`     | Stop services and remove volumes                                          |
-| `make fclean`    | Full cleanup: containers, volumes, images, orphans                        |
-| `make ps`        | Show running project containers                                           |
-| `make install`   | Install root and frontend Yarn dependencies; restore backend dependencies |
-| `make dev`       | Start dev profile (hot reload)                                            |
-| `make prod`      | Start prod profile                                                        |
-| `make lint`      | Run frontend lint/format and backend format checks                        |
-| `make typecheck` | Typecheck frontend and build backend                                      |
-| `make test`      | Run frontend and backend test runners                                     |
+Local stack:
+
+| Command               | Description                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
+| `make up`             | Start default services in background                                      |
+| `make down`           | Stop default services                                                     |
+| `make build`          | Build Docker images and both frontends for production                     |
+| `make build-frontend` | Build both frontend bundles without Docker                                |
+| `make rebuild`        | Rebuild and restart in background                                         |
+| `make logs`           | Follow logs                                                               |
+| `make clean`          | Stop services and remove volumes                                          |
+| `make fclean`         | Full cleanup: containers, volumes, images, orphans                        |
+| `make ps`             | Show running project containers                                           |
+| `make install`        | Install root and frontend Yarn dependencies; restore backend dependencies |
+| `make dev`            | Start dev profile (hot reload)                                            |
+| `make prod`           | Start prod profile                                                        |
+
+Quality:
+
+| Command          | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `make lint`      | Run frontend lint/format and backend format checks                |
+| `make typecheck` | Typecheck frontend and build backend                              |
+| `make test`      | Run frontend and backend test runners                             |
+| `make ci`        | Run lint, typecheck, frontend build, and tests (same as CI gates) |
+
+Heroku:
+
+| Command                   | Description                                                   |
+| ------------------------- | ------------------------------------------------------------- |
+| `make heroku-login`       | Log Docker in to the Heroku container registry                |
+| `make heroku-check`       | Verify Heroku CLI, app, `DATABASE_URL`, and `JWT_SIGNING_KEY` |
+| `make deploy-heroku`      | Run `make ci`, then build, push, and release the image        |
+| `make deploy-heroku-fast` | Skip CI and deploy the current tree                           |
+| `make heroku-health`      | Wait for the dyno and check `/health` + `/api/health`         |
+| `make heroku-logs`        | Tail Heroku logs                                              |
+| `make heroku-rollback`    | Roll back to the previous Heroku release                      |
+
+`HEROKU_APP` defaults to `tank-it`; override it with
+`make deploy-heroku HEROKU_APP=my-app`.
 
 ### Code quality checks
 
@@ -67,12 +106,37 @@ This installs the root, game, and app Yarn dependencies, then restores backend N
 
 The root `yarn lint` command checks both frontends. Use `yarn lint:game` or `yarn lint:app` to
 check one package. `yarn format` applies Prettier; `yarn format:check` verifies formatting.
+
+Run every quality gate with one command:
+
+```bash
+make ci
+```
+
+`make ci` runs `lint`, `typecheck`, `build-frontend`, and `test`; GitHub Actions
+runs the same target. It needs Node.js, Yarn Classic, Make, and the .NET SDK
+pinned in `backend/global.json`, but not Docker.
+
 Installing root dependencies enables the Husky hooks: pre-commit formats and lints staged files,
-and pre-push runs `make lint typecheck build test`. The pre-push checks need Node.js, Yarn Classic, Make, Docker Compose, and the
-.NET SDK pinned in `backend/global.json`.
+and pre-push runs `make lint typecheck build test`. That pre-push command also builds the Docker
+Compose images, so it additionally needs Docker Compose.
 
 Run the `*-frontend` or `*-backend` targets to run one side of a check locally, such as
 `make lint-frontend typecheck-frontend test-frontend`.
+
+### Tests
+
+`make test-frontend` runs the game and app unit tests. Playwright browser tests are separate and
+local-only; they exercise auth and lobby flows against the running stack:
+
+```bash
+make test-e2e
+```
+
+The `test-e2e` target starts the dev stack, installs the Playwright suite's dependencies from
+`e2e/`, and runs the browser tests. The backend unit and hub tests run with `make test-backend`;
+they use in-memory collaborators and do not need Postgres. `make test` runs frontend unit and
+backend suites, without the local-only Playwright suite.
 
 ### Game core — local (without Docker)
 

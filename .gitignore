@@ -13,6 +13,8 @@ node_modules
 dist
 dist-ssr
 *.local
+frontend/app/playwright-report/
+frontend/app/test-results/
 
 # Playwright (e2e/)
 e2e/test-results

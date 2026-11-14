@@ -2,9 +2,11 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using TankIt.Api.Auth;
 using TankIt.Api.Data;
 using TankIt.Api.Hubs;
@@ -13,11 +15,17 @@ using TankIt.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Heroku (and most PaaS) inject the port to bind at runtime. Local Docker uses
+// ASPNETCORE_URLS from the Dockerfile, so only override when PORT is present.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://+:{port}");
+
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+    options.UseNpgsql(ResolveConnectionString(builder.Configuration))
            .UseSnakeCaseNamingConvention()); // keeps EF Core migrations aligned with
                                              // db/init/schema.sql's snake_case columns
 
@@ -113,6 +121,34 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+// Heroku terminates TLS at its router; honor the forwarded scheme so absolute
+// URLs (OAuth callbacks, etc.) are generated as https.
+var forwardedHeaders = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+// The app is only reachable through Heroku's router, which is not a known proxy.
+forwardedHeaders.KnownIPNetworks.Clear();
+forwardedHeaders.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeaders);
+
+// `/play` -> `/play/`; the game's relative asset paths need the trailing slash.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.Value == "/play")
+    {
+        context.Response.Redirect("/play/");
+        return;
+    }
+
+    await next();
+});
+
+// The production image copies the built landing page to wwwroot and the game
+// to wwwroot/play. Local runs simply have no wwwroot, which is a no-op.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseRouting();
 app.UseCors("Frontend");
 app.UseRateLimiter();
@@ -135,6 +171,38 @@ if (app.Configuration.GetValue("ApplyMigrationsOnBoot", true))
 }
 
 app.Run();
+
+// Heroku Postgres exposes DATABASE_URL as a postgres:// URI, which Npgsql
+// cannot parse directly. Keep the key/value ConnectionStrings:Default path for
+// local development and docker-compose.
+static string ResolveConnectionString(IConfiguration configuration)
+{
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        var uri = new Uri(databaseUrl);
+        var userInfo = uri.UserInfo.Split(':', 2);
+
+        return new NpgsqlConnectionStringBuilder
+        {
+            Host = uri.Host,
+            Port = uri.Port > 0 ? uri.Port : 5432,
+            Database = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/')),
+            Username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : string.Empty,
+            Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
+            SslMode = SslMode.Require,
+            // Heroku Postgres Essential has a small connection cap.
+            MaxPoolSize = 10,
+        }.ConnectionString;
+    }
+
+    var configured = configuration.GetConnectionString("Default");
+    if (string.IsNullOrWhiteSpace(configured))
+        throw new InvalidOperationException(
+            "Set DATABASE_URL (Heroku) or ConnectionStrings:Default (local).");
+
+    return configured;
+}
 
 // Exposes the generated entry point to WebApplicationFactory<Program> in the test project.
 public partial class Program;

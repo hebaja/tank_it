@@ -16,4 +16,5 @@ public interface IGameClient
     Task ProjectileFired(ProjectileFireRequest payload);
     Task ProjectileDestroyed(ProjectileFireRequest payload);
     Task ProjectilesCollided(ProjectilesCollideRequest payload);
+    Task ProjectileFireFailed(ProjectileFireFailRequest payload);
 }

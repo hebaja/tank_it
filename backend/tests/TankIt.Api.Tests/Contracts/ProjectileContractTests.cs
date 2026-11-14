@@ -65,6 +65,24 @@ public sealed class ProjectileContractTests
         Assert.Equal(113, payload.Timestamp);
     }
 
+    [Fact]
+    public void ProjectileFireFail_UsesCamelCaseWireNames()
+    {
+        var payload = new ProjectileFireFailRequest
+        {
+            RoomId = "room-1",
+            Color = "blue",
+        };
+
+        var json = JsonSerializer.Serialize(payload, WebJson);
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        Assert.Equal("room-1", root.GetProperty("roomId").GetString());
+        Assert.Equal("blue", root.GetProperty("color").GetString());
+        Assert.Equal(2, root.EnumerateObject().Count());
+    }
+
     private static ProjectileFireRequest NewProjectile() =>
         new()
         {
