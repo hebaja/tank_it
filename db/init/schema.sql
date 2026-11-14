@@ -36,6 +36,18 @@ CREATE TABLE oauth_accounts (
 );
 CREATE INDEX idx_oauth_accounts_user_id ON oauth_accounts(user_id);
 
+-- Short-lived, single-use codes that bridge an OAuth callback and the SPA's
+-- own JWT exchange. Only the SHA-256 hash is stored; never the raw code.
+CREATE TABLE oauth_login_tickets (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash   VARCHAR(64) NOT NULL UNIQUE,
+    purpose     VARCHAR(16) NOT NULL DEFAULT 'login' CHECK (purpose IN ('login', 'link')),
+    expires_at  TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX idx_oauth_login_tickets_user_id ON oauth_login_tickets(user_id);
+CREATE INDEX idx_oauth_login_tickets_expires_at ON oauth_login_tickets(expires_at);
+
 -- JWT refresh tokens (session management for the SPA + SignalR clients)
 CREATE TABLE refresh_tokens (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

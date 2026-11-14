@@ -355,6 +355,55 @@ namespace TankIt.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("TankIt.Api.Models.OAuthLoginTicket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("login")
+                        .HasColumnName("purpose");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_oauth_login_tickets");
+
+                    b.HasIndex("CodeHash")
+                        .IsUnique()
+                        .HasDatabaseName("oauth_login_tickets_code_hash_key");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("idx_oauth_login_tickets_expires_at");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("idx_oauth_login_tickets_user_id");
+
+                    b.ToTable("oauth_login_tickets", null, t =>
+                        {
+                            t.HasCheckConstraint("oauth_login_tickets_purpose_check", "purpose IN ('login', 'link')");
+                        });
+                });
+
             modelBuilder.Entity("TankIt.Api.Models.PlayerStats", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -599,6 +648,18 @@ namespace TankIt.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_oauth_accounts_users_user_id");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TankIt.Api.Models.OAuthLoginTicket", b =>
+                {
+                    b.HasOne("TankIt.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_oauth_login_tickets_users_user_id");
 
                     b.Navigation("User");
                 });

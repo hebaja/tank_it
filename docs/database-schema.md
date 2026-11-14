@@ -19,6 +19,7 @@ if those get scoped in, rather than building for hypothetical scope now.
 ```mermaid
 erDiagram
     users ||--o{ oauth_accounts : "has"
+    users ||--o{ oauth_login_tickets : "exchanges"
     users ||--o{ refresh_tokens : "has"
     users ||--o{ match_participants : "plays as"
     users ||--o| player_stats : "aggregates to"
@@ -42,6 +43,13 @@ erDiagram
         uuid user_id FK
         varchar provider "google | github | fortytwo"
         varchar provider_user_id
+    }
+    oauth_login_tickets {
+        uuid id PK
+        uuid user_id FK
+        varchar code_hash UK "SHA-256 of the single-use code, never the code"
+        varchar purpose "login | link"
+        timestamptz expires_at
     }
     refresh_tokens {
         uuid id PK
@@ -124,6 +132,13 @@ outcome per match for auditability.
 
 **Why `password_hash` is nullable.** A user who signs up via OAuth only (Google/GitHub/42)
 never sets a password. Login logic must check `oauth_accounts` when `password_hash IS NULL`.
+
+**Why `oauth_login_tickets` exists.** A provider callback must never put the app JWT in a
+URL. Instead the backend stores a 256-bit random code as a SHA-256 hash with a two-minute
+expiry, redirects to the SPA with the raw code, and the SPA immediately exchanges it at
+`POST /api/auth/exchange`. Consumption is a single conditional `DELETE`, so concurrent or
+replayed requests cannot reuse a code. The `purpose` column separates login codes from the
+authenticated account-linking flow.
 
 ## Championship mode (FT-N)
 

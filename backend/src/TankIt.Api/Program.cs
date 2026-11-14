@@ -1,7 +1,11 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using TankIt.Api.Auth;
 using TankIt.Api.Data;
 using TankIt.Api.Hubs;
 using TankIt.Api.Models;
@@ -27,7 +31,15 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 var jwtKeyBytes = TokenService.ResolveKey(builder.Configuration);
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<TokenService>();
-builder.Services
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<OAuthTicketService>();
+builder.Services.Configure<OAuthTicketOptions>(
+    builder.Configuration.GetSection("Authentication:Tickets"));
+
+// JWT stays the application's default scheme. External providers only sign
+// into the dedicated short-lived cookie scheme, which the unified callback
+// reads once before exchanging it for the app's own JWT.
+var authBuilder = builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters
     {
@@ -38,25 +50,72 @@ builder.Services
         ValidateLifetime = true,
         ClockSkew = TimeSpan.FromMinutes(1),
     });
+
+authBuilder.AddCookie(AuthSchemes.External, o =>
+{
+    o.Cookie.Name = "TankIt.External";
+    o.Cookie.HttpOnly = true;
+    o.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
+    o.Cookie.SameSite = SameSiteMode.Lax;
+    o.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+    o.SlidingExpiration = false;
+});
+
+// Google/GitHub/42 handlers are registered only when their client id and
+// secret are present, so the API still builds and runs for password auth.
+authBuilder.AddExternalProviders(builder.Configuration);
+
 builder.Services.AddAuthorization();
 
-// Frontend dev server origin(s); tighten/parameterize per environment once
-// frontend/app's framework (and its dev port) is chosen.
-var frontendOrigins = builder.Configuration.GetSection("FrontendOrigins").Get<string[]>()
-    ?? (builder.Configuration["FrontendOrigin"] ?? "http://localhost:5173,http://localhost:3000").Split(',');
+// Trusted SPA origin(s) for CORS. The landing app is React/Vite on :3000; the
+// game dev server is on :5173. Override per environment.
+var frontendOrigins = (builder.Configuration.GetSection("FrontendOrigins").Get<string[]>()
+    ?? (builder.Configuration["FrontendOrigin"] ?? "http://localhost:5173,http://localhost:3000").Split(','))
+    .Select(origin => origin.Trim())
+    .Where(origin => origin.Length > 0)
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToList();
+
+// Keep CORS aligned with the trusted SPA callback origin, without accepting
+// arbitrary origins from clients.
+if (Uri.TryCreate(builder.Configuration["Frontend:Url"], UriKind.Absolute, out var frontendUri))
+{
+    var origin = frontendUri.GetLeftPart(UriPartial.Authority);
+    if (!frontendOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+        frontendOrigins.Add(origin);
+}
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
-        policy.WithOrigins(frontendOrigins)
+        policy.WithOrigins(frontendOrigins.ToArray())
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials());
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+});
+
 var app = builder.Build();
 
+app.UseRouting();
 app.UseCors("Frontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
