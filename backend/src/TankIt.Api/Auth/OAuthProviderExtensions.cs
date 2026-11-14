@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TankIt.Api.Auth.Providers;
 using TankIt.Api.Models;
 
 namespace TankIt.Api.Auth;
@@ -17,8 +18,13 @@ public static class OAuthProviderExtensions
     public static AuthenticationBuilder AddExternalProviders(
         this AuthenticationBuilder builder, IConfiguration config)
     {
-        // Provider handlers are registered by the provider-specific commits.
-        _ = config;
+        // The SPA origin is server-side configuration only: never accept a
+        // callback URL from a query string (open-redirect protection).
+        var frontendUrl = GetFrontendUrl(config);
+
+        if (IsConfigured(config, OAuthProvider.Google))
+            builder.AddGoogle(options => GoogleProvider.Configure(options, config, frontendUrl));
+
         return builder;
     }
 
