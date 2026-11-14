@@ -1,128 +1,94 @@
 import { describe, expect, it } from 'vitest';
-import { readOAuthCallback } from './oauthCallback';
-import { fakeJwt } from '../test/helpers';
+import {
+    finishOAuthCallback,
+    friendlyOAuthError,
+    isOAuthCallbackPath,
+    readOAuthCallbackParams,
+} from './oauthCallback';
 
-function goTo(query = '', hash = ''): void {
-    window.history.replaceState(null, '', `/${query}${hash}`);
+function goTo(path: string, query = ''): void {
+    window.history.replaceState(null, '', `${path}${query}`);
 }
 
-const expiresAt = '2030-01-01T00:15:00.000Z';
+describe('OAuth callback URL handling', () => {
+    it('only treats /auth/callback as the callback route', () => {
+        goTo('/');
+        expect(isOAuthCallbackPath()).toBe(false);
 
-describe('readOAuthCallback — success', () => {
-    it('reads tokens from the query string and cleans the URL', () => {
-        goTo(
-            `?access_token=at&refresh_token=rt&expires_at=${encodeURIComponent(
-                expiresAt,
-            )}&user_id=guid-1&username=pilot42`,
-        );
+        goTo('/auth/callback');
+        expect(isOAuthCallbackPath()).toBe(true);
+    });
 
-        expect(readOAuthCallback()).toEqual({
-            session: {
-                accessToken: 'at',
-                refreshToken: 'rt',
-                accessTokenExpiresAt: expiresAt,
-                userId: 'guid-1',
-                username: 'pilot42',
-            },
+    it('reads the code and removes it from the URL immediately', () => {
+        goTo('/auth/callback', '?code=single-use-code');
+
+        expect(readOAuthCallbackParams()).toEqual({
+            code: 'single-use-code',
+            error: undefined,
+            linked: false,
         });
-        // Credentials must not linger in the address bar or history.
+        expect(window.location.pathname).toBe('/auth/callback');
         expect(window.location.search).toBe('');
-        expect(window.location.hash).toBe('');
-        expect(window.location.pathname).toBe('/');
     });
 
-    it('reads tokens from the fragment (never sent to server logs)', () => {
-        goTo(
-            '',
-            '#access_token=at&refresh_token=rt&user_id=guid-2&username=pilot',
-        );
+    it('reads provider errors and strips them too', () => {
+        goTo('/auth/callback', '?error=access_denied');
 
-        const result = readOAuthCallback();
-
-        expect(result?.session?.accessToken).toBe('at');
-        expect(result?.session?.refreshToken).toBe('rt');
-        expect(result?.session?.username).toBe('pilot');
-        expect(window.location.hash).toBe('');
-    });
-
-    it('prefers query values over fragment values', () => {
-        goTo(
-            '?username=from-query',
-            '#username=from-fragment&access_token=at&refresh_token=rt',
-        );
-
-        expect(readOAuthCallback()?.session?.username).toBe('from-query');
-    });
-
-    it('falls back to JWT claims for the display fields', () => {
-        const token = fakeJwt({
-            sub: 'guid-from-claim',
-            unique_name: 'claim-pilot',
-            exp: Math.floor(Date.parse(expiresAt) / 1000),
+        expect(readOAuthCallbackParams()).toEqual({
+            code: undefined,
+            error: 'access_denied',
+            linked: false,
         });
-        goTo(`?access_token=${token}&refresh_token=rt`);
-
-        const session = readOAuthCallback()?.session;
-
-        expect(session?.userId).toBe('guid-from-claim');
-        expect(session?.username).toBe('claim-pilot');
-        expect(session?.accessTokenExpiresAt).toBe(expiresAt);
+        expect(window.location.search).toBe('');
     });
 
-    it('defaults the expiry to 15 minutes when nothing is known', () => {
-        const before = Date.now();
-        goTo('?access_token=opaque&refresh_token=rt');
+    it('reports an empty callback when neither code nor error is present', () => {
+        goTo('/auth/callback');
 
-        const session = readOAuthCallback()?.session;
-        const expiresAtMs = Date.parse(session?.accessTokenExpiresAt ?? '');
+        expect(readOAuthCallbackParams()).toEqual({
+            code: undefined,
+            error: undefined,
+            linked: false,
+        });
+    });
 
-        expect(session?.username).toBe('player');
-        expect(session?.userId).toBe('');
-        expect(expiresAtMs).toBeGreaterThanOrEqual(before + 14 * 60_000);
-        expect(expiresAtMs).toBeLessThanOrEqual(Date.now() + 16 * 60_000);
+    it('ignores query parameters outside the callback route', () => {
+        goTo('/', '?code=not-ours');
+
+        expect(readOAuthCallbackParams()).toBeNull();
+        expect(window.location.search).toBe('?code=not-ours');
+    });
+
+    it('returns to the main page after the exchange settles', () => {
+        goTo('/auth/callback', '?code=abc');
+        readOAuthCallbackParams();
+
+        finishOAuthCallback();
+
+        expect(window.location.pathname).toBe('/');
+        expect(window.location.search).toBe('');
     });
 });
 
-describe('readOAuthCallback — failures', () => {
-    it('ignores a URL without any auth result', () => {
-        goTo('?view=login');
-
-        expect(readOAuthCallback()).toBeNull();
-        // Nothing was read, so the URL stays untouched.
-        expect(window.location.search).toBe('?view=login');
-    });
-
-    it('translates access_denied into a friendly message', () => {
-        goTo('?error=access_denied');
-
-        expect(readOAuthCallback()).toEqual({
-            error: 'Sign-in was cancelled at the provider.',
-        });
-        expect(window.location.search).toBe('');
-    });
-
-    it('translates a state mismatch into a retryable message', () => {
-        goTo('?error=oauth_state_mismatch');
-
-        expect(readOAuthCallback()?.error).toBe(
+describe('friendlyOAuthError', () => {
+    it('translates cancellation and state failures', () => {
+        expect(friendlyOAuthError('access_denied')).toBe(
+            'Sign-in was cancelled at the provider.',
+        );
+        expect(friendlyOAuthError('oauth_state_mismatch')).toBe(
             'OAuth state check failed. Please try again.',
         );
     });
 
-    it('prefers error_description over the error code', () => {
-        goTo('?error=access_denied&error_description=Provider+said+no');
-
-        expect(readOAuthCallback()?.error).toBe(
-            'OAuth sign-in failed: Provider said no',
+    it('explains explicit account linking', () => {
+        expect(friendlyOAuthError('account_link_required')).toContain(
+            'already exists',
         );
     });
 
-    it('reports a response that is missing a token', () => {
-        goTo('?access_token=at-no-refresh');
-
-        expect(readOAuthCallback()?.error).toBe(
-            'OAuth response was missing tokens. Please try again.',
+    it('does not leak unknown internal codes', () => {
+        expect(friendlyOAuthError('some_internal_code')).toBe(
+            'Sign-in could not be completed. Please try again.',
         );
-        expect(window.location.search).toBe('');
     });
 });

@@ -37,25 +37,21 @@ function providerIcon(provider: OAuthProvider) {
     }
 }
 
-function labelFor(provider: OAuthProvider, label: string): string {
-    return provider === 'fortytwo' ? label : `Continue with ${label}`;
-}
-
 export function OAuthButtons() {
     const start = (provider: OAuthProvider) => {
         // Full-page redirect: the backend drives the provider flow, then sends
-        // the browser back to this origin (see auth/oauthCallback.ts).
+        // the browser to /auth/callback with a single-use code (never a JWT).
         window.location.assign(oauthStartUrl(provider));
     };
 
     return (
-        <Stack spacing={1.5} sx={{ mt: 1 }}>
+        <Stack spacing={1.5} sx={{ mt: 0 }}>
             <Typography
                 variant="body2"
                 color="text.secondary"
                 sx={{ textAlign: 'center' }}
             >
-                or continue with
+                or sign in with
             </Typography>
             {OAUTH_PROVIDERS.map(({ id, label }) => (
                 <Button
@@ -67,7 +63,7 @@ export function OAuthButtons() {
                     onClick={() => start(id)}
                     sx={{ py: 0.9 }}
                 >
-                    {labelFor(id, label)}
+                    Continue with {label}
                 </Button>
             ))}
         </Stack>
