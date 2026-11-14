@@ -25,6 +25,12 @@ public static class OAuthProviderExtensions
         if (IsConfigured(config, OAuthProvider.Google))
             builder.AddGoogle(options => GoogleProvider.Configure(options, config, frontendUrl));
 
+        if (IsConfigured(config, OAuthProvider.GitHub))
+            builder.AddOAuth(
+                AuthSchemes.GitHub,
+                "GitHub",
+                options => GitHubProvider.Configure(options, config, frontendUrl));
+
         return builder;
     }
 
