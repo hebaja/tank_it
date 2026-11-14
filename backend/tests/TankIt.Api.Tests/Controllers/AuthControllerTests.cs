@@ -1,8 +1,12 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
+using TankIt.Api.Auth;
 using TankIt.Api.Controllers;
 using TankIt.Api.Data;
 using TankIt.Api.Models;
@@ -115,7 +119,15 @@ public sealed class AuthControllerTests
                 })
                 .Build();
             var tokens = new TokenService(config, Options.Create(new JwtOptions()));
-            Controller = new AuthController(Db, new PasswordHasher<User>(), tokens);
+            Controller = new AuthController(
+                Db,
+                new PasswordHasher<User>(),
+                tokens,
+                new AuthService(Db),
+                new OAuthTicketService(Db, Options.Create(new OAuthTicketOptions())),
+                config,
+                Mock.Of<IWebHostEnvironment>(),
+                NullLogger<AuthController>.Instance);
         }
 
         public async Task<AuthController.AuthResponse> Register(string username, string email)

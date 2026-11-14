@@ -32,16 +32,15 @@ Screens: `src/screens/LoginScreen.tsx`, `src/screens/RegisterScreen.tsx`; shared
   `/api/auth/refresh` once, then falls back to the login screen if the refresh fails.
 - **Terms & Conditions** — the register form links to `docs/terms-and-conditions.md` and the
   submit button is gated on the acceptance checkbox (repo requirement for the signup flow).
-- **OAuth (buttons live, backend stubbed)** — Google / GitHub / 42 buttons navigate to
-  `GET /api/auth/oauth/{provider}?redirect_uri=<origin>/` (see `src/auth/api.ts`). The
-  backend provider flow is still a stub (separate backend issue), but the redirect is
-  triggered as specified. When it lands, the backend must redirect back to `redirect_uri`
-  with the result as URL parameters — `src/auth/oauthCallback.ts` documents and consumes
-  that contract:
-    - success: `?access_token=…&refresh_token=…[&expires_at=…&user_id=…&username=…]`
-      (the `#access_token=…` fragment variant is accepted too, so tokens can stay out of
-      server logs);
-    - failure: `?error=<code>` (e.g. `access_denied`), shown as a notice on the login screen.
+- **OAuth (wired)** — Google / GitHub / 42 buttons navigate to
+  `GET /api/auth/{google|github|42}` (see `src/auth/api.ts`). The backend owns the provider
+  callback and never puts a JWT in a URL. It redirects to `/auth/callback?code=…`; that page
+  is rendered by `OAuthCallbackScreen`, `src/auth/oauthCallback.ts` strips the code from the
+  address bar immediately, and `AuthContext` exchanges it at `POST /api/auth/exchange` for
+  the same JWT pair used by password login. Failures arrive as `?error=<code>` (e.g.
+  `access_denied`, `account_link_required`) and are shown as a notice on the login screen.
+- **Account linking** — `POST /api/auth/link/{provider}` (authenticated) returns a one-time
+  URL that starts the provider challenge for an already signed-in user.
 
 ## Lobby (wired)
 
@@ -52,8 +51,7 @@ redirects to the game core (`VITE_GAME_URL`).
 
 ## Remaining
 
-1. ~~Wire auth~~ — done (password flow + OAuth redirect buttons; OAuth endpoints pending in
-   backend).
+1. ~~Wire auth~~ — done (password flow + Google/GitHub/42 OAuth).
 2. ~~Wire the SignalR client for lobby/matchmaking and hand off to the game core~~ — done for
    the lobby; hand-off URL is `VITE_GAME_URL?roomId=…&color=…`.
 3. Build profile, rankings, and match-history views against the REST endpoints described in

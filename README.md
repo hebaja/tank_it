@@ -11,7 +11,7 @@ Original discussion draft (superseded by the GDD, kept for history): [`PROPOSAL.
 ## Stack
 
 - **Game core:** Phaser 3 + TypeScript + Vite — [`frontend/game/`](frontend/game/)
-- **SPA shell:** React / Angular / Vue (not yet decided) — [`frontend/app/`](frontend/app/)
+- **SPA shell:** React 19 + TypeScript + Vite + MUI — [`frontend/app/`](frontend/app/)
 - **Backend:** ASP.NET Core (C#) + SignalR — [`backend/`](backend/)
 - **Database:** PostgreSQL — [`db/init/schema.sql`](db/init/schema.sql)
 

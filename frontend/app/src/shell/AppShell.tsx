@@ -4,10 +4,12 @@ import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { useAuth } from '../auth/AuthContext';
+import { LinkedAccounts } from '../auth/LinkedAccounts';
 import { LobbyScreen } from './LobbyScreen';
 
 /** Authenticated app shell: brand bar with the signed-in user + the lobby. */
@@ -111,7 +113,10 @@ export function AppShell() {
             </AppBar>
 
             <Container maxWidth="sm" sx={{ py: { xs: 3, sm: 5 } }}>
-                <LobbyScreen />
+                <Stack spacing={3}>
+                    <LobbyScreen />
+                    <LinkedAccounts />
+                </Stack>
             </Container>
         </Box>
     );

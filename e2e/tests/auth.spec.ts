@@ -107,7 +107,7 @@ test.describe('authentication', () => {
     });
 
     test('shows an OAuth failure as a dismissible notice', async ({ page }) => {
-        await page.goto('/?error=access_denied');
+        await page.goto('/auth/callback?error=access_denied');
 
         const notice = page.getByText('Sign-in was cancelled at the provider.');
         await expect(notice).toBeVisible();

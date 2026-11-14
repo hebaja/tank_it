@@ -5,7 +5,9 @@ import { ThemeProvider } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { OAuthButtons } from './auth/OAuthButtons';
+import { isOAuthCallbackPath } from './auth/oauthCallback';
 import { LoginScreen } from './screens/LoginScreen';
+import { OAuthCallbackScreen } from './screens/OAuthCallbackScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { AppShell } from './shell/AppShell';
 import theme from './theme';
@@ -85,7 +87,13 @@ function Routes() {
                 : 'Tank It! — Sign in';
     }, [status]);
 
-    if (status === 'loading') return <FullPage label="Loading Tank It!…" />;
+    if (status === 'loading') {
+        return isOAuthCallbackPath() ? (
+            <OAuthCallbackScreen />
+        ) : (
+            <FullPage label="Loading Tank It!…" />
+        );
+    }
     if (status === 'authenticated') return <AppShell />;
     return <AuthScreen />;
 }

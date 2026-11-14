@@ -33,6 +33,17 @@ public class AuthApiFactory : WebApplicationFactory<Program>
     {
         builder.UseSetting("ApplyMigrationsOnBoot", "false");
         builder.UseSetting("JWT_SIGNING_KEY", SigningKey);
+        builder.UseSetting("Frontend:Url", "http://localhost:3000");
+
+        // Deterministic fake provider credentials: no real network calls are
+        // made by the initiation endpoints, but the handlers must be registered
+        // so state/PKCE behavior can be asserted.
+        builder.UseSetting("Authentication:Google:ClientId", "test-google-client");
+        builder.UseSetting("Authentication:Google:ClientSecret", "test-google-secret");
+        builder.UseSetting("Authentication:GitHub:ClientId", "test-github-client");
+        builder.UseSetting("Authentication:GitHub:ClientSecret", "test-github-secret");
+        builder.UseSetting("Authentication:42:ClientId", "test-42-client");
+        builder.UseSetting("Authentication:42:ClientSecret", "test-42-secret");
 
         builder.ConfigureServices(services =>
         {

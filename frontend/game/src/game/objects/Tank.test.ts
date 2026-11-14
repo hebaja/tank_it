@@ -57,7 +57,7 @@ const phaserMock = vi.hoisted(() => {
         x: number;
         y: number;
         angle = 0;
-        body = {};
+        body = { velocity: { x: 0, y: 0 } };
         active = true;
 
         constructor(scene: unknown, x: number, y: number) {
@@ -364,6 +364,10 @@ describe('Tank', () => {
             W: { isDown: false },
             S: { isDown: true },
             SPACE: { isDown: false },
+            LEFT: { isDown: false },
+            RIGHT: { isDown: false },
+            UP: { isDown: false },
+            DOWN: { isDown: false },
         };
         const scene = createScene(events, keys);
         (scene as unknown as { time: { now: number } }).time.now = 100;
