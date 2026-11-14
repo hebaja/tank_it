@@ -31,7 +31,7 @@ export interface LoginInput {
     password: string;
 }
 
-/** OAuth providers accepted by GET /api/auth/oauth/{provider}. */
+/** OAuth providers accepted by GET /api/auth/{provider} (42 uses /api/auth/42). */
 export type OAuthProvider = 'google' | 'github' | 'fortytwo';
 
 export const OAUTH_PROVIDERS: { id: OAuthProvider; label: string }[] = [

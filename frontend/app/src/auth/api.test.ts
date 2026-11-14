@@ -39,9 +39,7 @@ describe('API_BASE', () => {
 
         expect(fresh.API_BASE).toBe('https://api.example.test');
         expect(fresh.oauthStartUrl('github')).toBe(
-            `https://api.example.test/api/auth/oauth/github?redirect_uri=${encodeURIComponent(
-                `${window.location.origin}${window.location.pathname}`,
-            )}`,
+            'https://api.example.test/api/auth/github',
         );
     });
 });
@@ -66,6 +64,7 @@ describe('auth client requests', () => {
         });
         const init = fetchMock.mock.calls[0][1] as RequestInit | undefined;
         expect(init?.method).toBe('POST');
+        expect(init?.credentials).toBe('include');
         expect(init?.headers).toMatchObject({
             'Content-Type': 'application/json',
         });
@@ -203,14 +202,9 @@ describe('auth client error mapping', () => {
 });
 
 describe('oauthStartUrl', () => {
-    it('encodes the current page as the redirect target', () => {
-        const url = new URL(oauthStartUrl('fortytwo'));
-
-        expect(`${url.origin}${url.pathname}`).toBe(
-            `${API_BASE}/api/auth/oauth/fortytwo`,
-        );
-        expect(url.searchParams.get('redirect_uri')).toBe(
-            `${window.location.origin}${window.location.pathname}`,
-        );
+    it('points at the backend provider endpoint without a client redirect', () => {
+        expect(oauthStartUrl('fortytwo')).toBe(`${API_BASE}/api/auth/42`);
+        expect(oauthStartUrl('google')).toBe(`${API_BASE}/api/auth/google`);
+        expect(oauthStartUrl('github')).toBe(`${API_BASE}/api/auth/github`);
     });
 });

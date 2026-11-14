@@ -60,6 +60,9 @@ async function post<T>(
             method: 'POST',
             headers,
             body: JSON.stringify(body),
+            // The link flow sets a short-lived, HttpOnly browser-binding
+            // cookie; the API uses explicit origins, never a wildcard.
+            credentials: 'include',
         });
     } catch {
         // Network-level failure: surface it in the UI, never via console.
@@ -97,12 +100,40 @@ export function refresh(refreshToken: string): Promise<AuthResponse> {
     return post<AuthResponse>('/api/auth/refresh', { refreshToken });
 }
 
+const OAUTH_START_PATH: Record<OAuthProvider, string> = {
+    google: 'google',
+    github: 'github',
+    fortytwo: '42',
+};
+
 /**
  * Entry point of the provider redirect flow: the browser navigates here and the
- * backend takes over (state, provider redirect, callback), finally sending the
- * user back to `redirect_uri` with tokens (or an error) as URL parameters.
+ * backend owns the callback URL. No redirect target is sent from the client.
  */
 export function oauthStartUrl(provider: OAuthProvider): string {
-    const redirectUri = `${window.location.origin}${window.location.pathname}`;
-    return `${API_BASE}/api/auth/oauth/${provider}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+    return `${API_BASE}/api/auth/${OAUTH_START_PATH[provider]}`;
+}
+
+/** Exchanges the backend's single-use OAuth code for the app's JWT pair. */
+export function exchangeOAuthCode(code: string): Promise<AuthResponse> {
+    return post<AuthResponse>('/api/auth/exchange', { code });
+}
+
+/**
+ * Starts the explicit account-linking flow for an already signed-in user. The
+ * backend binds a single-use code to this browser in an HttpOnly cookie and
+ * returns the challenge URL; no code or JWT is placed in the URL.
+ */
+export async function linkOAuthProvider(
+    provider: OAuthProvider,
+    accessToken: string,
+): Promise<string> {
+    const result = await post<{ url: string }>(
+        `/api/auth/link/${OAUTH_START_PATH[provider]}`,
+        {},
+        accessToken,
+    );
+    return result.url.startsWith('http')
+        ? result.url
+        : `${API_BASE}${result.url.startsWith('/') ? '' : '/'}${result.url}`;
 }

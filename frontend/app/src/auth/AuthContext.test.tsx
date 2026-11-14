@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { renderApp } from '../test/appHarness';
 import {
     API_ORIGIN,
-    fakeJwt,
     fetchUrls,
     jsonResponse,
     makeAuthResponse,
@@ -101,7 +100,11 @@ describe('AuthContext boot', () => {
     });
 
     it('shows an OAuth failure as a dismissible notice', async () => {
-        window.history.replaceState(null, '', '/?error=access_denied');
+        window.history.replaceState(
+            null,
+            '',
+            '/auth/callback?error=access_denied',
+        );
         const fetchMock = stubFetch(unexpectedFetch);
 
         const app = await renderApp();
@@ -112,6 +115,7 @@ describe('AuthContext boot', () => {
             ),
         ).toBeInTheDocument();
         expect(fetchMock).not.toHaveBeenCalled();
+        expect(window.location.pathname).toBe('/');
         expect(window.location.search).toBe('');
 
         // MUI's Alert close button is labelled by `closeText` ("Close").
@@ -121,33 +125,62 @@ describe('AuthContext boot', () => {
         ).toBeNull();
     });
 
-    it('ingests OAuth callback tokens and strips them from the URL', async () => {
-        const accessToken = fakeJwt({
-            sub: '22222222-3333-4444-5555-666666666666',
-            unique_name: 'oauth-pilot',
-            exp: Math.floor(Date.now() / 1000) + 900,
-        });
-        const params = new URLSearchParams({
-            access_token: accessToken,
-            refresh_token: 'oauth-refresh',
-            user_id: '22222222-3333-4444-5555-666666666666',
+    it('exchanges an OAuth callback code and strips it from the URL', async () => {
+        const fresh = makeAuthResponse({
+            accessToken: 'oauth-access',
+            refreshToken: 'oauth-refresh',
+            userId: '22222222-3333-4444-5555-666666666666',
             username: 'oauth-pilot',
         });
-        window.history.replaceState(null, '', `/?${params.toString()}`);
-        const fetchMock = stubFetch(unexpectedFetch);
+        const fetchMock = stubFetch((url) => {
+            if (url.endsWith('/api/auth/exchange')) return jsonResponse(fresh);
+            return unexpectedFetch(url);
+        });
+        window.history.replaceState(
+            null,
+            '',
+            '/auth/callback?code=single-use-code',
+        );
 
         const app = await renderApp();
 
         expect(
             await app.screen.findByRole('heading', { name: 'Ready to roll?' }),
         ).toBeInTheDocument();
-        expect(fetchMock).not.toHaveBeenCalled();
-        expect(localStorage.getItem('tankit.accessToken')).toBe(accessToken);
+        expect(fetchUrls(fetchMock)).toEqual([
+            `${API_ORIGIN}/api/auth/exchange`,
+        ]);
+        expect(requestBody(fetchMock.mock.calls[0])).toEqual({
+            code: 'single-use-code',
+        });
+        expect(localStorage.getItem('tankit.accessToken')).toBe('oauth-access');
         expect(localStorage.getItem('tankit.refreshToken')).toBe(
             'oauth-refresh',
         );
+        expect(window.location.pathname).toBe('/');
         expect(window.location.search).toBe('');
         expect(app.screen.getByText('oauth-pilot')).toBeInTheDocument();
+    });
+
+    it('shows the exchange error when the OAuth code is rejected', async () => {
+        stubFetch((url) => {
+            if (url.endsWith('/api/auth/exchange')) {
+                return jsonResponse(
+                    { error: 'Invalid or expired sign-in code.' },
+                    401,
+                );
+            }
+            return unexpectedFetch(url);
+        });
+        window.history.replaceState(null, '', '/auth/callback?code=reused');
+
+        const app = await renderApp();
+
+        expect(
+            await app.screen.findByText('Invalid or expired sign-in code.'),
+        ).toBeInTheDocument();
+        expect(window.location.pathname).toBe('/');
+        expect(localStorage.getItem('tankit.accessToken')).toBeNull();
     });
 
     it('signs out back to the sign-in screen and clears storage', async () => {
