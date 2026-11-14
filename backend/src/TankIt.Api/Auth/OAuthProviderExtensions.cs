@@ -31,6 +31,12 @@ public static class OAuthProviderExtensions
                 "GitHub",
                 options => GitHubProvider.Configure(options, config, frontendUrl));
 
+        if (IsConfigured(config, OAuthProvider.FortyTwo))
+            builder.AddOAuth(
+                AuthSchemes.FortyTwo,
+                "42",
+                options => FortyTwoProvider.Configure(options, config, frontendUrl));
+
         return builder;
     }
 
