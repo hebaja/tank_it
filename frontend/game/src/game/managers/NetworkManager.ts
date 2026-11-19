@@ -5,6 +5,7 @@ import { sessionConfig } from '../../net/sessionConfig';
 import type {
     BarrelDestroyPayload,
     BlockDestroyPayload,
+    ChampionshipFinishedPayload,
     DeathWallStepPayload,
     MatchEndPayload,
     MatchEndedPayload,
@@ -37,6 +38,7 @@ export class NetworkManager {
         this.hub.onProjectilesCollided(this.handleProjectilesCollided);
         this.hub.onMatchEnded(this.handleMatchEnded);
         this.hub.onPlayerJoined(this.handlePlayerJoined);
+        this.hub.onChampionshipFinished(this.handleChampionshipFinished);
         this.scene.events.on(
             GameEvent.TankMove,
             this.handleLocalTankMove,
@@ -76,6 +78,16 @@ export class NetworkManager {
         this.scene.events.on(
             GameEvent.ProjectilesCollide,
             this.handleProjectilesCollide,
+            this,
+        );
+        this.scene.events.on(
+            GameEvent.ChampNextMatchRequested,
+            this.handleChampNextMatchRequested,
+            this,
+        );
+        this.scene.events.on(
+            GameEvent.ChampionshipFinishRequested,
+            this.handleChampionshipFinishRequested,
             this,
         );
         this.ready = this.hub
@@ -142,6 +154,24 @@ export class NetworkManager {
         this.scene.events.emit(GameEvent.ProjectilesCollided, payload);
     private handleMatchEnded = (payload: MatchEndedPayload) =>
         this.scene.events.emit(GameEvent.MatchEnded, payload);
+    private handleChampNextMatchRequested = () => {
+        this.hub.sendChampNextMatchRequested(
+            sessionConfig.roomId,
+            sessionConfig.champId,
+        );
+    };
+    private handleChampionshipFinishRequested = (payload?: {
+        roomId?: string;
+    }) => {
+        this.hub
+            .finishChampionship(payload?.roomId ?? sessionConfig.roomId)
+            .catch((err) =>
+                console.warn('[NetworkManager] FinishChampionship failed', err),
+            );
+    };
+    private handleChampionshipFinished = (
+        payload: ChampionshipFinishedPayload,
+    ) => this.scene.events.emit(GameEvent.ChampionshipFinished, payload);
 
     destroy() {
         this.scene.events.off(
@@ -185,6 +215,16 @@ export class NetworkManager {
             this.handleBlockDestroy,
             this,
         );
+        this.scene.events.off(
+            GameEvent.ChampNextMatchRequested,
+            this.handleChampNextMatchRequested,
+            this,
+        );
+        this.scene.events.off(
+            GameEvent.ChampionshipFinishRequested,
+            this.handleChampionshipFinishRequested,
+            this,
+        );
         this.hub.offTankMoved(this.handleTankMoved);
         this.hub.offMatchStarted(this.handleMatchStarted);
         this.hub.offDeathWallStep(this.handleDeathWallStep);
@@ -195,6 +235,7 @@ export class NetworkManager {
         this.hub.offProjectileDestroyed(this.handleProjectileDestroyed);
         this.hub.offProjectilesCollided(this.handleProjectilesCollided);
         this.hub.offMatchEnded(this.handleMatchEnded);
+        this.hub.offChampionshipFinished(this.handleChampionshipFinished);
         this.hub
             .leaveRoom(sessionConfig.roomId, sessionConfig.champId)
             .catch(() => {});

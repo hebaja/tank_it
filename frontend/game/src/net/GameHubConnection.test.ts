@@ -84,6 +84,23 @@ describe('GameHubConnection projectile lifecycle', () => {
         signalRMock.connection.invoke.mockResolvedValue(roomJoined);
     });
 
+    it('listens for the ChampionshipFinished client callback', () => {
+        const hub = new GameHubConnection();
+        const callback = vi.fn();
+
+        hub.onChampionshipFinished(callback);
+        hub.offChampionshipFinished(callback);
+
+        expect(signalRMock.connection.on).toHaveBeenCalledWith(
+            'ChampionshipFinished',
+            callback,
+        );
+        expect(signalRMock.connection.off).toHaveBeenCalledWith(
+            'ChampionshipFinished',
+            callback,
+        );
+    });
+
     it('sends the fire payload on ProjectileFire', () => {
         const hub = new GameHubConnection();
 

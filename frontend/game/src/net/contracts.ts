@@ -97,10 +97,11 @@ export interface MatchEndedPayload {
     championshipStatus: string;
     isChampionship: boolean;
     championshipId: string;
+    matchId: string;
     ft: number;
     tanksScore: TankScoreInfo[];
     matchWinnerId: string;
-    champinshipWinnerId: string;
+    championshipWinnerId: string;
 }
 
 export interface TankScoreInfo {

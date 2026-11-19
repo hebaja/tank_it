@@ -185,7 +185,34 @@ export class Overlay extends Scene {
         this.scorePanel.setSize(this.scorePanelWidth, this.scorePanelHeight);
         this.scorePanel.setScale(this.scorePanelScale);
 
-        this.scorePanel.add([background, ...labels]);
+        const btnLabel = this.matchInfo.championshipWinnerId
+            ? 'Finish'
+            : 'Next';
+
+        const panelBtn = this.createPanelButton(
+            btnLabel,
+            0,
+            this.scorePanelHeight / 2 - (this.retryBtnHeight * 0.8) / 2 - 8,
+            0.8,
+            0.825,
+            () => {
+                if (this.matchInfo.championshipWinnerId) {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampionshipFinishRequested, {
+                            roomId: this.matchInfo.roomId,
+                        });
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                } else {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampNextMatchRequested);
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                }
+            },
+        );
+
+        this.scorePanel.add([background, ...labels, panelBtn]);
     }
 
     createTankScore(

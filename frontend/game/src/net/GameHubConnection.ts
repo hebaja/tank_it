@@ -2,6 +2,7 @@ import * as signalR from '@microsoft/signalr';
 import type {
     BarrelDestroyPayload,
     BlockDestroyPayload,
+    ChampionshipFinishedPayload,
     DeathWallStepPayload,
     MatchEndPayload,
     MatchEndedPayload,
@@ -159,6 +160,15 @@ export class GameHubConnection {
             );
     }
 
+    sendChampNextMatchRequested(roomId: string, champId?: string): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('StartMatch', roomId, champId)
+            .catch((err) =>
+                console.warn('[GameHubConnection] StartMatch send failed', err),
+            );
+    }
+
     onTankMoved(cb: (p: TankMovedPayload) => void): void {
         this.conn.on('TankMoved', cb);
     }
@@ -224,6 +234,14 @@ export class GameHubConnection {
     }
     offPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {
         this.conn.off('PlayerJoined', cb);
+    }
+    onChampionshipFinished(cb: (p: ChampionshipFinishedPayload) => void): void {
+        this.conn.on('ChampionshipFinished', cb);
+    }
+    offChampionshipFinished(
+        cb: (p: ChampionshipFinishedPayload) => void,
+    ): void {
+        this.conn.off('ChampionshipFinished', cb);
     }
 
     get state(): signalR.HubConnectionState {

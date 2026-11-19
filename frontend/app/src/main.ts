@@ -18,6 +18,18 @@ const errorEl = document.getElementById('error') as HTMLElement;
 let hub: LobbyHubConnection | null = null;
 let currentRoomId = '';
 let currentColor = '';
+const params = new URLSearchParams(window.location.search);
+const initialRoomId = params.get('roomId');
+const initialColor = params.get('color');
+
+if (initialRoomId) roomIdInput.value = initialRoomId;
+
+if (
+    initialColor &&
+    Array.from(colorSelect.options).some((o) => o.value === initialColor)
+)
+    colorSelect.value = initialColor;
+
 let myConnectionId = '';
 let championshipId = '';
 
@@ -216,3 +228,9 @@ roomIdInput.addEventListener('keydown', (e) => {
 colorSelect.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') joinRoom();
 });
+
+// Returning from a finished championship: room/color came from the game URL,
+// so the player only needs to press "Start Game".
+if (initialRoomId) {
+    void joinRoom();
+}

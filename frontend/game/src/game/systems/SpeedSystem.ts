@@ -15,10 +15,6 @@ export class SpeedSystem {
         this.scene = scene;
         this.oilGroup = scene.physics.add.group();
 
-        // this.updateCallback = () => {
-        //     tankGroup.getChildren().forEach((t) => { if (t instanceof Tank) t.setSlow(false); });
-        // };
-
         this.updateCallback = () => {
             tankGroup.getChildren().forEach((t) => {
                 if (t instanceof Tank) {
@@ -34,9 +30,7 @@ export class SpeedSystem {
                 }
             });
         };
-
         scene.events.on(Scenes.Events.UPDATE, this.updateCallback);
-
         scene.physics.add.overlap(tankGroup, this.oilGroup, (t) => {
             (t as Tank).setSlow(true);
         });
@@ -45,6 +39,10 @@ export class SpeedSystem {
     addOil(x: number, y: number) {
         const oil = new Oil(this.scene, x, y);
         this.oilGroup.add(oil);
+    }
+
+    clearOilGroup() {
+        this.oilGroup.clear(true, true);
     }
 
     destroy(): void {

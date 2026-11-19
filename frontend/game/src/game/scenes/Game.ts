@@ -15,6 +15,7 @@ import { sessionConfig } from '../../net/sessionConfig';
 import type {
     Position,
     BlockDestroyPayload,
+    PlayerInfo,
     PlayerJoinedPayload,
     RoomJoinedPayload,
     TankMovedPayload,
@@ -24,8 +25,11 @@ import type {
     ProjectilePayload,
     ProjectilesCollidePayload,
     MatchEndedPayload,
+    MatchStartedPayload,
+    ChampionshipFinishedPayload,
 } from '../../net/contracts';
 import { MusicTrack, SoundManager } from '../managers/SoundManager';
+import { redirectToLobby } from '../../net/lobbyRedirect';
 
 export class Game extends Scene {
     barrelGroup: Phaser.Physics.Arcade.Group;
@@ -46,6 +50,7 @@ export class Game extends Scene {
     private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private isShuttingDown: boolean = false;
+    private blocksInitialState: number[][];
     private musicTrack: MusicTrack;
     private championshipId: string;
 
@@ -82,23 +87,12 @@ export class Game extends Scene {
         this.createGroups();
         this.collectSpawnPoints(tanksSpawnLayer);
 
-        // Fallback: spawn all tanks if no RoomJoined after 3s (dev mode)
+        // TODO: Fallback: spawn all tanks if no RoomJoined after 3s (dev mode) -> might not need it
         this.roomJoinedFallback = this.time.delayedCall(3000, () => {
             if (this.tankRoster.size > 0) return;
-            this.spawnPoints.forEach((spawn, color) => {
-                const isLocal = color === sessionConfig.localColor;
-                const tank = new Tank(
-                    this,
-                    spawn.x,
-                    spawn.y,
-                    spawn.angle,
-                    color,
-                    this.tankGroup,
-                    this.projectileGroup,
-                    isLocal,
-                );
-                this.tankRoster.set(color, tank);
-            });
+            this.spawnPoints.forEach((_, color) =>
+                this.ensureTank(color, color === sessionConfig.localColor),
+            );
         });
 
         this.createManagers();
@@ -137,6 +131,11 @@ export class Game extends Scene {
         );
         this.events.on(GameEvent.PlayerJoined, this.handlePlayerJoined, this);
         this.events.on(GameEvent.MatchEnded, this.handleMatchEnded, this);
+        this.events.on(
+            GameEvent.ChampionshipFinished,
+            this.handleChampionshipFinished,
+            this,
+        );
         this.networkManager = new NetworkManager(this);
     }
 
@@ -185,6 +184,16 @@ export class Game extends Scene {
         this.blocksLayer.setCollisionByExclusion([-1]);
         this.blocksHardLayer.setCollisionByExclusion([-1]);
 
+        const w = this.blocksLayer.width;
+        const h = this.blocksLayer.height;
+        this.blocksInitialState = [];
+        for (let row = 0; row < h; row++) {
+            this.blocksInitialState[row] = [];
+            for (let col = 0; col < w; col++) {
+                this.blocksInitialState[row][col] =
+                    this.blocksLayer.getTileAt(col, row)?.index ?? -1;
+            }
+        }
         return { map, tanksSpawnLayer };
     }
 
@@ -193,7 +202,7 @@ export class Game extends Scene {
         this.matchManager.reset();
         this.explosionManager = new ExplosionManager(this);
         this.speedSystem = new SpeedSystem(this, this.tankGroup);
-        // this.soundManager = new SoundManager(this, this.musicTrack);
+        this.soundManager = new SoundManager(this, this.musicTrack);
     }
 
     private createBarrels(map: Tilemaps.Tilemap) {
@@ -486,6 +495,11 @@ export class Game extends Scene {
             this,
         );
         this.events.off(GameEvent.PlayerJoined, this.handlePlayerJoined, this);
+        this.events.off(
+            GameEvent.ChampionshipFinished,
+            this.handleChampionshipFinished,
+            this,
+        );
     }
 
     private collectSpawnPoints(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
@@ -525,36 +539,27 @@ export class Game extends Scene {
         this.barrelPos = payload.randomBarrelPositions;
         this.championshipId = payload.championshipId;
 
-        // Cancel fallback — we have real player data
+        // TODO: Cancel fallback — we have real player data -> might not need it
         if (this.roomJoinedFallback) {
             this.roomJoinedFallback.remove();
             this.roomJoinedFallback = null;
         }
 
-        // Spawn tanks only for players in room
-        for (const player of payload.players) {
-            const color = player.color as Color;
-            const spawn = this.spawnPoints.get(color);
-            if (!spawn) {
-                console.warn(`No spawn point for color ${color}`);
-                continue;
-            }
+        const playersByColor = new Map<string, PlayerInfo>();
+        for (const player of payload.players)
+            if (!playersByColor.has(player.color))
+                playersByColor.set(player.color, player);
 
-            const isLocal = color === sessionConfig.localColor;
-            const tank = new Tank(
-                this,
-                spawn.x,
-                spawn.y,
-                spawn.angle,
-                color,
-                this.tankGroup,
-                this.projectileGroup,
-                isLocal,
+        if (playersByColor.size !== payload.players.length)
+            console.warn(
+                `[RoomJoined] Duplicate player colors in room ${payload.roomId}; spawning one tank per color`,
             );
-            this.tankRoster.set(color, tank);
 
-            this.matchManager.setPlace(payload.players.length);
-        }
+        for (const player of playersByColor.values())
+            this.ensureTank(
+                player.color as Color,
+                player.color === sessionConfig.localColor,
+            );
 
         if (this.map) {
             this.createBarrels(this.map);
@@ -569,14 +574,19 @@ export class Game extends Scene {
 
     private handlePlayerJoined = (payload: PlayerJoinedPayload) => {
         const color = payload.color as Color;
-        if (this.tankRoster.has(color)) return;
+        this.ensureTank(color, false);
+    };
+
+    private ensureTank(color: Color, isLocal: boolean): Tank | undefined {
+        const existing = this.tankRoster.get(color);
+
+        if (existing) return existing;
 
         const spawn = this.spawnPoints.get(color);
         if (!spawn) {
-            console.warn(`[PlayerJoined] No spawn point for color ${color}`);
-            return;
+            console.warn(`[TankSpawn] No spawn point for color ${color}`);
+            return undefined;
         }
-
         const tank = new Tank(
             this,
             spawn.x,
@@ -585,17 +595,56 @@ export class Game extends Scene {
             color,
             this.tankGroup,
             this.projectileGroup,
-            false,
+            isLocal,
         );
         this.tankRoster.set(color, tank);
-    };
 
-    private handleMatchStarted = () => {
+        return tank;
+    }
+
+    private handleMatchStarted = (payload: MatchStartedPayload) => {
         if (this.isShuttingDown) return;
 
-        this.isShuttingDown = true;
+        this.scene.resume();
         this.scene.stop('Overlay');
-        //this.scene.restart();
+        this.tankGroup.clear(true, true);
+        this.tankRoster.clear();
+        this.projectileGroup.clear();
+        this.speedSystem.clearOilGroup();
+        this.barrelPos = payload.randomBarrelPositions;
+        this.createBarrels(this.map);
+
+        for (let row = 0; row < this.blocksInitialState.length; row++) {
+            for (
+                let col = 0;
+                col < this.blocksInitialState[row].length;
+                col++
+            ) {
+                const idx = this.blocksInitialState[row][col];
+                if (idx === -1) {
+                    this.blocksLayer.removeTileAt(col, row);
+                } else {
+                    this.blocksLayer.putTileAt(idx, col, row);
+                }
+            }
+        }
+
+        const playersByColor = new Map<string, PlayerInfo>();
+
+        for (const player of payload.players)
+            if (!playersByColor.has(player.color))
+                playersByColor.set(player.color, player);
+
+        if (playersByColor.size !== payload.players.length)
+            console.warn(
+                `[RoomJoined] Duplicate player colors in room ${payload.roomId}; spawning one tank per color`,
+            );
+
+        for (const player of playersByColor.values())
+            this.ensureTank(
+                player.color as Color,
+                player.color === sessionConfig.localColor,
+            );
     };
 
     private handleDeathWallStep = (p: DeathWallStepPayload) =>
@@ -656,11 +705,19 @@ export class Game extends Scene {
     };
 
     private handleMatchEnded = (payload: MatchEndedPayload) => {
-        console.log(payload);
-
         this.time.delayedCall(GAME_CONFIG.timing.matchEndOverlayDelay, () => {
             this.scene.pause();
             this.scene.launch('Overlay', payload);
         });
+    };
+
+    private handleChampionshipFinished = (
+        payload: ChampionshipFinishedPayload,
+    ) => {
+        if (this.isShuttingDown) return;
+        if (payload.roomId !== sessionConfig.roomId) return;
+
+        this.isShuttingDown = true;
+        redirectToLobby();
     };
 }

@@ -86,6 +86,7 @@ const hubMock = vi.hoisted(() => {
         sendProjectileFire: vi.fn(),
         sendProjectileDestroy: vi.fn(),
         sendProjectilesCollide: vi.fn(),
+        finishChampionship: vi.fn(),
         start: vi.fn(),
         stop: vi.fn(),
         joinRoom: vi.fn(),
@@ -156,6 +157,7 @@ describe('NetworkManager projectile lifecycle', () => {
         hubMock.hub.joinRoom.mockResolvedValue(roomJoined);
         hubMock.hub.stop.mockResolvedValue(undefined);
         hubMock.hub.leaveRoom.mockResolvedValue(undefined);
+        hubMock.hub.finishChampionship.mockResolvedValue(undefined);
         hubMock.hub.getConnectionId.mockReturnValue('connection-a');
     });
 
