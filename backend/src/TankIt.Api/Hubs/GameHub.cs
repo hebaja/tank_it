@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging.Abstractions;
 using TankIt.Api.Hubs.Dtos;
 using TankIt.Api.Models;
 using TankIt.Api.Services;
@@ -30,8 +29,31 @@ public class GameHub : Hub<IGameClient>
             _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
 
         var roomIds = _rooms.GetRoomIdsForConnection(Context.ConnectionId);
+        var seatsToRemove = new List<(Guid ChampionshipId, string Color)>();
+        foreach (var roomId in roomIds)
+        {
+            var color = _rooms.GetRoomPlayers(roomId)
+                .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)?.Color;
+            if (color is null)
+                continue;
 
-        _rooms.TrackDisconnect(Context.ConnectionId);
+            var colorStillUsed = _rooms.GetRoomPlayers(roomId)
+                .Any(p => p.ConnectionId != Context.ConnectionId && p.Color == color);
+            if (colorStillUsed)
+                continue;
+
+            if (_championships.TryGetByRoomId(roomId, out var championship)
+                && championship is not null
+                && championship.Status == ChampionshipStatus.Pending)
+                    seatsToRemove.Add((championship.Id, color));
+        }
+
+        // Must run before TrackDisconnect: that can evict/complete the championship
+        // and drop the hot in-memory state.
+        foreach (var (championshipId, color) in seatsToRemove)
+            await _championships.TryRemoveParticipantAsync(championshipId, color);
+
+        await _rooms.TrackDisconnect(Context.ConnectionId);
 
         foreach (var roomId in roomIds)
         {
@@ -51,41 +73,41 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrWhiteSpace(color))
             throw new HubException("color is required");
 
-        // Guid? championshipId = ResolveChampionshipId(champId);
-
-
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId, color);
         _rooms.TrackRoomCreation(roomId);
         _deathWall.EnsureStarted(roomId);
 
-        // if (championshipId is Guid id)
-        // {
-            var (championship, created) = _championships.GetOrCreateByRoomId(roomId);
+        var (championship, created) = await _championships.GetOrCreateByRoomIdAsync(roomId);
 
-            _logger.LogInformation(
-                "Championship {ChampionshipId} {State} for connection {ConnectionId}",
-                championship.Id,
-                created ? "created" : "reused",
-                Context.ConnectionId);
-
-            var participant = new ChampionshipParticipant
+        // Upsert by color: the lobby and game connections of the same player may
+        // both join with the same color after a redirect.
+        lock (championship)
+        {
+            if (championship.Participants.All(p => p.TankColor != color))
             {
-                ChampionshipId = championship.Id,
-                IsAi = false,
-                TankColor = color,
-            };
+                championship.Participants.Add(new ChampionshipParticipant
+                {
+                    Id = Guid.NewGuid(),
+                    ChampionshipId = championship.Id,
+                    IsAi = false,
+                    TankColor = color,
+                });
+            }
+        }
 
-            championship.Participants.Add(participant);
-            // championshipId = championship.Id;
-        // }
-        _logger.LogInformation("Client joined: {roomId} - {Color} - {ConnectionId} - {Id}", 
-                roomId, color, Context.ConnectionId, championship.Id);
+        await _championships.PersistAsync(championship);
 
         var barrels = _rooms.GetOrCreateBarrels(roomId);
-        var players = _rooms.GetRoomPlayers(roomId);
 
-        //_logger.LogInformation("--> created champ id {championshipId}: ", championship.Id);
+        // The lobby -> game handoff briefly keeps two connections for the same
+        // color. Expose one seat per color to clients, preferring the caller's
+        // own connection so it gets the "(you)" marker in the lobby.
+        var players = _rooms.GetRoomPlayers(roomId)
+            .GroupBy(p => p.Color)
+            .Select(g => g.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
+                ?? g.First())
+            .ToArray();
 
         await Clients.OthersInGroup(roomId).PlayerJoined(new PlayerJoinedDto
         {
@@ -106,7 +128,7 @@ public class GameHub : Hub<IGameClient>
         };
     }
 
-    private Guid? ResolveChampionshipId(string? champId, bool mustExist = false)
+    private async Task<Guid?> ResolveChampionshipIdAsync(string? champId, bool mustExist = false)
     {
         if (string.IsNullOrWhiteSpace(champId))
             return null;
@@ -114,27 +136,31 @@ public class GameHub : Hub<IGameClient>
         if (!Guid.TryParse(champId, out var id))
             throw new HubException("champId must be a valid GUID");
 
-        if (mustExist && !_championships.TryGet(id, out _))
+        if (mustExist && await _championships.GetAsync(id) is null)
             throw new HubException($"Championship {id} not found");
 
         return id;
     }
 
-    public async Task LeaveRoom(string roomId, string champId)
+    public async Task LeaveRoom(string roomId, string? champId)
     {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
 
-        Guid? championshipId = ResolveChampionshipId(champId, mustExist: true);
-
         var color = _rooms.GetRoomPlayers(roomId)
             .FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)?.Color;
 
-        if (championshipId is Guid id && color is not null)
-            _championships.TryRemoveParticipant(id, color);
+        var championship = await ResolveChampionshipForLeaveAsync(roomId, champId);
+        if (championship is not null
+            && championship.Status != ChampionshipStatus.Completed
+            && color is not null)
+        {
+            await _championships.TryRemoveParticipantAsync(championship.Id, color);
+        }
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
-        _rooms.TrackLeave(roomId, Context.ConnectionId);
+
+        await _rooms.TrackLeave(roomId, Context.ConnectionId);
 
         await Clients.OthersInGroup(roomId).PlayerLeft(new PlayerLeftDto
         {
@@ -142,75 +168,53 @@ public class GameHub : Hub<IGameClient>
         });
     }
 
+    private async Task<Championship?> ResolveChampionshipForLeaveAsync(string roomId, string? champId)
+    {
+        // Prefer the explicit id, but fall back to the room mapping instead of throwing.
+        if (!string.IsNullOrWhiteSpace(champId) && Guid.TryParse(champId, out var id))
+            return await _championships.GetAsync(id);
+
+        return await _championships.GetByRoomIdAsync(roomId);
+    }
+
     public async Task TankMove(TankMoveRequest request)
     {
         if (string.IsNullOrEmpty(request.RoomId))
             throw new HubException("roomId is required");
 
-        /*
-        _logger.LogInformation("Tank moved: {RoomId} - {PlayerId} - {X}:{Y} - {Rotation}",
-            request.RoomId,
-            request.PlayerId,
-            request.Position.X,
-            request.Position.Y,
-            request.Rotation);
-            */
-
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
     }
 
-    public async Task StartMatch(string roomId)
+    // TODO: Check removal of championshipId
+    public async Task StartMatch(string roomId, string championshipId)
     {
+        PlayerInfo[] players;
+        Guid matchId;
+        BarrelPositionsDto[] barrels;
+
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation("Game started in room {RoomId} by {ConnectionId}", roomId, Context.ConnectionId);
-
-        if (!_championships.TryGetByRoomId(roomId, out var championship))
-            throw new HubException($"Championship for Room {roomId} not found");
-        else
+        var championship = await _championships.GetByRoomIdAsync(roomId)
+            ?? throw new HubException($"Championship for Room {roomId} not found");
         {
-             var currentPlayers = _rooms.GetRoomPlayers(roomId);
-            var currentColors = currentPlayers.Select(p => p.Color).ToHashSet();
-            var staleParticipants = championship.Participants
-                .Where(p => !currentColors.Contains(p.TankColor))
-                .ToList();
-            foreach (var stale in staleParticipants)
-            championship.Participants.Remove(stale);
+            if (!_championships.TryStartNextMatch(championship.Id, out var match) || match is null)
+                 throw new HubException($"Could not start next match for championship {championship.Id}");
 
-
-            var existingColors = championship.Participants.Select(p => p.TankColor).ToHashSet();
-            foreach (var player in currentPlayers)
-            {
-                if (!existingColors.Contains(player.Color))
-                {
-                    championship.Participants.Add(new ChampionshipParticipant
-                    {
-                        ChampionshipId = championship.Id,
-                        IsAi = false,
-                        TankColor = player.Color,
-                    });
-                }
-            }
-
-
-
-            _championships.TryStartNextMatch(championship.Id, out var match);
-
-
-
-            _logger.LogInformation("->> Match started {Id}", match.Id);
-
+            await _championships.PersistAsync(championship);
+            players = _rooms.GetRoomPlayers(roomId);
+            matchId = match.Id;
         }
 
-        var barrels = _rooms.GetOrCreateBarrels(roomId);
-
+        barrels = _rooms.RefreshBarrels(roomId);
         _deathWall.Restart(roomId);
-
 
         await Clients.Group(roomId).MatchStarted(new MatchStartedDto
         {
             RoomId = roomId,
+            ChampionshipId = championship.Id,
+            MatchId = matchId,
+            Players = players,
             RandomBarrelPositions = barrels
         });
     }
@@ -220,146 +224,140 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation("Match ended in room {RoomId} by {ConnectionId}", request.RoomId, Context.ConnectionId);
-
-
-        Guid? championshipId = ResolveChampionshipId(request.ChampionshipId, mustExist: true);
-        if (championshipId is Guid id)
+        Guid? championshipId = await ResolveChampionshipIdAsync(request.ChampionshipId, mustExist: true);
+        if (championshipId is not Guid id)
         {
-            if(!_championships.TryGet(id,out var championship))
-                throw new HubException($"No championship found for {id}");
-
-            if (!_championships.TryGetLastMatch(id, out var match) || match is null)
-                throw new HubException($"No match found for championship {id}");
-
-            match.Status = MatchStatus.Completed;
-            match.EndedAt = DateTimeOffset.UtcNow;
-
-            // TankDestroy already set Placement/Points per participant during match
-            // Just resolve winner from placements
-            var matchWinnerPlacement = request.Placements.FirstOrDefault(pl => pl.IsMatchWinner);
-            if (matchWinnerPlacement != null)
-            {
-                var matchWinner = match.Participants
-                    .FirstOrDefault(p => p.TankColor == matchWinnerPlacement.Color);
-                match.WinnerId = matchWinner?.Id;
-
-                matchWinner?.Placement = matchWinnerPlacement.Placement;
-                matchWinner?.Points = matchWinnerPlacement.Points;
-                matchWinner?.IsMatchWinner = matchWinnerPlacement.IsMatchWinner;
-                matchWinner?.IsChampionshipWinner = matchWinnerPlacement.IsChampionshipWinner;
-            }
-
-            //
-            //TODO update championship participants here based on match participants and check if there's winner
-            //
-
-            foreach (var mp in match.Participants)
-            {
-                var champParticipant = championship?.Participants
-                    .FirstOrDefault(cp => cp.TankColor == mp.TankColor);
-                if (champParticipant is not null)
-                {
-                    champParticipant.Points = (short)((champParticipant.Points ?? 0) + (mp.Points ?? 0));
-                    //TODO Need to calc position/placements
-                }
-            }
-
-            var winners = championship?.Participants
-                .Where(cp => (cp.Points ?? 0) >= championship.Ft)
-                .ToArray();
-
-            if (winners?.Length > 0)
-            {
-                var pointsGroup = winners.GroupBy(w => w.Points ?? 0);
-                var tie = pointsGroup.FirstOrDefault(g => g.Count() > 1);
-
-                if (tie is not null)
-                {
-                    _logger.LogWarning(
-                        "Tie detected among winners at {Points} points ({Colors}). Championship continues.",
-                        tie.Key, string.Join(", ", tie.Select(w => w.TankColor)));
-
-                    //TODO Deal tie condition here
-                }
-                else
-                {
-                    var champion = winners
-                        .OrderBy(w => w.Points ?? short.MaxValue)
-                        .First();
-
-                    championship?.WinnerId = champion.Id;
-                    championship?.Status = ChampionshipStatus.Completed;
-                    championship?.CompletedAt = DateTimeOffset.UtcNow;
-                    _logger.LogInformation(
-                        "Championship {ChampionshipId} won by {Color} with {Points} points (tie-break: placement {Placement})",
-                        championship?.Id, champion.TankColor, champion.Points, champion.Placement);
-                }
-            }
-
-            string[] displayNames = [
-               "asdrubal",
-               "gertrudes",
-               "cremilda",
-               "robisberto"
-            ];
-            var i = 0;
-
-
-            _logger.LogInformation("Participants: {Number}", match.Participants.Count);
-
-            var tanksScore = match.Participants
-                .Select(p => new TankScoreInfo
-                {
-                    Label = p.IsAi ? "AI" : p.User?.DisplayName ?? p.TankColor,
-                    User = displayNames[i++],
-                    Color = p.TankColor,
-                    Score = p.Points,
-                    IsMatchWinner = p.IsMatchWinner,
-                    IsChampionshipWinner = p.IsChampionshipWinner
-                }).ToArray();
-
-            foreach (var t in tanksScore)
-            {
-                _logger.LogInformation("--> {Color} + {Points}", t.Color, t.Score);
-            }
-
-    /*        
-    roomId: string;
-    championshipStatus: string;
-   -> isChampionship: boolean;
-   -> championshipId: string;
-    ft: number;
-    tanksScore: TankScoreInfo[];
-   -> matchWinnerId: string;
-   -> champinshipWinnerId: string;
-    */
-
-    // TODO ----> Also need to determine match and champioship Winner
-
-            var cmi = new ChampionshipMatchInfoDto
-            {
-                RoomId = request.RoomId,
-                Ft = 10, // TODO Need to work on this
-                IsChampioship = true,
-                ChampionshipId = championship.Id,
-                ChampionshipStatus = championship.Status,
-                MatchWinnerId = match.WinnerId,
-                ChampionshipWinnerId = championship.WinnerId,
-                TanksScore = tanksScore
-            };
-            
-            await Clients.Group(request.RoomId).MatchEnded(cmi);
-
+            _deathWall.Stop(request.RoomId);
+            return;
         }
 
+        var championship = await _championships.GetAsync(id)
+            ?? throw new HubException($"No championship found for {id}");
 
+        var match = await _championships.GetLastMatchAsync(id)
+            ?? throw new HubException($"No match found for championship {id}");
 
+        ChampionshipMatchInfoDto? result;
+        lock (championship)
+        {
+            if (match.Status == MatchStatus.Completed)
+            {
+                _logger.LogWarning(
+                    "MatchEnd ignored: match {MatchId} in room {RoomId} is already completed",
+                    match.Id, request.RoomId);
+                return;
+            }
 
+            var alive = match.Participants.Count(p => !p.IsDone);
+            if (alive > 1)
+            {
+                _logger.LogInformation(
+                    "MatchEnd deferred: match {MatchId} in room {RoomId} still has {Alive} tanks alive server-side",
+                    match.Id, request.RoomId, alive);
+                return;
+            }
+            result = CompleteMatch(request.RoomId, championship, match);
+        }
+
+        await _championships.PersistAsync(championship);
+        await Clients.Group(request.RoomId).MatchEnded(result);
         _deathWall.Stop(request.RoomId);
+    }
 
-        // TODO This evicting room must not be called when championship is activated for example;
-        //_rooms.TryEvictRoom(request.RoomId);
+    // TODO: Need to update placement of players in championship to send
+    private ChampionshipMatchInfoDto CompleteMatch(string roomId, Championship championship, Match match)
+    {
+        match.Status = MatchStatus.Completed;
+        match.EndedAt = DateTimeOffset.UtcNow;
+
+        // Assign 1st place to surviving participant (if any)
+        var survivor = match.Participants.FirstOrDefault(p => !p.IsDone);
+        if (survivor is not null)
+        {
+            survivor.Placement = 0;
+            survivor.Points = (short)(match.PlayerCount - 1); // 3, 2, or 1
+            survivor.IsMatchWinner = true;
+            survivor.IsDone = true;
+
+            // If no deaths were recorded, this is a 1-tank match or all died simultaneously
+            if (match.Deaths is null or 0)
+            {
+                match.Deaths = 0;
+            }
+
+            match.WinnerId = survivor.Id;
+        }
+
+        // Sum match points into championship standings
+        foreach (var mp in match.Participants)
+        {
+            var champParticipant = championship.Participants
+                .FirstOrDefault(cp => cp.TankColor == mp.TankColor);
+            champParticipant?.Points = (short)((champParticipant.Points ?? 0) + (mp.Points ?? 0));
+        }
+
+        // Check for championship winner
+        var winners = championship.Participants
+            .Where(cp => (cp.Points ?? 0) >= championship.Ft)
+            .ToArray();
+
+        if (winners.Length > 0)
+        {
+            var pointsGroup = winners.GroupBy(w => w.Points ?? 0);
+            var tie = pointsGroup.FirstOrDefault(g => g.Count() > 1);
+
+            // TODO: Need to check tie conditions in game and decide what to do if positive
+            if (tie is not null)
+            {
+                _logger.LogWarning(
+                    "Tie detected among winners at {Points} points ({Colors}). Championship continues.",
+                    tie.Key, string.Join(", ", tie.Select(w => w.TankColor)));
+            }
+            else
+            {
+                var champion = winners
+                    .OrderBy(w => w.Points ?? short.MaxValue)
+                    .First();
+
+                championship.WinnerId = champion.Id;
+                championship.WinnerColor = champion.TankColor;
+                championship.Status = ChampionshipStatus.Completed;
+                championship.CompletedAt = DateTimeOffset.UtcNow;
+            }
+        }
+
+        string[] displayNames = [
+           "asdrubal",
+           "gertrudes",
+           "cremilda",
+           "robisberto"
+        ];
+        var i = 0;
+
+        var tanksScore = match.Participants
+            .Select(p => new TankScoreInfo
+            {
+                Label = p.IsAi ? "AI" : p.User?.DisplayName ?? p.TankColor,
+                User = displayNames[i++],
+                Color = p.TankColor,
+                Score = championship.Participants.FirstOrDefault(pa => pa.TankColor == p.TankColor )?.Points,
+                Placement = p.Placement,
+                IsMatchWinner = p.IsMatchWinner,
+                IsChampionshipWinner = championship.WinnerColor == p.TankColor
+            }).ToArray();
+
+        return new ChampionshipMatchInfoDto
+        {
+            RoomId = roomId,
+            Ft = championship.Ft,
+            IsChampioship = true,
+            ChampionshipId = championship.Id,
+            MatchId = match.Id,
+            ChampionshipStatus = championship.Status,
+            MatchWinnerId = match.WinnerId,
+            ChampionshipWinnerId = championship.WinnerId,
+            TanksScore = tanksScore
+        };
     }
 
     public async Task BlockDestroy(BlockDestroyRequest request)
@@ -390,33 +388,83 @@ public class GameHub : Hub<IGameClient>
     {
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
-        
-        // Guid? championshipId = ResolveChampionshipId(request.ChampionshipId, mustExist: true);
-        // if (championshipId is Guid id)
-        // {
-            if (!_championships.TryGetByRoomId(request.RoomId, out var championship))
-                throw new HubException($"Could not retrieve last match for championship in Room {request.RoomId}");
 
+        var championship = await _championships.GetByRoomIdAsync(request.RoomId)
+            ?? throw new HubException($"Could not retrieve championship for Room {request.RoomId}");
 
-            _championships.TryGetLastMatch(championship.Id, out var match);
+        var match = await _championships.GetLastMatchAsync(championship.Id);
 
-            var participant = match?.Participants.FirstOrDefault(p => p.TankColor == request.Color);
-            participant?.Placement = request.MatchPlacement.Placement;
-            participant?.Points = request.MatchPlacement.Points;
-            participant?.IsMatchWinner = request.MatchPlacement.IsMatchWinner;
-            participant?.IsChampionshipWinner = request.MatchPlacement.IsChampionshipWinner;
+        if (match is null)
+        {
+            _logger.LogWarning("TankDestroy ignored: no match for room {RoomId}", request.RoomId);
+            return;
+        }
 
-            //TODO set placement for match and championship
-            // foreach (var p in match.Participants)
-            // {
-            //     _logger.LogInformation("--> {Color} + {Points}", p.TankColor, p.Points);
-            // }
+        short placement, points;
+        ChampionshipMatchInfoDto? matchEnded = null;
 
-            _logger.LogInformation("Championship {Id} - Match {Id} - tank destroyed -> color={Color}, placement={Placement}, points={Points}",
-                    championship?.Id, match?.Id, request.Color, request.MatchPlacement.Placement, request.MatchPlacement.Points);
-        // }
+        // TankDestroy calls from different connections run concurrently: serialize
+        // the death counter and the end-of-match check.
+        lock (championship)
+        {
+            if (match.Status == MatchStatus.Completed)
+            {
+                _logger.LogWarning(
+                    "TankDestroy ignored: match {MatchId} in room {RoomId} is already completed",
+                    match.Id, request.RoomId);
+                return;
+            }
+
+            var participant = match.Participants.FirstOrDefault(p => p.TankColor == request.Color);
+            if (participant is null)
+            {
+                _logger.LogWarning(
+                    "TankDestroy ignored: no {Color} participant in match {MatchId} for room {RoomId}",
+                    request.Color, match.Id, request.RoomId);
+                return;
+            }
+
+            if (participant.IsDone)
+            {
+                _logger.LogWarning(
+                    "TankDestroy ignored: {Color} already destroyed in match {MatchId} for room {RoomId}",
+                    request.Color, match.Id, request.RoomId);
+                return;
+            }
+
+            // Server-authoritative placement/points calculation
+            var deaths = (short)((match.Deaths ?? 0) + 1);
+            match.Deaths = deaths;
+
+            placement = (short)(match.PlayerCount - deaths); // 3 players: 2, 1
+            points = (short)(match.PlayerCount - placement - 1); // 3 players: 0, 1
+
+            _logger.LogInformation("TankDestroy | match: {Id} - deaths: {Deaths} - playerCount: {PlayerCount} - points: {Points} - placement: {placement} ",
+                    match.Id, match.Deaths, match.PlayerCount, points, placement);
+
+            participant.Placement = placement;
+            participant.Points = points;
+            participant.IsMatchWinner = false;
+            participant.IsChampionshipWinner = false;
+            participant.IsDone = true;
+
+            if (match.Participants.Count(p => !p.IsDone) <= 1)
+                matchEnded = CompleteMatch(request.RoomId, championship, match);
+        }
+
+        await _championships.PersistAsync(championship);
+
+        _logger.LogInformation(
+            "TankDestroy | Connection {ConnId} | Championship {ChampId} - Match {MatchId} - tank destroyed -> color={Color}, placement={Placement}, points={Points}",
+            Context.ConnectionId, championship.Id, match.Id, request.Color, placement, points);
 
         await Clients.OthersInGroup(request.RoomId).TankDestroyed(request);
+
+        if (matchEnded is not null)
+        {
+            await Clients.Group(request.RoomId).MatchEnded(matchEnded);
+            _deathWall.Stop(request.RoomId);
+        }
     }
 
     public async Task ProjectileFire(ProjectileFireRequest request)

@@ -17,4 +17,5 @@ public interface IGameClient
     Task ProjectileDestroyed(ProjectileFireRequest payload);
     Task ProjectilesCollided(ProjectilesCollideRequest payload);
     Task MatchEnded(MatchEndRequest payload);
+    Task ChampionshipFinished(ChampionshipFinishDto payload);
 }

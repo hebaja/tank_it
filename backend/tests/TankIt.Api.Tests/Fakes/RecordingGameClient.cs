@@ -9,7 +9,9 @@ internal sealed class RecordingGameClient : IGameClient
     public List<PlayerJoinedDto> PlayerJoins { get; } = [];
     public List<PlayerLeftDto> PlayerLeaves { get; } = [];
     public List<MatchStartedDto> MatchStarts { get; } = [];
-    public List<TankPlacementRequest> MatchEnds { get; } = [];
+    public List<ChampionshipMatchInfoDto> MatchEnds { get; } = [];
+    public List<ChampionshipFinishDto> ChampionshipFinishes { get; } = [];
+    public List<MatchEndRequest> RequestedMatchEnds { get; } = [];
     public List<DeathWallStepDto> DeathWallSteps { get; } = [];
     public List<BlockDestroyRequest> BlockDestroys { get; } = [];
     public List<BarrelDestroyRequest> BarrelDestroys { get; } = [];
@@ -42,9 +44,21 @@ internal sealed class RecordingGameClient : IGameClient
         return Task.CompletedTask;
     }
 
-    public Task GameEnded(TankPlacementRequest payload)
+    public Task MatchEnded(ChampionshipMatchInfoDto payload)
     {
         MatchEnds.Add(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task ChampionshipFinished(ChampionshipFinishDto payload)
+    {
+        ChampionshipFinishes.Add(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task MatchEnded(MatchEndRequest payload)
+    {
+        RequestedMatchEnds.Add(payload);
         return Task.CompletedTask;
     }
 
