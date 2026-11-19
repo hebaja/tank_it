@@ -47,19 +47,13 @@ export type Position = {
 export interface MatchEndPayload {
     roomId: string;
     championshipId: string;
-    placements: MatchPlacement[];
 }
-
-export type MatchPlacement = {
-    color: Color;
-    points: number;
-    placement: number;
-    timestamp: number;
-    isMatchWinner: boolean;
-};
 
 export interface MatchStartedPayload {
     roomId: string;
+    champioshipId: string;
+    matchId: string;
+    players: PlayerInfo[];
     randomBarrelPositions: Position[];
 }
 
@@ -79,7 +73,6 @@ export interface TankDestroyPayload {
     color: Color;
     x: number;
     y: number;
-    matchPlacement: MatchPlacement;
 }
 
 export interface ProjectilePayload {
@@ -115,6 +108,11 @@ export interface TankScoreInfo {
     user: string;
     color: string;
     score: number;
+    placement: number;
     isMatchWinner: boolean;
     isChampionshipWinner: boolean;
+}
+
+export interface ChampionshipFinishedPayload {
+    roomId: string;
 }

@@ -201,9 +201,8 @@ export class Overlay extends Scene {
                     this.CONTENT_OFFSET,
                     this.CONTENT_OFFSET + this.LABEL_OFFSET * i,
                     this.matchInfo.tanksScore[i].score,
-                    // this.matchInfo.tanksScore[i].isWinner,
-                    false,
-                    false,
+                    this.matchInfo.tanksScore[i].isMatchWinner,
+                    this.matchInfo.tanksScore[i].isChampionshipWinner,
                 ),
             );
         }
@@ -221,7 +220,7 @@ export class Overlay extends Scene {
         x: number,
         y: number,
         score: number,
-        isMatchWinner: boolean,
+        _isMatchWinner: boolean,
         isChampionshipWinner: boolean,
     ) {
         const tokens = [];

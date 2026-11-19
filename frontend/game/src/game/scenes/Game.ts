@@ -295,17 +295,16 @@ export class Game extends Scene {
                 const tank = t as Tank;
                 if (proj.getOwner() === tank) return;
 
-                const g = this.matchManager.recordPlacement(tank, false);
-                console.log(g);
-
-                if (proj.getOwner()?.getIsLocal()) {
+                if (
+                    tank.active &&
+                    tank.getColor() == sessionConfig.localColor
+                ) {
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
                         championshipId: this.championshipId,
                         color: tank.getColor(),
                         x: tank.x,
                         y: tank.y,
-                        matchPlacement: g,
                     });
                 }
                 this.destroyTank(tank);
@@ -382,7 +381,6 @@ export class Game extends Scene {
             y: tank.y,
             type: 'explosion',
         });
-        // this.matchManager.recordPlacement(tank, false);
         this.matchManager.checkEnd(this.tankGroup);
     }
 
@@ -429,22 +427,10 @@ export class Game extends Scene {
                         y: tank.y,
                         type: GameEvent.Explosion,
                     });
-                    // this.matchManager.recordPlacement(tank);
                     tank.destroy();
                 }
             });
         });
-    }
-
-    update() {
-        // const winner =
-        //     this.tankGroup.getLength() === 1
-        //         ? (this.tankGroup
-        //               .getChildren()
-        //               .find((t) => (t as Tank).getColor()) as Tank | undefined)
-        //         : undefined;
-        //
-        // this.matchManager.checkEnd(this.tankGroup.getLength(), winner);
     }
 
     shutdown() {
@@ -457,7 +443,6 @@ export class Game extends Scene {
 
         this.explosionManager.destroy();
         this.deathWallManager?.destroy();
-        this.matchManager.destroy();
         this.speedSystem.destroy();
         this.events.off(GameEvent.TileDestroy);
         this.networkManager.destroy();
