@@ -379,8 +379,6 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation("Barrel destroy in room {RoomId} at index {Index}", request.RoomId, request.Index);
-
         await Clients.OthersInGroup(request.RoomId).BarrelDestroyed(request);
     }
 
@@ -472,9 +470,6 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation(
-                "Projectile fire: Id: {ProjectileId} - Color: {Color} - Origin: {x}:{y} - Angle: {Angle}",
-                request.ProjectileId, request.Color, request.Origin.X, request.Origin.Y, request.Angle);
         await Clients.OthersInGroup(request.RoomId).ProjectileFired(request);
     }
 
@@ -483,11 +478,6 @@ public class GameHub : Hub<IGameClient>
         if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
-        _logger.LogInformation(
-            "Projectile destroy: Id: {ProjectileId} - Color: {Color}",
-            request.ProjectileId,
-            request.Color
-        );
         await Clients.OthersInGroup(request.RoomId).ProjectileDestroyed(request);
     }
 
