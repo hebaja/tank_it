@@ -3,57 +3,19 @@ import { GameEvent } from '../config/events';
 import { MatchEndedPayload } from '../../net/contracts';
 
 export class Overlay extends Scene {
-    private retryBtn: Phaser.GameObjects.Container;
     private scorePanel: Phaser.GameObjects.Container;
     private retryBtnWidth: number = 80;
     private retryBtnHeight: number = 30;
     private scorePanelWidth: number = 216;
-    private scorePanelHeight: number = 144;
+    private scorePanelHeight: number = 164;
     private retryBtnScale: number = 3;
     private scorePanelScale: number = 4;
     private retryBtnScaleHover: number = 3.025;
     private screenWidth!: number;
     private screenHeight!: number;
+    private matchInfo: MatchEndedPayload;
     private LABEL_OFFSET: number = 30;
     private CONTENT_OFFSET: number = 12;
-    private matchInfo: MatchEndedPayload;
-
-    /*
-    private matchInfo: ChampionshipMatchInfo = {
-        roomId: 'local-dev-room',
-        ft: 10,
-        tanks: [
-            {
-                label: 'blue',
-                user: '(asdrubal)',
-                color: '#419fdd',
-                score: 7,
-                isWinner: false,
-            },
-            {
-                label: 'red',
-                user: '(gertrudes)',
-                color: '#e74c3c',
-                score: 4,
-                isWinner: false,
-            },
-            {
-                label: 'green',
-                user: '(cremilda)',
-                color: '#2ecc71',
-                score: 5,
-                isWinner: false,
-            },
-            {
-                label: 'dark',
-                user: '(robisberto)',
-                color: '#6b6960',
-                score: 2,
-                isWinner: false,
-            },
-        ],
-    };
-    */
 
     constructor() {
         super('Overlay');
@@ -61,7 +23,7 @@ export class Overlay extends Scene {
 
     preload() {
         this.load.setPath('assets');
-        this.load.image('retry_background', 'bars/button_background.png');
+        this.load.image('button_background', 'bars/button_background.png');
         this.load.image('score_background', 'bars/score_panel_background.png');
         this.load.image('token_blue', 'bars/token_blue.png');
         this.load.image('token_red', 'bars/token_red.png');
@@ -76,16 +38,6 @@ export class Overlay extends Scene {
 
     init(data: MatchEndedPayload) {
         this.matchInfo = data;
-        console.log(data);
-        // data === payload de scene.launch()
-        // this.matchInfo = {
-        //     roomId: data.roomId,
-        //     ft: data.ft,
-        //     tanksScore: data.tanksScore.map(t => ({
-        //         ...t,
-        //         isWinner: t.label === data.winnerId,
-        //     })),
-        // };
     }
 
     create() {
@@ -103,23 +55,49 @@ export class Overlay extends Scene {
                 repeat: -1,
             });
         }
+        // TODO: Need to check if championship or simple match
         this.createScorePanel();
-        // else this.createRetryButton();
+        // this.createRetryButton();
     }
 
     createRetryButton() {
         this.add
             .rectangle(0, 0, this.screenWidth, this.screenHeight, 0x000000, 0.6)
             .setOrigin(0);
-        this.retryBtn = this.add.container(
-            this.screenWidth / 2,
-            this.screenHeight / 2,
+        const panel = this.add.container(0, 0);
+        panel.add(
+            this.createPanelButton(
+                'Retry',
+                this.screenWidth / 2,
+                this.screenHeight / 2,
+                this.retryBtnScale,
+                this.retryBtnScaleHover,
+                () => {
+                    console.log('pointer');
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.MatchRestartRequested);
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                },
+            ),
         );
+    }
+
+    createPanelButton(
+        label: string,
+        x: number,
+        y: number,
+        scale: number,
+        scaleHover: number,
+        callback?: () => void,
+    ) {
+        const btn = this.add.container(x, y);
+
         const background = this.add
             .nineslice(
                 0,
                 0,
-                'retry_background',
+                'button_background',
                 0,
                 this.retryBtnWidth,
                 this.retryBtnHeight,
@@ -131,39 +109,36 @@ export class Overlay extends Scene {
             .setOrigin(0.5);
 
         const text = this.add
-            .text(0, 0, 'Retry?', {
+            .text(0, 0, label, {
                 fontFamily: 'press-start-2P-regular',
                 fontSize: '8px',
                 color: '#ffffe6',
             })
             .setOrigin(0.5);
 
-        this.retryBtn.setSize(this.retryBtnWidth, this.retryBtnHeight);
-        this.retryBtn.setScale(this.retryBtnScale);
-
-        this.retryBtn.setInteractive({ useHandCursor: true });
-
-        this.retryBtn.add([background, text]);
-
-        this.retryBtn.on('pointerdown', () => {
+        btn.setSize(this.retryBtnWidth, this.retryBtnHeight);
+        btn.setScale(scale);
+        btn.setInteractive({ useHandCursor: true });
+        btn.add([background, text]);
+        btn.on('pointerdown', () => {
             text.setScale(1);
-            this.retryBtn.setScale(this.retryBtnScale);
-            this.scene.get('Game').events.emit(GameEvent.MatchRestartRequested);
-            this.scene.get('Game').events.emit(GameEvent.OptionSelect);
-            this.retryBtn.disableInteractive();
+            btn.setScale(scale);
+            callback?.();
+            btn.disableInteractive();
         });
-        this.retryBtn.on('pointerup', () => {
+        btn.on('pointerup', () => {
             text.setScale(1.01);
-            this.retryBtn.setScale(this.retryBtnScaleHover);
+            btn.setScale(scaleHover);
         });
-        this.retryBtn.on('pointerover', () => {
+        btn.on('pointerover', () => {
             text.setScale(1.01);
-            this.retryBtn.setScale(this.retryBtnScaleHover);
+            btn.setScale(scaleHover);
         });
-        this.retryBtn.on('pointerout', () => {
+        btn.on('pointerout', () => {
             text.setScale(1);
-            this.retryBtn.setScale(this.retryBtnScale);
+            btn.setScale(scale);
         });
+        return btn;
     }
 
     createScorePanel() {
