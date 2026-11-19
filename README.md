@@ -47,6 +47,7 @@ make prod
 | `make logs`      | Follow logs                                                               |
 | `make clean`     | Stop services and remove volumes                                          |
 | `make fclean`    | Full cleanup: containers, volumes, images, orphans                        |
+| `make db-reset`  | Drop and recreate the DB schema, then restart the backend                 |
 | `make ps`        | Show running project containers                                           |
 | `make install`   | Install root and frontend Yarn dependencies; restore backend dependencies |
 | `make dev`       | Start dev profile (hot reload)                                            |

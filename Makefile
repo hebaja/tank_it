@@ -69,10 +69,16 @@ dev:
 prod:
 	$(COMPOSE) --profile prod up -d
 
-db-migrate:
-	cd backend && dotnet ef database update -p src/TankIt.Api -s src/TankIt.Api
+db-migrate:  # apply pending migrations inside container
+	$(COMPOSE) exec backend dotnet ef database update -p src/TankIt.Api -s src/TankIt.Api
 
-db-migration-add name=MigrationName:
-	cd backend && dotnet ef migrations add $(name) -p src/TankIt.Api -s src/TankIt.Api
+db-update name=MigrationName:  # add migration + apply (one shot)
+	$(COMPOSE) exec backend dotnet ef migrations add $(name) -p src/TankIt.Api -s src/TankIt.Api
+	$(COMPOSE) exec backend dotnet ef database update -p src/TankIt.Api -s src/TankIt.Api
 
-.PHONY: all up down build rebuild logs clean fclean ps install dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend backend-restore db-migrate db-migration-add
+db-reset:
+	$(COMPOSE) exec -T db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" \
+		-c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"'
+	$(COMPOSE) restart backend
+
+.PHONY: all up down build rebuild logs clean fclean ps install dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend backend-restore db-migrate db-migration-add db-reset
