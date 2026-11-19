@@ -510,20 +510,29 @@ public class GameHub : Hub<IGameClient>
             .Distinct()
             .ToArray();
 
-        _logger.LogInformation(
-            "Projectiles collided: ProjectileA: Id: {ProjectileId} - Color: {Color}",
-            request.ProjectileA.ProjectileId,
-            request.ProjectileA.Color
-        );
-        _logger.LogInformation(
-            "ProjectileB: Id: {ProjectileId} - Color: {Color}",
-            request.ProjectileB.ProjectileId,
-            request.ProjectileB.Color
-        );
         await Clients.GroupExcept(request.ProjectileA.RoomId, excluded).ProjectilesCollided(request);
     }
 
-    // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
+    public async Task FinishChampionship(string roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId))
+            throw new HubException("roomId is required");
+
+        var championship = await _championships.GetByRoomIdAsync(roomId);
+        if (championship is null)
+            return;
+
+        if (championship.Status != ChampionshipStatus.Completed || championship.WinnerId is null)
+        {
+            _logger.LogWarning("FinishChampionship ignored: champioship {ChampionshipId} in room {RoomId} is not complete",
+                championship.Id, roomId);
+            return;
+        }
+
+        await _championships.CompleteAndEvictAsync(roomId);
+
+        await Clients.Group(roomId).ChampionshipFinished(new ChampionshipFinishDto { RoomId = roomId });
+    }
+
     // TODO: OnDisconnectedAsync override -> mark player disconnected, start reconnection grace
-    //       period per the proposal's "handle disconnection/reconnection gracefully" requirement.
 }
