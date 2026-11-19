@@ -53,7 +53,11 @@ export class GameHubConnection {
         return joined;
     }
     async leaveRoom(roomId: string, champId?: string): Promise<void> {
-        await this.conn.invoke('LeaveRoom', roomId, champId);
+        await this.conn.invoke('LeaveRoom', roomId, champId ?? '');
+    }
+
+    async finishChampionship(roomId: string): Promise<void> {
+        await this.conn.invoke('FinishChampionship', roomId);
     }
 
     sendTankMove(payload: TankMovePayload): void {

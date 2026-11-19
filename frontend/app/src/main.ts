@@ -179,7 +179,7 @@ async function leaveRoom() {
 
 function startMatch() {
     if (!currentRoomId || !currentColor || !hub) return;
-    hub.startMatch(currentRoomId).catch((err) => {
+    hub.startMatch(currentRoomId, championshipId).catch((err) => {
         console.error('[Lobby] startGame invoke failed:', err);
         showError('Failed to start game');
     });

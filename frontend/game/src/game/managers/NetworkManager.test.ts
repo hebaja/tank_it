@@ -227,7 +227,7 @@ describe('NetworkManager projectile lifecycle', () => {
         expect(hubMock.hub.offProjectileDestroyed).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.offProjectilesCollided).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.sendProjectileFire).not.toHaveBeenCalled();
-        expect(hubMock.hub.leaveRoom).toHaveBeenCalledWith('room-1');
+        expect(hubMock.hub.leaveRoom).toHaveBeenCalledWith('room-1', undefined);
         expect(hubMock.hub.stop).toHaveBeenCalledTimes(1);
     });
 });

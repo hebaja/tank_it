@@ -37,12 +37,12 @@ export class LobbyHubConnection {
         );
     }
 
-    async leaveRoom(roomId: string): Promise<void> {
-        await this.conn.invoke('LeaveRoom', roomId);
+    async leaveRoom(roomId: string, champId?: string): Promise<void> {
+        await this.conn.invoke('LeaveRoom', roomId, champId ?? '');
     }
 
-    async startMatch(roomId: string): Promise<void> {
-        await this.conn.invoke('StartMatch', roomId);
+    async startMatch(roomId: string, champId: string): Promise<void> {
+        await this.conn.invoke('StartMatch', roomId, champId);
     }
 
     onPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {
