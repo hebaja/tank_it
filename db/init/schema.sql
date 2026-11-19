@@ -51,16 +51,17 @@ CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 -- Gaming & UX / Championship mode (FT-N) — satisfies the Tournament system module
 -- ============================================================================
 -- A championship is a fixed-roster race to a target score (FT-N): first player
--- to reach target_score wins outright. target_score is set by player_count at
--- creation time (2p -> FT5, 3p -> FT7, 4p -> FT10) — stored explicitly rather
--- than derived, so the rule can be overridden per championship without a schema
--- change. See docs/GDD.md and docs/database-schema.md for the full scoring and
--- tie-break rules.
+-- to reach target_score wins outright. player_count tracks the current seats
+-- (1-4) while pending and is frozen when the series starts. target_score is set
+-- from that roster size when the first match starts (2p -> FT5, 3p -> FT7,
+-- 4p -> FT10) — stored explicitly rather than derived, so the rule can be
+-- overridden per championship without a schema change. See docs/GDD.md and
+-- docs/database-schema.md for the full scoring and tie-break rules.
 
 CREATE TABLE championships (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     status        VARCHAR(12) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
-    player_count  SMALLINT NOT NULL CHECK (player_count BETWEEN 2 AND 4), -- fixed roster size for every match in the series
+    player_count  SMALLINT NOT NULL CHECK (player_count BETWEEN 1 AND 4), -- current seats; fixed once the series starts
     target_score  SMALLINT NOT NULL CHECK (target_score > 0),
     winner_id     UUID REFERENCES users(id) ON DELETE SET NULL,
     created_by    UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -75,7 +76,7 @@ CREATE INDEX idx_championships_winner_id ON championships(winner_id);
 CREATE TABLE championship_participants (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     championship_id  UUID NOT NULL REFERENCES championships(id) ON DELETE CASCADE,
-    user_id          UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL = AI opponent
+    user_id          UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL = AI or anonymous seat
     is_ai            BOOLEAN NOT NULL DEFAULT false,
     tank_color       VARCHAR(10) NOT NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -96,7 +97,7 @@ CREATE TABLE matches (
     status            VARCHAR(12) NOT NULL DEFAULT 'lobby' CHECK (status IN ('lobby', 'in_progress', 'completed', 'aborted')),
     map_seed          INTEGER NOT NULL,
     is_ranked         BOOLEAN NOT NULL DEFAULT true,
-    player_count      SMALLINT NOT NULL CHECK (player_count BETWEEN 2 AND 4),
+    player_count      SMALLINT NOT NULL CHECK (player_count BETWEEN 1 AND 4),
     winner_id         UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL if AI won, draw, or aborted
     championship_id   UUID REFERENCES championships(id) ON DELETE CASCADE, -- NULL = standalone match
     sequence_number   SMALLINT, -- this match's order within its championship; NULL for standalone matches
@@ -116,7 +117,7 @@ CREATE UNIQUE INDEX uq_matches_championship_sequence
 CREATE TABLE match_participants (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     match_id          UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-    user_id           UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL = AI opponent
+    user_id           UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL = AI or anonymous seat
     is_ai             BOOLEAN NOT NULL DEFAULT false,
     tank_color        VARCHAR(10) NOT NULL,
     placement         SMALLINT,          -- 1 = winner; NULL until the match ends
@@ -126,8 +127,9 @@ CREATE TABLE match_participants (
     hits              INTEGER NOT NULL DEFAULT 0,
     kills             INTEGER NOT NULL DEFAULT 0,
     survived_seconds  INTEGER,
-    elo_delta         INTEGER,           -- NULL for AI participants / unranked matches
-    CHECK (is_ai = true OR user_id IS NOT NULL)
+    elo_delta         INTEGER            -- NULL for AI participants / unranked matches
+    -- user_id is nullable: NULL + is_ai = false means an anonymous seat
+    -- (gameplay has no auth yet); user_id NULL + is_ai = true means AI.
 );
 CREATE INDEX idx_match_participants_match_id ON match_participants(match_id);
 CREATE INDEX idx_match_participants_user_id ON match_participants(user_id);

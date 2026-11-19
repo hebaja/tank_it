@@ -53,7 +53,7 @@ erDiagram
     championships {
         uuid id PK
         varchar status "pending | in_progress | completed"
-        smallint player_count "2-4, fixed for the whole series"
+        smallint player_count "1-4 while pending; frozen at match start"
         smallint target_score "FT-N: 5 (2p) | 7 (3p) | 10 (4p)"
         uuid winner_id FK "nullable"
         uuid created_by FK "nullable"
@@ -72,7 +72,7 @@ erDiagram
         varchar status "lobby | in_progress | completed | aborted"
         int map_seed
         boolean is_ranked
-        smallint player_count "2-4"
+        smallint player_count "1-4, seats in this match"
         uuid winner_id FK "nullable"
         uuid championship_id FK "nullable = standalone match"
         smallint sequence_number "order within championship"
@@ -127,9 +127,10 @@ never sets a password. Login logic must check `oauth_accounts` when `password_ha
 
 ## Championship mode (FT-N)
 
-A championship is a fixed-roster race to a target score. `championship_participants` fixes the
-roster (2–4 seats, AI allowed) and `championships.player_count` at creation; every
-`matches` row belonging to that championship (`matches.championship_id` set) must use the same
+A championship is a fixed-roster race to a target score. `championship_participants` defines
+the seats (1–4 while the lobby is open, AI allowed); `championships.player_count` tracks the
+current seat count while pending and is frozen when the first match starts. From then on every
+`matches` row belonging to that championship (`matches.championship_id` set) uses the same
 `player_count` and gets a `sequence_number` marking its order in the series — enforced by
 `uq_matches_championship_sequence`, a unique index on `(championship_id, sequence_number)`.
 
@@ -139,9 +140,9 @@ this generalizes cleanly to 3-player (0/1/2) and 2-player (0/1) matches. `points
 for every match, not just championship ones — it's cheap to compute and useful for stats
 either way.
 
-**Target score by roster size** (`championships.target_score`, set by the app at creation,
-not a DB default, so it stays overridable): 4 players → FT10, 3 players → FT7, 2 players →
-FT5. Chosen so the number of matches-to-decide-it stays roughly comparable across roster
+**Target score by roster size** (`championships.target_score`, set by the app when the first
+match starts, not a DB default, so it stays overridable): 4 players → FT10, 3 players → FT7,
+2 players → FT5. Chosen so the number of matches-to-decide-it stays roughly comparable across roster
 sizes, not derived from a formula — these are the numbers from the discussion, stored
 explicitly for auditability.
 

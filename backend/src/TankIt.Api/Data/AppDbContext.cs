@@ -76,7 +76,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 t.HasCheckConstraint("championships_status_check",
                     "status IN ('pending', 'in_progress', 'completed')");
                 t.HasCheckConstraint("championships_player_count_check",
-                    "player_count BETWEEN 2 AND 4");
+                    "player_count BETWEEN 1 AND 4");
                 t.HasCheckConstraint("championships_target_score_check",
                     "target_score > 0");
             });
@@ -99,9 +99,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(p => p.IsAi).HasDefaultValue(false);
             e.Property(p => p.TankColor).HasMaxLength(10);
             e.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
-            e.ToTable(t => t.HasCheckConstraint(
-                "championship_participants_is_ai_user_id_check",
-                "is_ai = true OR user_id IS NOT NULL"));
             e.HasOne(p => p.Championship)
                 .WithMany(c => c.Participants)
                 .HasForeignKey(p => p.ChampionshipId)
@@ -135,7 +132,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 t.HasCheckConstraint("matches_status_check",
                     "status IN ('lobby', 'in_progress', 'completed', 'aborted')");
                 t.HasCheckConstraint("matches_player_count_check",
-                    "player_count BETWEEN 2 AND 4");
+                    "player_count BETWEEN 1 AND 4");
                 t.HasCheckConstraint("matches_championship_id_sequence_number_check",
                     "championship_id IS NULL OR sequence_number IS NOT NULL");
             });
@@ -167,9 +164,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(p => p.IsMatchWinner).HasDefaultValue(false);
             e.Property(p => p.IsChampionshipWinner).HasDefaultValue(false);
             e.Property(p => p.Kills).HasDefaultValue(0);
-            e.ToTable(t => t.HasCheckConstraint(
-                "match_participants_is_ai_user_id_check",
-                "is_ai = true OR user_id IS NOT NULL"));
             e.HasOne(p => p.Match)
                 .WithMany(m => m.Participants)
                 .HasForeignKey(p => p.MatchId)

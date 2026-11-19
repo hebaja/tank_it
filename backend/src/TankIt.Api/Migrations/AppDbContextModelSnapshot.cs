@@ -73,6 +73,10 @@ namespace TankIt.Api.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("target_score");
 
+                    b.Property<string>("WinnerColor")
+                        .HasColumnType("text")
+                        .HasColumnName("winner_color");
+
                     b.Property<Guid?>("WinnerId")
                         .HasColumnType("uuid")
                         .HasColumnName("winner_id");
@@ -91,7 +95,7 @@ namespace TankIt.Api.Migrations
 
                     b.ToTable("championships", null, t =>
                         {
-                            t.HasCheckConstraint("championships_player_count_check", "player_count BETWEEN 2 AND 4");
+                            t.HasCheckConstraint("championships_player_count_check", "player_count BETWEEN 1 AND 4");
 
                             t.HasCheckConstraint("championships_status_check", "status IN ('pending', 'in_progress', 'completed')");
 
@@ -155,10 +159,7 @@ namespace TankIt.Api.Migrations
                         .HasDatabaseName("uq_championship_participants_user_per_championship")
                         .HasFilter("user_id IS NOT NULL");
 
-                    b.ToTable("championship_participants", null, t =>
-                        {
-                            t.HasCheckConstraint("championship_participants_is_ai_user_id_check", "is_ai = true OR user_id IS NOT NULL");
-                        });
+                    b.ToTable("championship_participants", (string)null);
                 });
 
             modelBuilder.Entity("TankIt.Api.Models.Match", b =>
@@ -178,6 +179,10 @@ namespace TankIt.Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<short?>("Deaths")
+                        .HasColumnType("smallint")
+                        .HasColumnName("deaths");
 
                     b.Property<DateTimeOffset?>("EndedAt")
                         .HasColumnType("timestamp with time zone")
@@ -238,7 +243,7 @@ namespace TankIt.Api.Migrations
                         {
                             t.HasCheckConstraint("matches_championship_id_sequence_number_check", "championship_id IS NULL OR sequence_number IS NOT NULL");
 
-                            t.HasCheckConstraint("matches_player_count_check", "player_count BETWEEN 2 AND 4");
+                            t.HasCheckConstraint("matches_player_count_check", "player_count BETWEEN 1 AND 4");
 
                             t.HasCheckConstraint("matches_status_check", "status IN ('lobby', 'in_progress', 'completed', 'aborted')");
                         });
@@ -273,6 +278,10 @@ namespace TankIt.Api.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_championship_winner");
+
+                    b.Property<bool>("IsDone")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_done");
 
                     b.Property<bool>("IsMatchWinner")
                         .ValueGeneratedOnAdd()
@@ -332,10 +341,7 @@ namespace TankIt.Api.Migrations
                         .HasDatabaseName("uq_match_participants_user_per_match")
                         .HasFilter("user_id IS NOT NULL");
 
-                    b.ToTable("match_participants", null, t =>
-                        {
-                            t.HasCheckConstraint("match_participants_is_ai_user_id_check", "is_ai = true OR user_id IS NOT NULL");
-                        });
+                    b.ToTable("match_participants", (string)null);
                 });
 
             modelBuilder.Entity("TankIt.Api.Models.OAuthAccount", b =>
