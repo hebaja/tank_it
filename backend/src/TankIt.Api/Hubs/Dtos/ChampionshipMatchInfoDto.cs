@@ -5,11 +5,11 @@ public sealed class ChampionshipMatchInfoDto
     public string RoomId { get; init; } = "";
     public short Ft { get; init; } = 0;
     public bool IsChampioship { get; init; }
-    public Guid? ChampionshipId { get; init; } = new ();
-    public Guid MatchId { get; init; } = new ();
-    public ChampionshipStatus ChampionshipStatus { get; init; } = new ();
-    public Guid? MatchWinnerId { get; init; } = new ();
-    public Guid? ChampionshipWinnerId { get; init; } = new ();
+    public Guid? ChampionshipId { get; init; } = new();
+    public Guid MatchId { get; init; } = new();
+    public ChampionshipStatus ChampionshipStatus { get; init; } = new();
+    public Guid? MatchWinnerId { get; init; } = new();
+    public Guid? ChampionshipWinnerId { get; init; } = new();
     public TankScoreInfo[] TanksScore { get; init; } = [];
 }
 

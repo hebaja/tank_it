@@ -45,7 +45,7 @@ public class GameHub : Hub<IGameClient>
             if (_championships.TryGetByRoomId(roomId, out var championship)
                 && championship is not null
                 && championship.Status == ChampionshipStatus.Pending)
-                    seatsToRemove.Add((championship.Id, color));
+                seatsToRemove.Add((championship.Id, color));
         }
 
         // Must run before TrackDisconnect: that can evict/complete the championship
@@ -199,7 +199,7 @@ public class GameHub : Hub<IGameClient>
             ?? throw new HubException($"Championship for Room {roomId} not found");
         {
             if (!_championships.TryStartNextMatch(championship.Id, out var match) || match is null)
-                 throw new HubException($"Could not start next match for championship {championship.Id}");
+                throw new HubException($"Could not start next match for championship {championship.Id}");
 
             await _championships.PersistAsync(championship);
             players = _rooms.GetRoomPlayers(roomId);
@@ -340,7 +340,7 @@ public class GameHub : Hub<IGameClient>
                 Label = p.IsAi ? "AI" : p.User?.DisplayName ?? p.TankColor,
                 User = displayNames[i++],
                 Color = p.TankColor,
-                Score = championship.Participants.FirstOrDefault(pa => pa.TankColor == p.TankColor )?.Points,
+                Score = championship.Participants.FirstOrDefault(pa => pa.TankColor == p.TankColor)?.Points,
                 Placement = p.Placement,
                 IsMatchWinner = p.IsMatchWinner,
                 IsChampionshipWinner = championship.WinnerColor == p.TankColor
