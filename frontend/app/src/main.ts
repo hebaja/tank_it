@@ -1,9 +1,5 @@
 import { LobbyHubConnection } from './net/LobbyHubConnection';
-import type {
-    PlayerJoinedPayload,
-    PlayerLeftPayload,
-    PlayerInfo,
-} from './net/contracts';
+import type { PlayerJoinedPayload, PlayerLeftPayload } from './net/contracts';
 
 const HUB_URL =
     import.meta.env.VITE_HUB_URL ?? 'http://localhost:8080/hubs/game';
@@ -25,6 +21,11 @@ let currentColor = '';
 let myConnectionId = '';
 let championshipId = '';
 
+// One lobby row per color. A color can briefly have both a dying game
+// connection and a new lobby connection during the redirect handoff.
+const colorConnections = new Map<string, Set<string>>();
+const connectionColors = new Map<string, string>();
+
 function showError(msg: string) {
     errorEl.textContent = msg;
     errorEl.classList.remove('hidden');
@@ -35,17 +36,47 @@ function clearError() {
     errorEl.textContent = '';
 }
 
-function renderPlayers(players: PlayerInfo[], meId: string) {
+function addPlayer(connectionId: string, color: string) {
+    if (!connectionId) return;
+
+    const previousColor = connectionColors.get(connectionId);
+    if (previousColor && previousColor !== color) {
+        colorConnections.get(previousColor)?.delete(connectionId);
+        if (colorConnections.get(previousColor)?.size === 0) {
+            colorConnections.delete(previousColor);
+        }
+    }
+
+    connectionColors.set(connectionId, color);
+    const connections = colorConnections.get(color) ?? new Set<string>();
+    connections.add(connectionId);
+    colorConnections.set(color, connections);
+}
+
+function removePlayer(connectionId: string) {
+    const color = connectionColors.get(connectionId);
+    if (!color) return;
+
+    connectionColors.delete(connectionId);
+    const connections = colorConnections.get(color);
+    connections?.delete(connectionId);
+    if (!connections || connections.size === 0) {
+        colorConnections.delete(color);
+    }
+}
+
+function renderPlayers() {
     playerList.innerHTML = '';
-    for (const p of players) {
+    for (const [color, connections] of colorConnections) {
         const li = document.createElement('li');
+        li.dataset.color = color;
         const swatch = document.createElement('span');
-        swatch.className = `color-swatch ${p.color}`;
+        swatch.className = `color-swatch ${color}`;
         const name = document.createElement('span');
         name.className = 'player-name';
-        name.textContent = p.color.charAt(0).toUpperCase() + p.color.slice(1);
+        name.textContent = color.charAt(0).toUpperCase() + color.slice(1);
         li.append(swatch, name);
-        if (p.connectionId === meId) {
+        if (connections.has(myConnectionId)) {
             const you = document.createElement('span');
             you.className = 'player-you';
             you.textContent = ' (you)';
@@ -59,7 +90,6 @@ async function joinRoom() {
     clearError();
     const roomId = roomIdInput.value.trim() || 'local-dev-room';
     const color = colorSelect.value;
-    //const champId = '80391777-4e65-4f49-8eea-97ad1941998a';
 
     joinBtn.disabled = true;
     joinBtn.textContent = 'Joining…';
@@ -75,15 +105,14 @@ async function joinRoom() {
         championshipId = status.championshipId;
 
         myConnectionId =
-            status.players.find((p) => p.color === color && p.connectionId)
-                ?.connectionId ?? '';
+            status.connectionId ||
+            status.players.find((p) => p.color === color)?.connectionId ||
+            '';
 
-        // Store connectionId from the returned players list (the one matching our color)
-        // If not found (race), fallback: we'll get it from PlayerJoined event
-        if (!myConnectionId && status.players.length > 0) {
-            // The last added is likely us
-            myConnectionId =
-                status.players[status.players.length - 1].connectionId;
+        colorConnections.clear();
+        connectionColors.clear();
+        for (const player of status.players) {
+            addPlayer(player.connectionId, player.color);
         }
 
         // Subscribe to live updates
@@ -96,7 +125,7 @@ async function joinRoom() {
         roomBox.classList.remove('hidden');
         startBtn.classList.remove('hidden');
         roomIdDisplay.textContent = status.roomId;
-        renderPlayers(status.players, myConnectionId);
+        renderPlayers();
 
         joinBtn.disabled = false;
         joinBtn.textContent = 'Join';
@@ -115,41 +144,19 @@ async function joinRoom() {
 }
 
 function handlePlayerJoined(payload: PlayerJoinedPayload) {
-    const existing = playerList.querySelector(
-        `li[data-conn="${payload.connectionId}"]`,
-    );
-    if (!existing) {
-        console.log(payload);
-        const li = document.createElement('li');
-        li.dataset.conn = payload.connectionId;
-        const swatch = document.createElement('span');
-        swatch.className = `color-swatch ${payload.color}`;
-        const name = document.createElement('span');
-        name.className = 'player-name';
-        name.textContent =
-            payload.color.charAt(0).toUpperCase() + payload.color.slice(1);
-        li.append(swatch, name);
-        if (payload.connectionId === myConnectionId) {
-            const you = document.createElement('span');
-            you.className = 'player-you';
-            you.textContent = ' (you)';
-            li.append(you);
-        }
-        playerList.append(li);
-    }
+    addPlayer(payload.connectionId, payload.color);
+    renderPlayers();
 }
 
 function handlePlayerLeft(payload: PlayerLeftPayload) {
-    const li = playerList.querySelector(
-        `li[data-conn="${payload.connectionId}"]`,
-    );
-    if (li) li.remove();
+    removePlayer(payload.connectionId);
+    renderPlayers();
 }
 
 async function leaveRoom() {
     if (!hub || !currentRoomId) return;
     try {
-        await hub.leaveRoom(currentRoomId);
+        await hub.leaveRoom(currentRoomId, championshipId);
     } catch (err) {
         console.warn('[Lobby] Leave failed:', err);
     } finally {
@@ -161,6 +168,8 @@ async function leaveRoom() {
         currentRoomId = '';
         currentColor = '';
         myConnectionId = '';
+        colorConnections.clear();
+        connectionColors.clear();
         roomBox.classList.add('hidden');
         startBtn.classList.add('hidden');
         joinForm.classList.remove('hidden');

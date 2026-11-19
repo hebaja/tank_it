@@ -4,6 +4,7 @@ export interface PlayerInfo {
 }
 
 export interface RoomStatusPayload {
+    connectionId: string;
     roomId: string;
     championshipId: string;
     players: PlayerInfo[];
