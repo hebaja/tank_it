@@ -1,5 +1,9 @@
 import { LobbyHubConnection } from './net/LobbyHubConnection';
-import type { GameMode, PlayerJoinedPayload, PlayerLeftPayload } from './net/contracts';
+import type {
+    GameMode,
+    PlayerJoinedPayload,
+    PlayerLeftPayload,
+} from './net/contracts';
 
 const HUB_URL =
     import.meta.env.VITE_HUB_URL ?? 'http://localhost:8080/hubs/game';

@@ -45,12 +45,16 @@ export class GameHubConnection {
         await this.conn.stop();
     }
 
-    async joinRoom(roomId: string, color: string, mode: GameMode): Promise<RoomJoinedPayload> {
+    async joinRoom(
+        roomId: string,
+        color: string,
+        mode: GameMode,
+    ): Promise<RoomJoinedPayload> {
         const joined = await this.conn.invoke<RoomJoinedPayload>(
             'JoinRoom',
             roomId,
             color,
-            mode
+            mode,
         );
         this.connectionId = joined.connectionId;
         return joined;

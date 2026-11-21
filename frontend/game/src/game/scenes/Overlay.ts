@@ -185,7 +185,6 @@ export class Overlay extends Scene {
         this.scorePanel.setSize(this.scorePanelWidth, this.scorePanelHeight);
         this.scorePanel.setScale(this.scorePanelScale);
 
-
         /*
         const btnLabel = this.matchInfo.championshipWinnerId
             ? 'Finish'
@@ -254,21 +253,14 @@ export class Overlay extends Scene {
 
         if (!isChampionship) {
             panelButtons.push(
-                this.createPanelButton(
-                    'Lobby',
-                    52,
-                    buttonY,
-                    0.8,
-                    0.825,
-                    () => {
-                        this.scene
-                            .get('Game')
-                            .events.emit(GameEvent.ChampionshipFinishRequested, {
-                                roomId: this.matchInfo.roomId,
-                            });
-                        this.scene.get('Game').events.emit(GameEvent.OptionSelect);
-                    },
-                ),
+                this.createPanelButton('Lobby', 52, buttonY, 0.8, 0.825, () => {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampionshipFinishRequested, {
+                            roomId: this.matchInfo.roomId,
+                        });
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                }),
             );
         }
 

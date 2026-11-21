@@ -16,7 +16,7 @@ export const sessionConfig: SessionConfig = {
     localColor: (params.get('color') as Color) ?? Color.blue,
     hubUrl: params.get('hubUrl') ?? undefined,
     champId: params.get('champId') ?? undefined,
-    mode: params.get('mode') === 'championship' ? 'championship' : 'single'
+    mode: params.get('mode') === 'championship' ? 'championship' : 'single',
 };
 
 export function configureSession(overrides: Partial<SessionConfig>) {
