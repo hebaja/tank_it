@@ -44,7 +44,6 @@ export class Game extends Scene {
     private tankRoster: Map<string, Tank>;
     private spawnPoints: Map<Color, { x: number; y: number; angle: number }> =
         new Map();
-    private roomJoinedFallback: Phaser.Time.TimerEvent | null = null;
     private barrelPos: Position[] = [];
     private map: Tilemaps.Tilemap;
     private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
@@ -53,8 +52,6 @@ export class Game extends Scene {
     private blocksInitialState: number[][];
     private musicTrack: MusicTrack;
     private championshipId: string;
-    // Colors playing the current match. Null means no filter (before the first
-    // MatchStarted). Tie-break matches exclude players eliminated from the championship.
     private activeColors: Set<Color> | null = null;
 
     constructor() {
@@ -89,15 +86,6 @@ export class Game extends Scene {
         this.map = map;
         this.createGroups();
         this.collectSpawnPoints(tanksSpawnLayer);
-
-        // TODO: Fallback: spawn all tanks if no RoomJoined after 3s (dev mode) -> might not need it
-        this.roomJoinedFallback = this.time.delayedCall(3000, () => {
-            if (this.tankRoster.size > 0) return;
-            this.spawnPoints.forEach((_, color) =>
-                this.ensureTank(color, color === sessionConfig.localColor),
-            );
-        });
-
         this.createManagers();
         this.createCollisions();
         this.registerSceneEvents();
@@ -423,7 +411,6 @@ export class Game extends Scene {
 
     private registerSceneEvents() {
         this.events.once(Scenes.Events.SHUTDOWN, this.shutdown, this);
-        // this.events.on
         this.events.on(
             GameEvent.TileDestroy,
             ({ tile, step }: { tile: Tilemaps.Tile; step: number }) => {
@@ -466,12 +453,6 @@ export class Game extends Scene {
 
     shutdown() {
         this.isShuttingDown = true;
-
-        if (this.roomJoinedFallback) {
-            this.roomJoinedFallback.remove();
-            this.roomJoinedFallback = null;
-        }
-
         this.explosionManager.destroy();
         this.deathWallManager?.destroy();
         this.speedSystem.destroy();
@@ -560,12 +541,6 @@ export class Game extends Scene {
     private handleRoomJoined = (payload: RoomJoinedPayload) => {
         this.barrelPos = payload.randomBarrelPositions;
         this.championshipId = payload.championshipId;
-
-        // TODO: Cancel fallback — we have real player data -> might not need it
-        if (this.roomJoinedFallback) {
-            this.roomJoinedFallback.remove();
-            this.roomJoinedFallback = null;
-        }
 
         const playersByColor = new Map<string, PlayerInfo>();
         for (const player of payload.players)
