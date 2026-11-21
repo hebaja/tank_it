@@ -578,12 +578,16 @@ export class Game extends Scene {
 
         if (this.map) {
             this.createBarrels(this.map);
-            this.deathWallManager = new DeathWallManager(
-                this,
-                this.map,
-                this.tankGroup,
-                payload.deathWallStep,
-            );
+            if (!this.deathWallManager) {
+                this.deathWallManager = new DeathWallManager(
+                    this,
+                    this.map,
+                    this.tankGroup,
+                    payload.deathWallStep,
+                );
+            } else {
+                this.deathWallManager.reset(payload.deathWallStep);
+            }
         }
     };
 
@@ -626,6 +630,8 @@ export class Game extends Scene {
         this.tankRoster.clear();
         this.projectileGroup.clear();
         this.speedSystem.clearOilGroup();
+        this.deathWallManager?.reset()
+
         this.barrelPos = payload.randomBarrelPositions;
         this.createBarrels(this.map);
 
