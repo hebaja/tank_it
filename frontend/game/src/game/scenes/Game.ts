@@ -438,7 +438,19 @@ export class Game extends Scene {
                         y: tank.y,
                         type: GameEvent.Explosion,
                     });
-                    tank.destroy();
+                    if (
+                        tank.active &&
+                        tank.getColor() == sessionConfig.localColor
+                    ) {
+                        this.events.emit(GameEvent.TankDestroy, {
+                            roomId: sessionConfig.roomId,
+                            championshipId: this.championshipId,
+                            color: tank.getColor(),
+                            x: tank.x,
+                            y: tank.y,
+                        });
+                    }
+                    this.destroyTank(tank);
                 }
             });
         });
