@@ -185,6 +185,8 @@ export class Overlay extends Scene {
         this.scorePanel.setSize(this.scorePanelWidth, this.scorePanelHeight);
         this.scorePanel.setScale(this.scorePanelScale);
 
+
+        /*
         const btnLabel = this.matchInfo.championshipWinnerId
             ? 'Finish'
             : 'Next';
@@ -213,6 +215,64 @@ export class Overlay extends Scene {
         );
 
         this.scorePanel.add([background, ...labels, panelBtn]);
+        */
+
+        const isChampionship = this.matchInfo.isChampionship;
+
+        const btnLabel = isChampionship
+            ? this.matchInfo.championshipWinnerId
+                ? 'Finish'
+                : 'Next'
+            : 'Retry';
+
+        const buttonY =
+            this.scorePanelHeight / 2 - (this.retryBtnHeight * 0.8) / 2 - 8;
+
+        const panelBtn = this.createPanelButton(
+            btnLabel,
+            isChampionship ? 0 : -52,
+            buttonY,
+            0.8,
+            0.825,
+            () => {
+                if (isChampionship && this.matchInfo.championshipWinnerId) {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampionshipFinishRequested, {
+                            roomId: this.matchInfo.roomId,
+                        });
+                } else {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampNextMatchRequested);
+                }
+                this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+            },
+        );
+
+        const panelButtons = [panelBtn];
+
+        if (!isChampionship) {
+            panelButtons.push(
+                this.createPanelButton(
+                    'Lobby',
+                    52,
+                    buttonY,
+                    0.8,
+                    0.825,
+                    () => {
+                        this.scene
+                            .get('Game')
+                            .events.emit(GameEvent.ChampionshipFinishRequested, {
+                                roomId: this.matchInfo.roomId,
+                            });
+                        this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                    },
+                ),
+            );
+        }
+
+        this.scorePanel.add([background, ...labels, ...panelButtons]);
     }
 
     createTankScore(
