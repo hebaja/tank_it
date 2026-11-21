@@ -49,6 +49,7 @@ const sessionMock = vi.hoisted(() => ({
         roomId: 'room-1',
         localColor: 'blue',
         hubUrl: 'http://localhost:8080/hubs/game',
+        mode: 'single',
     },
 }));
 
@@ -143,6 +144,7 @@ const roomJoined: RoomJoinedPayload = {
     randomBarrelPositions: [],
     deathWallStep: -1,
     championshipId: '',
+    mode: 'single',
 };
 
 function createScene() {
@@ -221,6 +223,11 @@ describe('NetworkManager projectile lifecycle', () => {
         expect(joined).toBe(roomJoined);
         expect(joinedListener).toHaveBeenCalledWith(roomJoined);
         expect(manager.getConnectionId()).toBe('connection-a');
+        expect(hubMock.hub.joinRoom).toHaveBeenCalledWith(
+            'room-1',
+            'blue',
+            'single',
+        );
     });
 
     it('removes listeners and leaves the room on destroy', () => {

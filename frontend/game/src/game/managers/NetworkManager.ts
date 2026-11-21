@@ -96,6 +96,7 @@ export class NetworkManager {
                 this.hub.joinRoom(
                     sessionConfig.roomId,
                     sessionConfig.localColor,
+                    sessionConfig.mode
                 ),
             )
             .then((dto) => {

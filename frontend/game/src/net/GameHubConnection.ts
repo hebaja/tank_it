@@ -4,6 +4,7 @@ import type {
     BlockDestroyPayload,
     ChampionshipFinishedPayload,
     DeathWallStepPayload,
+    GameMode,
     MatchEndPayload,
     MatchEndedPayload,
     MatchStartedPayload,
@@ -44,11 +45,12 @@ export class GameHubConnection {
         await this.conn.stop();
     }
 
-    async joinRoom(roomId: string, color: string): Promise<RoomJoinedPayload> {
+    async joinRoom(roomId: string, color: string, mode: GameMode): Promise<RoomJoinedPayload> {
         const joined = await this.conn.invoke<RoomJoinedPayload>(
             'JoinRoom',
             roomId,
             color,
+            mode
         );
         this.connectionId = joined.connectionId;
         return joined;

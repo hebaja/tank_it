@@ -72,6 +72,7 @@ const roomJoined: RoomJoinedPayload = {
     randomBarrelPositions: [],
     deathWallStep: -1,
     championshipId: '',
+    mode: 'single',
 };
 
 describe('GameHubConnection projectile lifecycle', () => {
@@ -201,7 +202,7 @@ describe('GameHubConnection projectile lifecycle', () => {
 
         expect(hub.getConnectionId()).toBeNull();
 
-        const joined = await hub.joinRoom('room-1', 'blue');
+        const joined = await hub.joinRoom('room-1', 'blue', 'single');
 
         expect(joined).toBe(roomJoined);
         expect(hub.getConnectionId()).toBe('connection-a');
@@ -209,6 +210,7 @@ describe('GameHubConnection projectile lifecycle', () => {
             'JoinRoom',
             'room-1',
             'blue',
+            'single',
         );
     });
 

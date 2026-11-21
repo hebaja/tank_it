@@ -1,5 +1,7 @@
 import { Color } from '../game/config/color';
 
+export type GameMode = 'single' | 'championship';
+
 export interface TankMovePayload {
     roomId: string;
     playerId: string;
@@ -22,6 +24,7 @@ export interface RoomJoinedPayload {
     deathWallStep: number;
     randomBarrelPositions: Position[];
     championshipId: string;
+    mode: GameMode;
 }
 
 export interface PlayerJoinedPayload {
@@ -52,6 +55,7 @@ export interface MatchEndPayload {
 export interface MatchStartedPayload {
     roomId: string;
     champioshipId: string;
+    mode: GameMode;
     matchId: string;
     players: PlayerInfo[];
     randomBarrelPositions: Position[];
@@ -94,6 +98,7 @@ export interface ProjectilesCollidePayload {
 
 export interface MatchEndedPayload {
     roomId: string;
+    mode: GameMode;
     championshipStatus: string;
     isChampionship: boolean;
     championshipId: string;

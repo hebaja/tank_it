@@ -27,6 +27,7 @@ import type {
     MatchEndedPayload,
     MatchStartedPayload,
     ChampionshipFinishedPayload,
+    GameMode,
 } from '../../net/contracts';
 import { MusicTrack, SoundManager } from '../managers/SoundManager';
 import { redirectToLobby } from '../../net/lobbyRedirect';
@@ -53,6 +54,7 @@ export class Game extends Scene {
     private blocksInitialState: number[][];
     private musicTrack: MusicTrack;
     private championshipId: string;
+    private gameMode: GameMode = 'single';
 
     constructor() {
         super('Game');
@@ -538,6 +540,7 @@ export class Game extends Scene {
     private handleRoomJoined = (payload: RoomJoinedPayload) => {
         this.barrelPos = payload.randomBarrelPositions;
         this.championshipId = payload.championshipId;
+        this.gameMode = payload.mode;
 
         // TODO: Cancel fallback — we have real player data -> might not need it
         if (this.roomJoinedFallback) {
