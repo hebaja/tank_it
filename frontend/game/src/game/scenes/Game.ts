@@ -204,7 +204,8 @@ export class Game extends Scene {
         this.matchManager.reset();
         this.explosionManager = new ExplosionManager(this);
         this.speedSystem = new SpeedSystem(this, this.tankGroup);
-        this.soundManager = new SoundManager(this, this.musicTrack);
+        // TODO: avoid sound 
+        // this.soundManager = new SoundManager(this, this.musicTrack);
     }
 
     private createBarrels(map: Tilemaps.Tilemap) {
