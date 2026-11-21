@@ -27,7 +27,6 @@ import type {
     MatchEndedPayload,
     MatchStartedPayload,
     ChampionshipFinishedPayload,
-    GameMode,
 } from '../../net/contracts';
 import { MusicTrack, SoundManager } from '../managers/SoundManager';
 import { redirectToLobby } from '../../net/lobbyRedirect';
@@ -54,7 +53,6 @@ export class Game extends Scene {
     private blocksInitialState: number[][];
     private musicTrack: MusicTrack;
     private championshipId: string;
-    private gameMode: GameMode = 'single';
     // Colors playing the current match. Null means no filter (before the first
     // MatchStarted). Tie-break matches exclude players eliminated from the championship.
     private activeColors: Set<Color> | null = null;
@@ -561,7 +559,6 @@ export class Game extends Scene {
     private handleRoomJoined = (payload: RoomJoinedPayload) => {
         this.barrelPos = payload.randomBarrelPositions;
         this.championshipId = payload.championshipId;
-        this.gameMode = payload.mode;
 
         // TODO: Cancel fallback — we have real player data -> might not need it
         if (this.roomJoinedFallback) {
