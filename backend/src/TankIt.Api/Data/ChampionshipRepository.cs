@@ -134,6 +134,7 @@ public sealed class ChampionshipRepository(AppDbContext db)
             dm.PlayerCount = ClampPlayerCount(sm.Participants.Count);
             dm.WinnerId = ResolveUserId(sm.Participants, sm.WinnerId);
             dm.SequenceNumber = sm.SequenceNumber;
+            dm.Deaths = sm.Deaths;
             dm.StartedAt = sm.StartedAt;
             dm.EndedAt = sm.EndedAt;
 
@@ -169,6 +170,7 @@ public sealed class ChampionshipRepository(AppDbContext db)
             dp.IsAi = sp.IsAi;
             dp.IsMatchWinner = sp.IsMatchWinner;
             dp.IsChampionshipWinner = sp.IsChampionshipWinner;
+            dp.IsDone = sp.IsDone;
             dp.TankColor = sp.TankColor;
             dp.Placement = sp.Placement;
             dp.Points = sp.Points;
