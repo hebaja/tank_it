@@ -57,6 +57,7 @@ public sealed class ChampionshipRepository(AppDbContext db)
     private static void CopyChampionship(Championship src, Championship dst)
     {
         dst.RoomId = src.RoomId;
+        dst.Mode = src.Mode;
         dst.Status = src.Status;
         // The DB enforces a 1..4 seat count; clamp so a stale/in-memory roster
         // can never write an out-of-range value.
