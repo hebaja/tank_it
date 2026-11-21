@@ -101,6 +101,7 @@ public sealed class ChampionshipRepository(AppDbContext db)
             sp.Id = dp.Id; // keep in-memory identity stable for the next save
             dp.UserId = sp.UserId;
             dp.IsAi = sp.IsAi;
+            dp.IsEliminatedFromChampionship = sp.IsEliminatedFromChampionship;
             dp.TankColor = sp.TankColor;
             dp.Placement = sp.Placement;
             dp.Points = sp.Points;

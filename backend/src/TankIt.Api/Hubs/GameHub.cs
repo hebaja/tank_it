@@ -258,6 +258,7 @@ public class GameHub : Hub<IGameClient>
             Mode = championship.Mode.ToWireValue(),
             MatchId = match.Id,
             Players = players,
+            ActiveColors = [.. match.Participants.Select(p => p.TankColor)],
             RandomBarrelPositions = barrels
         });
     }

@@ -324,10 +324,23 @@ public sealed class MatchSettlementService(
 
                 if (leaders.Length > 1)
                 {
+                    var leaderIds = leaders.Select(l => l.Id).ToHashSet();
+                    foreach (var participant in championship.Participants)
+                    {
+                        if (!leaderIds.Contains(participant.Id))
+                            participant.IsEliminatedFromChampionship = true;
+                    }
+
+                    var excluded = championship.Participants
+                        .Where(p => p.IsEliminatedFromChampionship)
+                        .Select(p => p.TankColor);
+
                     logger.LogWarning(
-                        "Tie detected among championship leaders at {Points} points ({Colors}). Championship continues.",
+                        "Tie detected among championship leaders at {Points} points ({Leaders}). " +
+                        "Championship continues. Excluded from tie-break: [{Excluded}]",
                         maxPoints,
-                        string.Join(", ", leaders.Select(w => w.TankColor)));
+                        string.Join(", ", leaders.Select(w => w.TankColor)),
+                        string.Join(", ", excluded));
                 }
                 else
                 {

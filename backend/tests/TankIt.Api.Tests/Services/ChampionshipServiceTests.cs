@@ -230,4 +230,38 @@ public class ChampionshipServiceTests
             .Where(p => p.ChampionshipId == championship.Id)
             .ToListAsync());
     }
+
+    [Fact]
+    public async Task TryStartNextMatch_ExcludesEliminatedParticipants()
+    {
+        var fixture = new HubFixture();
+        var (_, championship) = await NewChampionshipWithMatch(fixture, "blue", "red", "green");
+
+        championship.Participants.Single(p => p.TankColor == "green")
+            .IsEliminatedFromChampionship = true;
+
+        Assert.True(fixture.Championships.TryStartNextMatch(championship.Id, out var tieBreak));
+        Assert.NotNull(tieBreak);
+        Assert.Equal(2, tieBreak!.PlayerCount);
+        Assert.Equal(2, tieBreak.Participants.Count);
+        Assert.DoesNotContain(tieBreak.Participants, p => p.TankColor == "green");
+        Assert.Contains(tieBreak.Participants, p => p.TankColor == "blue");
+        Assert.Contains(tieBreak.Participants, p => p.TankColor == "red");
+    }
+
+    [Fact]
+    public async Task PersistAsync_TracksEliminatedFlagInDatabase()
+    {
+        var fixture = new HubFixture();
+        var (_, championship) = await NewChampionshipWithMatch(fixture, "blue", "red", "green");
+
+        championship.Participants.Single(p => p.TankColor == "green")
+            .IsEliminatedFromChampionship = true;
+        await fixture.Championships.PersistAsync(championship);
+
+        await using var db = fixture.NewDbContext();
+        var stored = await db.ChampionshipParticipants
+            .SingleAsync(p => p.ChampionshipId == championship.Id && p.TankColor == "green");
+        Assert.True(stored.IsEliminatedFromChampionship);
+    }
 }

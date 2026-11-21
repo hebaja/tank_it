@@ -125,6 +125,19 @@ public sealed class ChampionshipService(
                 ? 1
                 : championship.Matches.Max(m => m.SequenceNumber ?? 0) + 1);
 
+            // Players eliminated by a FT tie stay in the room but skip tie-break matches.
+            var activeParticipants = championship.Participants
+                .Where(p => !p.IsEliminatedFromChampionship)
+                .ToArray();
+
+            if (activeParticipants.Length == 0)
+            {
+                logger.LogWarning(
+                    "Cannot start next match for championship {ChampionshipId}: no active participants",
+                    championship.Id);
+                return false;
+            }
+
             var startedAt = DateTimeOffset.UtcNow;
 
             var newMatch = new Match
@@ -134,11 +147,11 @@ public sealed class ChampionshipService(
                 ChampionshipId = championship.Id,
                 Championship = championship,
                 SequenceNumber = nextSequence,
-                PlayerCount = (short)championship.Participants.Count,
+                PlayerCount = (short)activeParticipants.Length,
                 StartedAt = startedAt,
             };
 
-            newMatch.Participants = [.. championship.Participants.Select(cp => new MatchParticipant
+            newMatch.Participants = [.. activeParticipants.Select(cp => new MatchParticipant
             {
                 Id = Guid.NewGuid(),
                 MatchId = newMatch.Id,

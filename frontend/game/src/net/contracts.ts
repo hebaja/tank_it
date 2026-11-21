@@ -58,6 +58,8 @@ export interface MatchStartedPayload {
     mode: GameMode;
     matchId: string;
     players: PlayerInfo[];
+    /** Colors playing this match; excludes players eliminated by a tie-break. */
+    activeColors: Color[];
     randomBarrelPositions: Position[];
 }
 

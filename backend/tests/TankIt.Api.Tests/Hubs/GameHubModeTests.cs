@@ -109,4 +109,24 @@ public sealed class GameHubModeTests
 
         fixture.DeathWall.Stop(RoomId);
     }
+
+    [Fact]
+    public async Task StartMatch_ActiveColorsExcludesEliminatedPlayers()
+    {
+        var fixture = new HubFixture();
+        var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
+        await fixture.CreateHub(OtherConnectionId).JoinRoom(RoomId, "green", "championship");
+
+        var championship = await fixture.Championships.GetAsync(joined.ChampionshipId!.Value);
+        Assert.NotNull(championship);
+        championship!.Participants.Single(p => p.TankColor == "green")
+            .IsEliminatedFromChampionship = true;
+
+        await fixture.Hub.StartMatch(RoomId, joined.ChampionshipId!.Value.ToString());
+
+        var started = Assert.Single(fixture.Captured.MatchStarts);
+        Assert.Equal(["blue"], started.ActiveColors);
+
+        fixture.DeathWall.Stop(RoomId);
+    }
 }

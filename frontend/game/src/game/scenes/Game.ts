@@ -55,6 +55,9 @@ export class Game extends Scene {
     private musicTrack: MusicTrack;
     private championshipId: string;
     private gameMode: GameMode = 'single';
+    // Colors playing the current match. Null means no filter (before the first
+    // MatchStarted). Tie-break matches exclude players eliminated from the championship.
+    private activeColors: Set<Color> | null = null;
 
     constructor() {
         super('Game');
@@ -599,8 +602,13 @@ export class Game extends Scene {
 
     private handlePlayerJoined = (payload: PlayerJoinedPayload) => {
         const color = payload.color as Color;
+        if (!this.isActive(color)) return;
         this.ensureTank(color, false);
     };
+
+    private isActive(color: Color): boolean {
+        return this.activeColors === null || this.activeColors.has(color);
+    }
 
     private ensureTank(color: Color, isLocal: boolean): Tank | undefined {
         const existing = this.tankRoster.get(color);
@@ -641,6 +649,11 @@ export class Game extends Scene {
         this.barrelPos = payload.randomBarrelPositions;
         this.createBarrels(this.map);
 
+        this.activeColors =
+            payload.activeColors && payload.activeColors.length > 0
+                ? new Set(payload.activeColors)
+                : null;
+
         for (let row = 0; row < this.blocksInitialState.length; row++) {
             for (
                 let col = 0;
@@ -667,11 +680,11 @@ export class Game extends Scene {
                 `[RoomJoined] Duplicate player colors in room ${payload.roomId}; spawning one tank per color`,
             );
 
-        for (const player of playersByColor.values())
-            this.ensureTank(
-                player.color as Color,
-                player.color === sessionConfig.localColor,
-            );
+        for (const player of playersByColor.values()) {
+            const color = player.color as Color;
+            if (!this.isActive(color)) continue;
+            this.ensureTank(color, color === sessionConfig.localColor);
+        }
     };
 
     private handleDeathWallStep = (p: DeathWallStepPayload) =>

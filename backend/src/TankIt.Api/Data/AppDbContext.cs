@@ -105,6 +105,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(p => p.Id).HasDefaultValueSql("gen_random_uuid()");
             e.Property(p => p.IsAi).HasDefaultValue(false);
+            e.Property(p => p.IsEliminatedFromChampionship).HasDefaultValue(false);
             e.Property(p => p.TankColor).HasMaxLength(10);
             e.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
             e.HasOne(p => p.Championship)

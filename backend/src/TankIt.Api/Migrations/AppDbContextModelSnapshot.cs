@@ -137,6 +137,12 @@ namespace TankIt.Api.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("is_ai");
 
+                    b.Property<bool>("IsEliminatedFromChampionship")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_eliminated_from_championship");
+
                     b.Property<short?>("Placement")
                         .HasColumnType("smallint")
                         .HasColumnName("placement");

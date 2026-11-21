@@ -65,6 +65,7 @@ erDiagram
         uuid championship_id FK
         uuid user_id FK "nullable = AI opponent"
         boolean is_ai
+        boolean is_eliminated_from_championship "excluded from tie-break matches"
         varchar tank_color
     }
     matches {
