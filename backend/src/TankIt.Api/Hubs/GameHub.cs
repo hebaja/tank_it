@@ -189,7 +189,7 @@ public class GameHub : Hub<IGameClient>
 
     public async Task TankMove(TankMoveRequest request)
     {
-        if (string.IsNullOrEmpty(request.RoomId))
+        if (string.IsNullOrWhiteSpace(request.RoomId))
             throw new HubException("roomId is required");
 
         await Clients.OthersInGroup(request.RoomId).TankMoved(request);
@@ -495,5 +495,14 @@ public class GameHub : Hub<IGameClient>
         await Clients.Group(roomId).ChampionshipFinished(new ChampionshipFinishDto { RoomId = roomId });
     }
 
+    public async Task ProjectileFireFail(ProjectileFireFailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RoomId))
+            throw new HubException("roomId is required");
+        _logger.LogInformation("Projectile fire failed {Color}", request.Color);
+        await Clients.OthersInGroup(request.RoomId).ProjectileFireFailed(request);
+    }
+
+    // TODO: FireProjectile(roomId, origin, angle) -> broadcast + server-side hit resolution.
     // TODO: OnDisconnectedAsync override -> mark player disconnected, start reconnection grace
 }

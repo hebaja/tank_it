@@ -127,6 +127,11 @@ export class Game extends Scene {
             this.handleChampionshipFinished,
             this,
         );
+        this.events.on(
+            GameEvent.ProjectileFireFailed,
+            this.handleProjectileFireFailed,
+            this,
+        );
         this.networkManager = new NetworkManager(this);
     }
 
@@ -252,6 +257,7 @@ export class Game extends Scene {
                         },
                     });
                 }
+                this.events.emit(GameEvent.BlockDestroySfx);
                 this.destroyProjectile(proj);
             },
         );
@@ -284,6 +290,7 @@ export class Game extends Scene {
                         index: barrel.getIndex(),
                     });
                 }
+                this.events.emit(GameEvent.BarrelDestroySfx);
                 this.destroyProjectile(proj);
             },
         );
@@ -310,6 +317,7 @@ export class Game extends Scene {
                         wallStep: null,
                     });
                 }
+                this.events.emit(GameEvent.TankDestroySfx);
                 if (isVictim || isKiller) this.destroyTank(tank);
                 this.destroyProjectile(proj);
             },
@@ -732,5 +740,9 @@ export class Game extends Scene {
 
         this.isShuttingDown = true;
         redirectToLobby();
+    };
+
+    private handleProjectileFireFailed = () => {
+        this.events.emit(GameEvent.ProjectileFireFail);
     };
 }

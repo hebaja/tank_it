@@ -6,84 +6,125 @@ using TankIt.Api.Tests.Fakes;
 
 namespace TankIt.Api.Tests.Services;
 
-public sealed class RoomServiceTests
+/// <summary>
+/// Unit tests for the in-memory lobby bookkeeping behind GameHub
+/// (backend/src/TankIt.Api/Services/RoomService.cs).
+/// </summary>
+public class RoomServiceTests
 {
+    private readonly RoomService _rooms = NewRoomService();
+
     [Fact]
     public void TrackJoin_AddsPlayerToRoom()
     {
-        var rooms = NewRoomService();
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
 
-        rooms.TrackJoin("room-1", "connection-a", "blue");
-
-        var player = Assert.Single(rooms.GetRoomPlayers("room-1"));
-        Assert.Equal("connection-a", player.ConnectionId);
+        var player = Assert.Single(_rooms.GetRoomPlayers("room-1"));
+        Assert.Equal("conn-a", player.ConnectionId);
         Assert.Equal("blue", player.Color);
+        Assert.Equal(new[] { "room-1" },
+            _rooms.GetRoomIdsForConnection("conn-a"));
+    }
+
+    [Fact]
+    public void TrackJoin_KeepsEveryPlayerInTheRoom()
+    {
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackJoin("room-1", "conn-b", "green");
+        _rooms.TrackJoin("room-2", "conn-c", "red");
+
+        Assert.Equal(2, _rooms.GetRoomPlayers("room-1").Length);
+        Assert.Contains(_rooms.GetRoomPlayers("room-1"),
+            p => p.ConnectionId == "conn-b" && p.Color == "green");
+        Assert.Single(_rooms.GetRoomPlayers("room-2"));
+        Assert.Equal(new[] { "room-1" },
+            _rooms.GetRoomIdsForConnection("conn-a"));
+        Assert.Equal(new[] { "room-2" },
+            _rooms.GetRoomIdsForConnection("conn-c"));
     }
 
     [Fact]
     public void TrackJoin_DoesNotDuplicateSameConnection()
     {
-        var rooms = NewRoomService();
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
 
-        rooms.TrackJoin("room-1", "connection-a", "blue");
-        rooms.TrackJoin("room-1", "connection-a", "blue");
+        Assert.Single(_rooms.GetRoomPlayers("room-1"));
+    }
 
-        Assert.Single(rooms.GetRoomPlayers("room-1"));
+    [Fact]
+    public void TrackJoin_RejoiningWithAnotherColor_UpdatesThePlayer()
+    {
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackJoin("room-1", "conn-a", "red");
+
+        var player = Assert.Single(_rooms.GetRoomPlayers("room-1"));
+        Assert.Equal("red", player.Color);
     }
 
     [Fact]
     public async Task TrackLeave_RemovesPlayerAndEvictsEmptyRoom()
     {
-        var rooms = NewRoomService();
-        rooms.TrackJoin("room-1", "connection-a", "blue");
-        rooms.TrackRoomCreation("room-1");
-        rooms.GetOrCreateBarrels("room-1");
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
 
-        await rooms.TrackLeave("room-1", "connection-a");
+        await _rooms.TrackLeave("room-1", "conn-a");
 
-        Assert.Empty(rooms.GetRoomPlayers("room-1"));
-        Assert.Equal(0, rooms.GetRoomCreatedAt("room-1"));
-        Assert.False(rooms.TryGetBarrels("room-1", out _));
-        Assert.Empty(rooms.GetRoomIdsForConnection("connection-a"));
+        Assert.Empty(_rooms.GetRoomPlayers("room-1"));
+        Assert.Equal(0, _rooms.GetRoomCreatedAt("room-1"));
+        Assert.False(_rooms.TryGetBarrels("room-1", out _));
+        Assert.Empty(_rooms.GetRoomIdsForConnection("conn-a"));
     }
 
     [Fact]
-    public async Task TrackLeave_KeepsRoomWhilePlayersRemain()
+    public async Task TrackLeave_RemovesPlayerAndEvictsTheEmptyRoom()
     {
-        var rooms = NewRoomService();
-        rooms.TrackJoin("room-1", "connection-a", "blue");
-        rooms.TrackJoin("room-1", "connection-b", "red");
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackRoomCreation("room-1");
+        _rooms.GetOrCreateBarrels("room-1");
+        Assert.NotEqual(0, _rooms.GetRoomCreatedAt("room-1"));
 
-        await rooms.TrackLeave("room-1", "connection-a");
+        await _rooms.TrackLeave("room-1", "conn-a");
 
-        var player = Assert.Single(rooms.GetRoomPlayers("room-1"));
-        Assert.Equal("connection-b", player.ConnectionId);
+        Assert.Empty(_rooms.GetRoomPlayers("room-1"));
+        Assert.Empty(_rooms.GetRoomIdsForConnection("conn-a"));
+        Assert.Equal(0, _rooms.GetRoomCreatedAt("room-1"));
+        Assert.False(_rooms.TryGetBarrels("room-1", out _));
     }
 
     [Fact]
-    public async Task TrackDisconnect_RemovesConnectionFromEveryRoom()
+    public async Task TrackLeave_KeepsTheRoomAliveWhileSomeoneStays()
     {
-        var rooms = NewRoomService();
-        rooms.TrackJoin("room-1", "connection-a", "blue");
-        rooms.TrackJoin("room-2", "connection-a", "blue");
-        rooms.TrackJoin("room-2", "connection-b", "red");
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackJoin("room-1", "conn-b", "green");
+        _rooms.TrackRoomCreation("room-1");
 
-        await rooms.TrackDisconnect("connection-a");
+        await _rooms.TrackLeave("room-1", "conn-b");
 
-        Assert.Empty(rooms.GetRoomPlayers("room-1"));
-        var remaining = Assert.Single(rooms.GetRoomPlayers("room-2"));
-        Assert.Equal("connection-b", remaining.ConnectionId);
-        Assert.Empty(rooms.GetRoomIdsForConnection("connection-a"));
+        Assert.Single(_rooms.GetRoomPlayers("room-1"));
+        Assert.NotEqual(0, _rooms.GetRoomCreatedAt("room-1"));
+    }
+
+    [Fact]
+    public async Task TrackDisconnect_LeavesEveryRoomTheConnectionWasIn()
+    {
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackJoin("room-2", "conn-a", "green");
+        _rooms.TrackJoin("room-1", "conn-b", "red");
+
+        await _rooms.TrackDisconnect("conn-a");
+
+        Assert.Empty(_rooms.GetRoomIdsForConnection("conn-a"));
+        Assert.Single(_rooms.GetRoomPlayers("room-1"));
+        Assert.Empty(_rooms.GetRoomPlayers("room-2"));
     }
 
     [Fact]
     public void GetRoomIdsForConnection_ReturnsEveryRoom()
     {
-        var rooms = NewRoomService();
-        rooms.TrackJoin("room-1", "connection-a", "blue");
-        rooms.TrackJoin("room-2", "connection-a", "blue");
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackJoin("room-2", "conn-a", "blue");
 
-        var roomIds = rooms.GetRoomIdsForConnection("connection-a");
+        var roomIds = _rooms.GetRoomIdsForConnection("conn-a");
 
         Assert.Equal(2, roomIds.Length);
         Assert.Contains("room-1", roomIds);
@@ -91,43 +132,63 @@ public sealed class RoomServiceTests
     }
 
     [Fact]
-    public void GetOrCreateBarrels_ReturnsSameSetForRoom()
+    public void TrackRoomCreation_IsIdempotentPerRoom()
     {
-        var rooms = NewRoomService();
+        var first = _rooms.TrackRoomCreation("room-1");
+        var second = _rooms.TrackRoomCreation("room-1");
 
-        var first = rooms.GetOrCreateBarrels("room-1");
-        var second = rooms.GetOrCreateBarrels("room-1");
+        Assert.Equal(first, second);
+        Assert.NotEqual(0, first);
+        Assert.Equal(first, _rooms.GetRoomCreatedAt("room-1"));
+    }
 
-        Assert.Same(first, second);
+    [Fact]
+    public void GetOrCreateBarrels_ReusesTheSamePositionsPerRoom()
+    {
+        var first = _rooms.GetOrCreateBarrels("room-1");
+        var again = _rooms.GetOrCreateBarrels("room-1");
+        var otherRoom = _rooms.GetOrCreateBarrels("room-2");
+
+        Assert.Same(first, again);
+        Assert.NotSame(first, otherRoom);
         Assert.Equal(10, first.Length);
         Assert.Equal(10, first.Distinct().Count());
     }
 
     [Fact]
-    public void TrackRoomCreation_ReturnsStableTimestamp()
+    public void TryGetAndRemoveBarrels_RoundTrip()
     {
-        var rooms = NewRoomService();
+        _rooms.GetOrCreateBarrels("room-1");
 
-        var first = rooms.TrackRoomCreation("room-1");
-        var second = rooms.TrackRoomCreation("room-1");
-
-        Assert.NotEqual(0, first);
-        Assert.Equal(first, second);
-        Assert.Equal(first, rooms.GetRoomCreatedAt("room-1"));
+        Assert.True(_rooms.TryGetBarrels("room-1", out var barrels));
+        Assert.NotNull(barrels);
+        Assert.True(_rooms.TryRemoveBarrels("room-1"));
+        Assert.False(_rooms.TryGetBarrels("room-1", out _));
     }
 
     [Fact]
     public async Task TryEvictRoom_RemovesKnownRoomAndRejectsUnknownRoom()
     {
-        var rooms = NewRoomService();
-        rooms.TrackJoin("room-1", "connection-a", "blue");
-        rooms.TrackRoomCreation("room-1");
-        rooms.GetOrCreateBarrels("room-1");
+        _rooms.TrackJoin("room-1", "conn-a", "blue");
+        _rooms.TrackRoomCreation("room-1");
+        _rooms.GetOrCreateBarrels("room-1");
 
-        Assert.True(await rooms.TryEvictRoomAsync("room-1"));
-        Assert.False(await rooms.TryEvictRoomAsync("room-1"));
-        Assert.False(rooms.TryGetBarrels("room-1", out _));
-        Assert.Equal(0, rooms.GetRoomCreatedAt("room-1"));
+        Assert.True(await _rooms.TryEvictRoomAsync("room-1"));
+        Assert.False(await _rooms.TryEvictRoomAsync("room-1"));
+        Assert.False(_rooms.TryGetBarrels("room-1", out _));
+        Assert.Equal(0, _rooms.GetRoomCreatedAt("room-1"));
+    }
+
+    [Fact]
+    public async Task UnknownRoom_IsHarmless()
+    {
+        Assert.Empty(_rooms.GetRoomPlayers("nope"));
+        Assert.Equal(0, _rooms.GetRoomCreatedAt("nope"));
+        Assert.False(await _rooms.TryEvictRoomAsync("nope"));
+
+        // Leaving a room/connection nobody ever joined must not throw.
+        await _rooms.TrackLeave("nope", "ghost");
+        await _rooms.TrackDisconnect("ghost");
     }
 
     [Fact]

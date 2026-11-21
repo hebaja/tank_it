@@ -35,6 +35,14 @@ package) specifically so migrations emit `snake_case` columns/tables matching
 `db/init/schema.sql`'s naming — without it, EF Core's default is PascalCase and the two would
 silently diverge the moment migrations run against a schema.sql-bootstrapped database.
 
+## Deployment
+
+Production runs this same ASP.NET Core app in one container that also serves the landing and
+game builds. Heroku uses the `container` stack, Heroku Postgres, and a single web dyno;
+migrations run on boot via `Database.Migrate()`. See
+[`docs/deployment-heroku.md`](../docs/deployment-heroku.md) for first-time setup, config vars,
+redeploys, rollback, and troubleshooting.
+
 ## Structure
 
 ```

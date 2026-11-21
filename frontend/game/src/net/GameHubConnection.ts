@@ -13,11 +13,13 @@ import type {
     ProjectilesCollidePayload,
     RoomJoinedPayload,
     TankDestroyPayload,
+    TankInfoPayload,
     TankMovePayload,
     TankMovedPayload,
 } from './contracts';
 
-const DEFAULT_HUB_URL = 'http://localhost:8080/hubs/game';
+const DEFAULT_HUB_URL =
+    import.meta.env.VITE_HUB_URL ?? 'http://localhost:8080/hubs/game';
 
 export class GameHubConnection {
     private conn: signalR.HubConnection;
@@ -175,6 +177,18 @@ export class GameHubConnection {
             );
     }
 
+    sendProjectileFireFail(payload: TankInfoPayload): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('ProjectileFireFail', payload)
+            .catch((err) =>
+                console.warn(
+                    '[GameHubConnection] ProjectileFireFail send failed',
+                    err,
+                ),
+            );
+    }
+
     onTankMoved(cb: (p: TankMovedPayload) => void): void {
         this.conn.on('TankMoved', cb);
     }
@@ -248,6 +262,12 @@ export class GameHubConnection {
         cb: (p: ChampionshipFinishedPayload) => void,
     ): void {
         this.conn.off('ChampionshipFinished', cb);
+    }
+    onProjectileFireFailed(cb: (p: TankInfoPayload) => void): void {
+        this.conn.on('ProjectileFireFailed', cb);
+    }
+    offProjectileFireFailed(cb: (p: TankInfoPayload) => void): void {
+        this.conn.off('ProjectileFireFailed', cb);
     }
 
     get state(): signalR.HubConnectionState {

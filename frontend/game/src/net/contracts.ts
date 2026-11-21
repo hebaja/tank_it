@@ -16,6 +16,11 @@ export interface PlayerInfo {
     color: string;
 }
 
+export interface TankInfoPayload {
+    roomId: string;
+    color: string;
+}
+
 export interface RoomJoinedPayload {
     connectionId: string;
     roomId: string;

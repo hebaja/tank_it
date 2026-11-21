@@ -1,1 +1,2 @@
+# Backend tests are intentionally skipped here (CI covers them).
 make lint typecheck build test

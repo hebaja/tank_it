@@ -67,6 +67,7 @@ const hubMock = vi.hoisted(() => {
         onMatchEnded: vi.fn(),
         onPlayerJoined: vi.fn(),
         onChampionshipFinished: vi.fn(),
+        onProjectileFireFailed: vi.fn(),
         offTankMoved: vi.fn(),
         offMatchStarted: vi.fn(),
         offDeathWallStep: vi.fn(),
@@ -78,6 +79,7 @@ const hubMock = vi.hoisted(() => {
         offProjectilesCollided: vi.fn(),
         offMatchEnded: vi.fn(),
         offChampionshipFinished: vi.fn(),
+        offProjectileFireFailed: vi.fn(),
         sendTankMove: vi.fn(),
         sendMatchEnd: vi.fn(),
         sendStartMatch: vi.fn(),
@@ -88,6 +90,7 @@ const hubMock = vi.hoisted(() => {
         sendProjectileDestroy: vi.fn(),
         sendProjectilesCollide: vi.fn(),
         finishChampionship: vi.fn(),
+        sendProjectileFireFail: vi.fn(),
         start: vi.fn(),
         stop: vi.fn(),
         joinRoom: vi.fn(),
@@ -111,6 +114,7 @@ import type {
     ProjectilePayload,
     ProjectilesCollidePayload,
     RoomJoinedPayload,
+    TankInfoPayload,
 } from '../../net/contracts';
 import { NetworkManager } from './NetworkManager';
 
@@ -134,6 +138,11 @@ const collision: ProjectilesCollidePayload = {
         color: 'red',
     },
     timestamp: 112,
+};
+
+const fireFail: TankInfoPayload = {
+    roomId: 'room-1',
+    color: 'blue',
 };
 
 const roomJoined: RoomJoinedPayload = {
@@ -169,6 +178,7 @@ describe('NetworkManager projectile lifecycle', () => {
         expect(hubMock.hub.onProjectileFired).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.onProjectileDestroyed).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.onProjectilesCollided).toHaveBeenCalledTimes(1);
+        expect(hubMock.hub.onProjectileFireFailed).toHaveBeenCalledTimes(1);
     });
 
     it('forwards local scene events to the hub', () => {
@@ -178,6 +188,7 @@ describe('NetworkManager projectile lifecycle', () => {
         scene.events.emit(GameEvent.ProjectileFire, projectile);
         scene.events.emit(GameEvent.ProjectileDestroy, projectile);
         scene.events.emit(GameEvent.ProjectilesCollide, collision);
+        scene.events.emit(GameEvent.ProjectileFireFail, fireFail);
 
         expect(hubMock.hub.sendProjectileFire).toHaveBeenCalledWith(projectile);
         expect(hubMock.hub.sendProjectileDestroy).toHaveBeenCalledWith(
@@ -185,6 +196,9 @@ describe('NetworkManager projectile lifecycle', () => {
         );
         expect(hubMock.hub.sendProjectilesCollide).toHaveBeenCalledWith(
             collision,
+        );
+        expect(hubMock.hub.sendProjectileFireFail).toHaveBeenCalledWith(
+            fireFail,
         );
     });
 
@@ -195,21 +209,26 @@ describe('NetworkManager projectile lifecycle', () => {
         const fired = hubMock.hub.onProjectileFired.mock.calls[0][0];
         const destroyed = hubMock.hub.onProjectileDestroyed.mock.calls[0][0];
         const collided = hubMock.hub.onProjectilesCollided.mock.calls[0][0];
+        const failed = hubMock.hub.onProjectileFireFailed.mock.calls[0][0];
 
         const firedListener = vi.fn();
         const destroyedListener = vi.fn();
         const collidedListener = vi.fn();
+        const failedListener = vi.fn();
         scene.events.on(GameEvent.ProjectileFired, firedListener);
         scene.events.on(GameEvent.ProjectileDestroyed, destroyedListener);
         scene.events.on(GameEvent.ProjectilesCollided, collidedListener);
+        scene.events.on(GameEvent.ProjectileFireFailed, failedListener);
 
         fired(projectile);
         destroyed(projectile);
         collided(collision);
+        failed(fireFail);
 
         expect(firedListener).toHaveBeenCalledWith(projectile);
         expect(destroyedListener).toHaveBeenCalledWith(projectile);
         expect(collidedListener).toHaveBeenCalledWith(collision);
+        expect(failedListener).toHaveBeenCalledWith(fireFail);
     });
 
     it('emits RoomJoined and exposes the connection id when ready', async () => {
@@ -236,11 +255,14 @@ describe('NetworkManager projectile lifecycle', () => {
 
         manager.destroy();
         scene.events.emit(GameEvent.ProjectileFire, projectile);
+        scene.events.emit(GameEvent.ProjectileFireFail, fireFail);
 
         expect(hubMock.hub.offProjectileFired).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.offProjectileDestroyed).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.offProjectilesCollided).toHaveBeenCalledTimes(1);
+        expect(hubMock.hub.offProjectileFireFailed).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.sendProjectileFire).not.toHaveBeenCalled();
+        expect(hubMock.hub.sendProjectileFireFail).not.toHaveBeenCalled();
         expect(hubMock.hub.leaveRoom).toHaveBeenCalledWith('room-1', undefined);
         expect(hubMock.hub.stop).toHaveBeenCalledTimes(1);
     });

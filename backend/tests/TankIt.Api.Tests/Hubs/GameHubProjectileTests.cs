@@ -173,6 +173,42 @@ public sealed class GameHubProjectileTests
         await Assert.ThrowsAsync<HubException>(() => fixture.Hub.ProjectilesCollide(payload));
     }
 
+    [Fact]
+    public async Task ProjectileFireFail_BroadcastsToOtherPlayersInRoom()
+    {
+        var fixture = new HubFixture();
+        var payload = new ProjectileFireFailRequest { RoomId = RoomId, Color = "blue" };
+
+        await fixture.Hub.ProjectileFireFail(payload);
+
+        Assert.Same(payload, Assert.Single(fixture.Captured.ProjectileFireFails));
+        fixture.Clients.Verify(c => c.OthersInGroup(RoomId), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProjectileFireFail_DoesNotBroadcastToCaller()
+    {
+        var fixture = new HubFixture();
+        var payload = new ProjectileFireFailRequest { RoomId = RoomId, Color = "blue" };
+
+        await fixture.Hub.ProjectileFireFail(payload);
+
+        fixture.Clients.Verify(c => c.Group(It.IsAny<string>()), Times.Never);
+        fixture.Clients.Verify(c => c.All, Times.Never);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task ProjectileFireFail_RejectsMissingRoom(string roomId)
+    {
+        var fixture = new HubFixture();
+        var payload = new ProjectileFireFailRequest { RoomId = roomId, Color = "blue" };
+
+        await Assert.ThrowsAsync<HubException>(() => fixture.Hub.ProjectileFireFail(payload));
+        Assert.Empty(fixture.Captured.ProjectileFireFails);
+    }
+
     private static ProjectileFireRequest NewProjectile(
         string color,
         string projectileId,
