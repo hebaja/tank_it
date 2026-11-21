@@ -1,5 +1,5 @@
 import { LobbyHubConnection } from './net/LobbyHubConnection';
-import type { PlayerJoinedPayload, PlayerLeftPayload } from './net/contracts';
+import type { GameMode, PlayerJoinedPayload, PlayerLeftPayload } from './net/contracts';
 
 const HUB_URL =
     import.meta.env.VITE_HUB_URL ?? 'http://localhost:8080/hubs/game';
@@ -14,6 +14,7 @@ const startBtn = document.getElementById('start-btn') as HTMLButtonElement;
 const roomIdDisplay = document.getElementById('room-id-display') as HTMLElement;
 const playerList = document.getElementById('player-list') as HTMLUListElement;
 const errorEl = document.getElementById('error') as HTMLElement;
+const modeDisplay = document.getElementById('mode-display') as HTMLElement;
 
 let hub: LobbyHubConnection | null = null;
 let currentRoomId = '';
@@ -21,6 +22,34 @@ let currentColor = '';
 const params = new URLSearchParams(window.location.search);
 const initialRoomId = params.get('roomId');
 const initialColor = params.get('color');
+
+const initialMode: GameMode =
+    params.get('mode') === 'championship' ? 'championship' : 'single';
+
+let currentMode: GameMode = initialMode;
+
+const modeInputs = Array.from(
+    document.querySelectorAll<HTMLInputElement>('input[name="mode"]'),
+);
+
+function formatMode(mode: GameMode): string {
+    return mode === 'championship' ? 'Championship' : 'Single match';
+}
+
+function setMode(mode: GameMode) {
+    currentMode = mode;
+    for (const input of modeInputs) {
+        input.checked = input.value === mode;
+    }
+}
+
+function setModeLocked(locked: boolean) {
+    for (const input of modeInputs) {
+        input.disabled = locked;
+    }
+}
+
+setMode(initialMode);
 
 if (initialRoomId) roomIdInput.value = initialRoomId;
 
@@ -102,6 +131,7 @@ async function joinRoom() {
     clearError();
     const roomId = roomIdInput.value.trim() || 'local-dev-room';
     const color = colorSelect.value;
+    const mode = currentMode;
 
     joinBtn.disabled = true;
     joinBtn.textContent = 'Joining…';
@@ -110,11 +140,16 @@ async function joinRoom() {
         hub = new LobbyHubConnection(HUB_URL);
         await hub.start();
 
-        const status = await hub.joinRoom(roomId, color);
+        const status = await hub.joinRoom(roomId, color, mode);
 
         currentRoomId = roomId;
         currentColor = color;
+        currentMode = status.mode;
         championshipId = status.championshipId;
+
+        setMode(status.mode);
+        setModeLocked(true);
+        modeDisplay.textContent = formatMode(status.mode);
 
         myConnectionId =
             status.connectionId ||
@@ -179,7 +214,11 @@ async function leaveRoom() {
         hub = null;
         currentRoomId = '';
         currentColor = '';
+        currentMode = initialMode;
         myConnectionId = '';
+        setMode(initialMode);
+        setModeLocked(false);
+        modeDisplay.textContent = '';
         colorConnections.clear();
         connectionColors.clear();
         roomBox.classList.add('hidden');
@@ -200,7 +239,7 @@ function startMatch() {
 function redirectToGame() {
     if (!currentRoomId || !currentColor) return;
     const gameUrl = import.meta.env.VITE_GAME_URL ?? 'http://localhost:5173';
-    const url = `${gameUrl}?roomId=${encodeURIComponent(currentRoomId)}&color=${encodeURIComponent(currentColor)}&champId=${encodeURIComponent(championshipId)}`;
+    const url = `${gameUrl}?roomId=${encodeURIComponent(currentRoomId)}&color=${encodeURIComponent(currentColor)}&champId=${encodeURIComponent(championshipId)}&mode=${encodeURIComponent(currentMode)}`;
 
     if (hub) {
         hub.offPlayerJoined(handlePlayerJoined);
@@ -220,6 +259,12 @@ function handleMatchStarted() {
 joinBtn.addEventListener('click', joinRoom);
 leaveBtn.addEventListener('click', leaveRoom);
 startBtn.addEventListener('click', startMatch);
+
+for (const input of modeInputs) {
+    input.addEventListener('change', () => {
+        if (input.checked) currentMode = input.value as GameMode;
+    });
+}
 
 // Enter key in inputs triggers join
 roomIdInput.addEventListener('keydown', (e) => {

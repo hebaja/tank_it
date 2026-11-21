@@ -11,7 +11,7 @@
         <main class="landing">
             <h1>Tank It!</h1>
             <p class="subtitle">
-                Enter a room ID, pick your tank color, then join.
+                Enter a room ID, pick your tank color and mode, then join.
             </p>
 
             <!-- Pre-join form -->
@@ -34,12 +34,24 @@
                         <option value="dark">Dark</option>
                     </select>
                 </div>
+                <fieldset class="mode">
+                    <legend>Mode:</legend>
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="single" checked />
+                        <span>Single match</span>
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="championship" />
+                        <span>Championship</span>
+                    </label>
+                </fieldset>
                 <button id="join-btn" type="button">Join</button>
             </section>
 
             <!-- Post-join room box (hidden until joined) -->
             <section id="room-box" class="room-box hidden">
                 <h2>Room: <span id="room-id-display"></span></h2>
+                <p class="hint">Mode: <strong id="mode-display"></strong></p>
                 <p class="hint">Waiting for players…</p>
                 <ul id="player-list" class="player-list"></ul>
                 <button id="start-btn" type="button" class="hidden">
