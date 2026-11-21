@@ -15,17 +15,21 @@ internal sealed class HubFixture
     public const string DefaultRoomId = "room-1";
 
     public Mock<IHubCallerClients<IGameClient>> Clients { get; } = new();
+    public Mock<IHubContext<GameHub, IGameClient>> HubContext { get; } = new();
     public Mock<IGroupManager> Groups { get; } = new();
     public RecordingGameClient Captured { get; } = new();
     public DeathWallService DeathWall { get; }
     public RoomService Rooms { get; }
     public ChampionshipService Championships { get; }
+    public MatchSettlementService Settlement { get; }
     public GameHub Hub { get; }
     public ServiceProvider Services { get; }
 
     private readonly DbContextOptions<AppDbContext> _dbOptions;
 
-    public HubFixture(string connectionId = DefaultConnectionId)
+    public HubFixture(
+        string connectionId = DefaultConnectionId,
+        MatchSettlementOptions? settlementOptions = null)
     {
         // In-memory EF provider: the write-through repository runs for real,
         // so tests exercise the same code path as production (minus Postgres).
@@ -39,8 +43,7 @@ internal sealed class HubFixture
         services.AddScoped<ChampionshipRepository>();
         Services = services.BuildServiceProvider();
 
-        var hubContext = new Mock<IHubContext<GameHub, IGameClient>>();
-        DeathWall = new DeathWallService(hubContext.Object, NullLogger<DeathWallService>.Instance);
+        DeathWall = new DeathWallService(HubContext.Object, NullLogger<DeathWallService>.Instance);
         Championships = new ChampionshipService(
             NullLogger<ChampionshipService>.Instance,
             Services.GetRequiredService<IServiceScopeFactory>());
@@ -49,15 +52,30 @@ internal sealed class HubFixture
             DeathWall,
             Championships,
             NullLogger<RoomService>.Instance);
-        Hub = new GameHub(NullLogger<GameHub>.Instance, Rooms, DeathWall, Championships)
+        Settlement = new MatchSettlementService(
+            Championships,
+            DeathWall,
+            HubContext.Object,
+            TimeProvider.System,
+            settlementOptions ?? new MatchSettlementOptions
+            {
+                TieWindow = TimeSpan.Zero,
+                SettlementGrace = TimeSpan.Zero,
+            },
+            NullLogger<MatchSettlementService>.Instance);
+        Hub = new GameHub(
+            NullLogger<GameHub>.Instance,
+            Rooms,
+            DeathWall,
+            Championships,
+            Settlement)
         {
             Context = new TestHubCallerContext(connectionId),
             Clients = Clients.Object,
             Groups = Groups.Object,
         };
 
-        Clients.Setup(c => c.OthersInGroup(DefaultRoomId)).Returns(Captured);
-        Clients.Setup(c => c.Group(DefaultRoomId)).Returns(Captured);
+        SetupRoom(DefaultRoomId);
         Groups
             .Setup(g => g.AddToGroupAsync(
                 It.IsAny<string>(),
@@ -73,7 +91,12 @@ internal sealed class HubFixture
     }
 
     public GameHub CreateHub(string connectionId)
-        => new(NullLogger<GameHub>.Instance, Rooms, DeathWall, Championships)
+        => new(
+            NullLogger<GameHub>.Instance,
+            Rooms,
+            DeathWall,
+            Championships,
+            Settlement)
         {
             Context = new TestHubCallerContext(connectionId),
             Clients = Clients.Object,
@@ -86,5 +109,6 @@ internal sealed class HubFixture
     {
         Clients.Setup(c => c.OthersInGroup(roomId)).Returns(Captured);
         Clients.Setup(c => c.Group(roomId)).Returns(Captured);
+        HubContext.Setup(c => c.Clients.Group(roomId)).Returns(Captured);
     }
 }

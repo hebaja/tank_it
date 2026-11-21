@@ -77,6 +77,7 @@ export interface TankDestroyPayload {
     color: Color;
     x: number;
     y: number;
+    wallStep?: number | null;
 }
 
 export interface ProjectilePayload {

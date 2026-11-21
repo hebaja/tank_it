@@ -204,7 +204,7 @@ export class Game extends Scene {
         this.matchManager.reset();
         this.explosionManager = new ExplosionManager(this);
         this.speedSystem = new SpeedSystem(this, this.tankGroup);
-        // TODO: avoid sound 
+        // TODO: avoid sound
         // this.soundManager = new SoundManager(this, this.musicTrack);
     }
 
@@ -317,6 +317,7 @@ export class Game extends Scene {
                         color: tank.getColor(),
                         x: tank.x,
                         y: tank.y,
+                        wallStep: null,
                     });
                 }
                 this.destroyTank(tank);
@@ -421,40 +422,44 @@ export class Game extends Scene {
     private registerSceneEvents() {
         this.events.once(Scenes.Events.SHUTDOWN, this.shutdown, this);
         // this.events.on
-        this.events.on(GameEvent.TileDestroy, (tile: Tilemaps.Tile) => {
-            this.tankGroup.getChildren().forEach((t) => {
-                const tank: Tank = t as Tank;
-                const body = tank.body;
-                if (!body) return;
-                if (
-                    tile.intersects(
-                        body.left,
-                        body.top,
-                        body.right,
-                        body.bottom,
-                    )
-                ) {
-                    this.events.emit(GameEvent.Explosion, {
-                        x: tank.x,
-                        y: tank.y,
-                        type: GameEvent.Explosion,
-                    });
+        this.events.on(
+            GameEvent.TileDestroy,
+            ({ tile, step }: { tile: Tilemaps.Tile; step: number }) => {
+                this.tankGroup.getChildren().forEach((t) => {
+                    const tank: Tank = t as Tank;
+                    const body = tank.body;
+                    if (!body) return;
                     if (
-                        tank.active &&
-                        tank.getColor() == sessionConfig.localColor
+                        tile.intersects(
+                            body.left,
+                            body.top,
+                            body.right,
+                            body.bottom,
+                        )
                     ) {
-                        this.events.emit(GameEvent.TankDestroy, {
-                            roomId: sessionConfig.roomId,
-                            championshipId: this.championshipId,
-                            color: tank.getColor(),
+                        this.events.emit(GameEvent.Explosion, {
                             x: tank.x,
                             y: tank.y,
+                            type: GameEvent.Explosion,
                         });
+                        if (
+                            tank.active &&
+                            tank.getColor() == sessionConfig.localColor
+                        ) {
+                            this.events.emit(GameEvent.TankDestroy, {
+                                roomId: sessionConfig.roomId,
+                                championshipId: this.championshipId,
+                                color: tank.getColor(),
+                                x: tank.x,
+                                y: tank.y,
+                                wallStep: step,
+                            });
+                        }
+                        this.destroyTank(tank);
                     }
-                    this.destroyTank(tank);
-                }
-            });
-        });
+                });
+            },
+        );
     }
 
     shutdown() {
@@ -631,7 +636,7 @@ export class Game extends Scene {
         this.tankRoster.clear();
         this.projectileGroup.clear();
         this.speedSystem.clearOilGroup();
-        this.deathWallManager?.reset()
+        this.deathWallManager?.reset();
 
         this.barrelPos = payload.randomBarrelPositions;
         this.createBarrels(this.map);

@@ -81,7 +81,6 @@ export class DeathWallManager {
         const tweens = this.effect;
         const generation = this.generation;
         let pending = tweens.length;
-        
 
         if (tweens.length > 0)
             this.scene.events.emit(GameEvent.DeathWallExplode);
@@ -92,7 +91,10 @@ export class DeathWallManager {
             effect.remove();
             tile.setAlpha(0.0);
 
-            this.scene.events.emit(GameEvent.TileDestroy, tile);
+            this.scene.events.emit(GameEvent.TileDestroy, {
+                tile,
+                step: this.step,
+            });
             this.scene.events.emit(GameEvent.Explosion, {
                 x: tile.pixelX + tile.width / 2,
                 y: tile.pixelY + tile.width / 2,

@@ -21,6 +21,9 @@ builder.Services.AddSingleton<MapService>();
 builder.Services.AddSingleton<RoomService>();
 builder.Services.AddSingleton<DeathWallService>();
 builder.Services.AddSingleton<ChampionshipService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(new MatchSettlementOptions());
+builder.Services.AddSingleton<MatchSettlementService>();
 builder.Services.AddScoped<ChampionshipRepository>();
 
 // Auth: Identity password hashing + JWT bearer. Key comes from
