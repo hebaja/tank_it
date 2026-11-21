@@ -306,12 +306,13 @@ export class Game extends Scene {
             (p, t) => {
                 const proj = p as Projectile;
                 const tank = t as Tank;
-                if (proj.getOwner() === tank) return;
+                const owner = proj.getOwner();
+                if (owner === tank) return;
 
-                if (
-                    tank.active &&
-                    tank.getColor() == sessionConfig.localColor
-                ) {
+                const isVictim = tank.getColor() == sessionConfig.localColor;
+                const isKiller = owner?.getIsLocal() ?? false;
+
+                if (tank.active && (isVictim || isKiller)) {
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
                         championshipId: this.championshipId,
@@ -321,7 +322,7 @@ export class Game extends Scene {
                         wallStep: null,
                     });
                 }
-                this.destroyTank(tank);
+                if (isVictim || isKiller) this.destroyTank(tank);
                 this.destroyProjectile(proj);
             },
         );
