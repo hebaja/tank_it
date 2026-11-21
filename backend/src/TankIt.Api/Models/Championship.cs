@@ -12,7 +12,7 @@ public class Championship
     public Guid Id { get; set; }
     public string RoomId { get; set; } = "";
     public ChampionshipStatus Status { get; set; } = ChampionshipStatus.Pending;
-     public GameMode Mode { get; set; } = GameMode.Championship;
+    public GameMode Mode { get; set; } = GameMode.Championship;
     public short PlayerCount { get; set; }
     public short TargetScore { get; set; }
     public Guid? WinnerId { get; set; }
