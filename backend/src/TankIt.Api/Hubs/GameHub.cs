@@ -191,13 +191,14 @@ public class GameHub : Hub<IGameClient>
     // TODO: Check removal of championshipId
     public async Task StartMatch(string roomId, string championshipId)
     {
-        PlayerInfo[] players;
-        Guid matchId;
-        BarrelPositionsDto[] barrels;
+        // PlayerInfo[] players;
+        // Guid matchId;
+        // BarrelPositionsDto[] barrels;
 
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
 
+        /*
         var championship = await _championships.GetByRoomIdAsync(roomId)
             ?? throw new HubException($"Championship for Room {roomId} not found");
         {
@@ -208,15 +209,44 @@ public class GameHub : Hub<IGameClient>
             players = _rooms.GetRoomPlayers(roomId);
             matchId = match.Id;
         }
+        */
 
-        barrels = _rooms.RefreshBarrels(roomId);
+        Championship? championship;
+
+        if (Guid.TryParse(championshipId, out var id))
+        {
+            championship = await _championships.GetAsync(id);
+
+            if (championship is not null
+                && !string.Equals(championship.RoomId, roomId, StringComparison.Ordinal))
+            {
+                throw new HubException("Championship does not belong to this room");
+            }
+        }
+        else
+        {
+            championship = await _championships.GetByRoomIdAsync(roomId);
+        }
+
+        if (championship is null)
+            throw new HubException($"Championship for Room {roomId} not found");
+
+        if (!_championships.TryStartNextMatch(championship.Id, out var match) || match is null)
+            throw new HubException($"Could not start next match for championship {championship.Id}");
+
+        await _championships.PersistAsync(championship);
+
+        var barrels = _rooms.RefreshBarrels(roomId);
+        var players = _rooms.GetRoomPlayers(roomId);
+
         _deathWall.Restart(roomId);
 
         await Clients.Group(roomId).MatchStarted(new MatchStartedDto
         {
             RoomId = roomId,
             ChampionshipId = championship.Id,
-            MatchId = matchId,
+            Mode = championship.Mode.ToWireValue(),
+            MatchId = match.Id,
             Players = players,
             RandomBarrelPositions = barrels
         });
