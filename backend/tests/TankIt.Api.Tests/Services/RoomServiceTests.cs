@@ -134,7 +134,7 @@ public sealed class RoomServiceTests
     public async Task TrackLeave_KeepsRoomAndSeriesWhileMatchInProgress()
     {
         var fixture = new HubFixture();
-        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync("room-1");
+        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync("room-1", GameMode.Championship);
         championship.Participants.Add(new ChampionshipParticipant
         {
             ChampionshipId = championship.Id,
@@ -162,7 +162,7 @@ public sealed class RoomServiceTests
     public async Task TryEvictRoomAsync_CompletesSeriesBeforeReturning()
     {
         var fixture = new HubFixture();
-        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync("room-1");
+        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync("room-1", GameMode.Championship);
         fixture.Rooms.TrackJoin("room-1", "connection-a", "blue");
 
         Assert.True(await fixture.Rooms.TryEvictRoomAsync("room-1"));

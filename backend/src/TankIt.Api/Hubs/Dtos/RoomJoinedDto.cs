@@ -7,6 +7,7 @@ public sealed class RoomJoinedDto
     public string ConnectionId { get; init; } = "";
     public string RoomId { get; init; } = "";
     public Guid? ChampionshipId { get; init; } = new Guid();
+    public string Mode { get; init; } = "single";
     public BarrelPositionsDto[] RandomBarrelPositions { get; init; } = [];
     public long RoomCreatedAt { get; init; } = 0;
     public PlayerInfo[] Players { get; init; } = [];

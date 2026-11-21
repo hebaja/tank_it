@@ -15,7 +15,7 @@ public class ChampionshipServiceTests
         HubFixture fixture,
         params string[] colors)
     {
-        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId);
+        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId, GameMode.Championship);
         foreach (var color in colors)
             championship.Participants.Add(new ChampionshipParticipant
             {
@@ -35,7 +35,7 @@ public class ChampionshipServiceTests
     {
         var fixture = new HubFixture();
 
-        var (championship, created) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId);
+        var (championship, created) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId, GameMode.Championship);
         Assert.True(created);
 
         championship.Participants.Add(new ChampionshipParticipant
@@ -59,7 +59,7 @@ public class ChampionshipServiceTests
     public async Task PersistAsync_TracksCurrentPlayerCountAndTargetScore()
     {
         var fixture = new HubFixture();
-        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId);
+        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId, GameMode.Championship);
         foreach (var color in new[] { "blue", "green", "red" })
         {
             championship.Participants.Add(new ChampionshipParticipant
@@ -154,7 +154,7 @@ public class ChampionshipServiceTests
     {
         var fixture = new HubFixture();
 
-        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId);
+        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId, GameMode.Championship);
         championship.Participants.Add(new ChampionshipParticipant
         {
             ChampionshipId = championship.Id,
@@ -194,7 +194,7 @@ public class ChampionshipServiceTests
     public async Task CompleteAndEvictAsync_SoftDeletesAndDropsHotState()
     {
         var fixture = new HubFixture();
-        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId);
+        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId, GameMode.Championship);
 
         await fixture.Championships.CompleteAndEvictAsync(RoomId);
 
@@ -206,7 +206,7 @@ public class ChampionshipServiceTests
         Assert.NotNull(stored.CompletedAt);
 
         // A completed series is not reused: the next join starts a new one.
-        var (next, created) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId);
+        var (next, created) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId, GameMode.Championship);
         Assert.True(created);
         Assert.NotEqual(championship.Id, next.Id);
     }
@@ -215,7 +215,7 @@ public class ChampionshipServiceTests
     public async Task TryRemoveParticipantAsync_RemovesSeatFromDatabase()
     {
         var fixture = new HubFixture();
-        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId);
+        var (championship, _) = await fixture.Championships.GetOrCreateByRoomIdAsync(RoomId, GameMode.Championship);
         championship.Participants.Add(new ChampionshipParticipant
         {
             ChampionshipId = championship.Id,

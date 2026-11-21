@@ -16,8 +16,8 @@ public sealed class GameHubLeaveRoomTests
 
         try
         {
-            var joined = await fixture.Hub.JoinRoom(RoomId, "blue");
-            await other.JoinRoom(RoomId, "green");
+            var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
+            await other.JoinRoom(RoomId, "green", "championship");
 
             await fixture.Hub.LeaveRoom(RoomId, "");
 
@@ -37,8 +37,8 @@ public sealed class GameHubLeaveRoomTests
 
         try
         {
-            var joined = await fixture.Hub.JoinRoom(RoomId, "blue");
-            await other.JoinRoom(RoomId, "green");
+            var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
+            await other.JoinRoom(RoomId, "green", "championship");
 
             await fixture.Hub.OnDisconnectedAsync(null);
 
@@ -58,8 +58,8 @@ public sealed class GameHubLeaveRoomTests
 
         try
         {
-            var joined = await fixture.Hub.JoinRoom(RoomId, "blue");
-            await other.JoinRoom(RoomId, "blue");
+            var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
+            await other.JoinRoom(RoomId, "blue", "championship");
 
             Assert.Equal(["blue"], await StoredColorsAsync(fixture, joined.ChampionshipId));
         }
@@ -77,8 +77,8 @@ public sealed class GameHubLeaveRoomTests
 
         try
         {
-            var joined = await fixture.Hub.JoinRoom(RoomId, "blue");
-            await other.JoinRoom(RoomId, "blue");
+            var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
+            await other.JoinRoom(RoomId, "blue", "championship");
 
             await fixture.Hub.OnDisconnectedAsync(null);
 

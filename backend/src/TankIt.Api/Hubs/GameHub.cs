@@ -66,19 +66,21 @@ public class GameHub : Hub<IGameClient>
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color)
+    public async Task<RoomJoinedDto> JoinRoom(string roomId, string color, string mode)
     {
         if (string.IsNullOrWhiteSpace(roomId))
             throw new HubException("roomId is required");
         if (string.IsNullOrWhiteSpace(color))
             throw new HubException("color is required");
 
+        var gameMode = GameModeExtensions.FromWireValue(mode);
+
         await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
         _rooms.TrackJoin(roomId, Context.ConnectionId, color);
         _rooms.TrackRoomCreation(roomId);
         _deathWall.EnsureStarted(roomId);
 
-        var (championship, created) = await _championships.GetOrCreateByRoomIdAsync(roomId);
+        var (championship, created) = await _championships.GetOrCreateByRoomIdAsync(roomId, gameMode);
 
         // Upsert by color: the lobby and game connections of the same player may
         // both join with the same color after a redirect.
@@ -121,6 +123,7 @@ public class GameHub : Hub<IGameClient>
             ConnectionId = Context.ConnectionId,
             RoomId = roomId,
             ChampionshipId = championship.Id,
+            Mode = championship.Mode.ToWireValue(),
             RandomBarrelPositions = barrels,
             RoomCreatedAt = _rooms.GetRoomCreatedAt(roomId),
             Players = players,

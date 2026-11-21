@@ -20,6 +20,7 @@ public sealed class ChampionshipService(
 
     public async Task<(Championship Championship, bool Created)> GetOrCreateByRoomIdAsync(
         string roomId,
+        GameMode mode,
         CancellationToken ct = default)
     {
         if (_roomToChampionship.TryGetValue(roomId, out var known)
@@ -44,6 +45,7 @@ public sealed class ChampionshipService(
         {
             Id = Guid.NewGuid(),
             RoomId = roomId,
+            Mode = mode,
             TargetScore = Championship.TargetScoreFor(0),
             Ft = Championship.TargetScoreFor(0),
             CreatedAt = DateTimeOffset.UtcNow
@@ -104,6 +106,15 @@ public sealed class ChampionshipService(
 
         lock (championship)
         {
+            if (championship.Status == ChampionshipStatus.Completed)
+                return false;
+
+            if (championship.Mode == GameMode.Championship && championship.Matches.Count == 0)
+            {
+                championship.TargetScore = Championship.TargetScoreFor(championship.Participants.Count);
+                championship.Ft = championship.TargetScore;
+            }
+
             if (championship.Matches.Count == 0)
             {
                 championship.TargetScore = Championship.TargetScoreFor(championship.Participants.Count);
