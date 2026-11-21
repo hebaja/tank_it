@@ -64,6 +64,10 @@ CREATE TABLE championships (
     player_count  SMALLINT NOT NULL CHECK (player_count BETWEEN 1 AND 4), -- current seats; fixed once the series starts
     target_score  SMALLINT NOT NULL CHECK (target_score > 0),
     winner_id     UUID REFERENCES users(id) ON DELETE SET NULL,
+    winner_color  VARCHAR(10),
+    room_id       TEXT NOT NULL DEFAULT '',
+    mode          VARCHAR(20) NOT NULL DEFAULT 'championship' CHECK (mode IN ('single', 'championship')),
+    ft            SMALLINT NOT NULL DEFAULT 5,
     created_by    UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     started_at    TIMESTAMPTZ,
@@ -79,8 +83,10 @@ CREATE TABLE championship_participants (
     user_id          UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL = AI or anonymous seat
     is_ai            BOOLEAN NOT NULL DEFAULT false,
     tank_color       VARCHAR(10) NOT NULL,
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (is_ai = true OR user_id IS NOT NULL)
+    placement        SMALLINT,
+    points           SMALLINT,
+    is_eliminated_from_championship BOOLEAN NOT NULL DEFAULT false,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_championship_participants_championship_id ON championship_participants(championship_id);
 CREATE INDEX idx_championship_participants_user_id ON championship_participants(user_id);
@@ -102,6 +108,7 @@ CREATE TABLE matches (
     championship_id   UUID REFERENCES championships(id) ON DELETE CASCADE, -- NULL = standalone match
     sequence_number   SMALLINT, -- this match's order within its championship; NULL for standalone matches
     started_at        TIMESTAMPTZ,
+    deaths            SMALLINT,
     ended_at          TIMESTAMPTZ,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- a championship match's roster size must match the series it belongs to
@@ -120,9 +127,12 @@ CREATE TABLE match_participants (
     user_id           UUID REFERENCES users(id) ON DELETE SET NULL, -- NULL = AI or anonymous seat
     is_ai             BOOLEAN NOT NULL DEFAULT false,
     tank_color        VARCHAR(10) NOT NULL,
-    placement         SMALLINT,          -- 1 = winner; NULL until the match ends
+    placement         SMALLINT,          -- 0 = winner; NULL until the match ends
     points            SMALLINT,          -- match_count(match) - placement; NULL until the match ends.
                                           -- Used for both standalone stats and championship standings.
+    is_match_winner   BOOLEAN NOT NULL DEFAULT false,
+    is_championship_winner BOOLEAN NOT NULL DEFAULT false,
+    is_done           BOOLEAN NOT NULL DEFAULT false,
     shots_fired       INTEGER NOT NULL DEFAULT 0,
     hits              INTEGER NOT NULL DEFAULT 0,
     kills             INTEGER NOT NULL DEFAULT 0,

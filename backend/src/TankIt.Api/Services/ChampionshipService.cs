@@ -132,7 +132,7 @@ public sealed class ChampionshipService(
 
             if (activeParticipants.Length == 0)
             {
-                logger.LogWarning(
+                _logger.LogWarning(
                     "Cannot start next match for championship {ChampionshipId}: no active participants",
                     championship.Id);
                 return false;

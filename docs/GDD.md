@@ -152,15 +152,16 @@ For an N-player match: **1st to die scores 0, ..., winner scores N−1.** A 4-pl
 
 After every match, cumulative points are re-checked for all participants. First to reach the target wins the championship immediately — the series doesn't run a fixed number of matches. If two participants cross the target in the *same* match (the only way it can happen, since the check runs once per completed match) with **different totals**, the higher total wins outright — your example: dark reaches 11, green reaches 12 in the same match, green is champion, no tie-break needed.
 
-### Tie-break (exact tie only — same total, at or above target, in the same deciding match)
+### Tie-break (exact tie only — same total, at or above target, in the same match)
 
-1. **More kills**, summed across the championship's matches.
+When 2+ participants reach the target score at the same total in the same match:
 
-2. **More matches won** (placement = 1), across the championship's matches.
+1. Non-leaders are **eliminated** from the championship (`IsEliminatedFromChampionship = true`).
+2. The tied leaders play **additional matches** among themselves only (active players reduced to the tied subset).
+3. After each subsequent match, cumulative points are re-checked. The cycle repeats until exactly one player has sole leadership at or above FT — that player is the champion.
+4. If a tie persists among the same leaders across any number of additional matches, they keep replaying until a sole leader emerges. There is no sudden-death decider, kills comparison, or head-to-head step — the tie is resolved by repeated play among the tied players.
 
-3. **Head-to-head** — pairwise, how many times one tied player placed better than the other across the matches they shared. *(Not "who scored more combined points in shared matches"* *— tested that against a real database while building this: in a fixed-roster championship* *every match is shared, so that number is always identical to the tied total and resolves* *nothing.)*
-
-4. **Sudden-death decider match** — *added here as a deterministic last resort, not something* *you explicitly asked for; flag if you'd rather leave a triple-tie undefined or handle it* *some other way.* If still tied after all three criteria above — which is reachable, not just theoretical: two players can genuinely split their head-to-head record evenly — the tied players play one more match. Its winner is champion outright.
+Schema and standings notes for championship mode are in `docs/database-schema.md` under "Championship mode (FT-N)".
 
 Full query definitions (validated against a real Postgres instance) are in `docs/database-schema.md` under "Championship mode (FT-N)".
 
@@ -223,9 +224,9 @@ tanks\_project/
 
 5. Build the shrinking-map mechanic and AI opponent in `frontend/game/`.
 
-6. Implement championship lifecycle (create/join, sequencing matches, standings + tie-break, decider-match trigger) per `backend/src/TankIt.Api/Controllers/ChampionshipController.cs`.
+6. ~~Implement championship lifecycle (create/join, sequencing matches, standings + tie-break, decider-match trigger) per `backend/src/TankIt.Api/Controllers/ChampionshipController.cs`.~~ **Done** on the SignalR hub (`GameHub`, `ChampionshipService`, `MatchSettlementService`) — no REST controller; the championship row + `room_id` string is the durable unit.
 
-7. Confirm the sudden-death decider-match fallback (§6) — flagged as an addition, not an explicit team decision.
+7. ~~Confirm the sudden-death decider-match fallback (§6) — flagged as an addition, not an explicit team decision.~~ **Decided:** no decider, no kills/matches-won/head-to-head cascade. Exact FT ties eliminate non-leaders; tied leaders replay additional matches until a sole leader emerges. See §6.
 
 8. Wire Terms & Conditions acceptance into the signup flow (checkbox gating submission in `frontend/app/`, plus a DB flag/version on `users` if the team wants enforcement, not just display) once the frontend shell is scaffolded and `AuthController.cs` is implemented. Have `docs/terms-and-conditions.md` reviewed by someone with actual legal authority before any public/production launch — it's a generic draft, not legal advice.
 

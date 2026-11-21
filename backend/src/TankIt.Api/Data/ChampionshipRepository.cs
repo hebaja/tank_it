@@ -70,6 +70,7 @@ public sealed class ChampionshipRepository(AppDbContext db)
         dst.Ft = src.Ft > 0 ? src.Ft : dst.TargetScore;
         dst.StartedAt = src.StartedAt;
         dst.CompletedAt = src.CompletedAt;
+        dst.WinnerColor = src.WinnerColor;
     }
 
     private void SyncChampionshipParticipants(Championship src, Championship dst)

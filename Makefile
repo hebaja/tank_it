@@ -81,4 +81,4 @@ db-reset:
 		-c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"'
 	$(COMPOSE) restart backend
 
-.PHONY: all up down build rebuild logs clean fclean ps install dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend backend-restore db-migrate db-migration-add db-reset
+.PHONY: all up down build rebuild logs clean fclean ps install dev prod lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend test test-frontend test-backend backend-restore db-migrate db-update db-reset

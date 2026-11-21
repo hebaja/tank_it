@@ -458,7 +458,7 @@ export class Game extends Scene {
         this.speedSystem.destroy();
         this.events.off(GameEvent.TileDestroy);
         this.networkManager.destroy();
-        this.soundManager.destroy();
+        this.soundManager?.destroy();
         this.events.off(GameEvent.TankMoved, this.handleTankMoved, this);
         this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this);
         this.events.off(GameEvent.MatchStarted, this.handleMatchStarted, this);
