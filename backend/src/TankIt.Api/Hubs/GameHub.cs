@@ -303,7 +303,6 @@ public class GameHub : Hub<IGameClient>
         match.Status = MatchStatus.Completed;
         match.EndedAt = DateTimeOffset.UtcNow;
 
-        // Assign 1st place to surviving participant (if any)
         var survivor = match.Participants.FirstOrDefault(p => !p.IsDone);
         if (survivor is not null)
         {
@@ -321,41 +320,44 @@ public class GameHub : Hub<IGameClient>
             match.WinnerId = survivor.Id;
         }
 
-        // Sum match points into championship standings
-        foreach (var mp in match.Participants)
+        var isChampionship = championship.Mode == GameMode.Championship;
+
+        if (isChampionship)
         {
-            var champParticipant = championship.Participants
-                .FirstOrDefault(cp => cp.TankColor == mp.TankColor);
-            champParticipant?.Points = (short)((champParticipant.Points ?? 0) + (mp.Points ?? 0));
-        }
-
-        // Check for championship winner
-        var winners = championship.Participants
-            .Where(cp => (cp.Points ?? 0) >= championship.Ft)
-            .ToArray();
-
-        if (winners.Length > 0)
-        {
-            var pointsGroup = winners.GroupBy(w => w.Points ?? 0);
-            var tie = pointsGroup.FirstOrDefault(g => g.Count() > 1);
-
-            // TODO: Need to check tie conditions in game and decide what to do if positive
-            if (tie is not null)
+            foreach (var mp in match.Participants)
             {
-                _logger.LogWarning(
-                    "Tie detected among winners at {Points} points ({Colors}). Championship continues.",
-                    tie.Key, string.Join(", ", tie.Select(w => w.TankColor)));
+                var champParticipant = championship.Participants
+                    .FirstOrDefault(cp => cp.TankColor == mp.TankColor);
+                champParticipant?.Points = (short)((champParticipant.Points ?? 0) + (mp.Points ?? 0));
             }
-            else
-            {
-                var champion = winners
-                    .OrderBy(w => w.Points ?? short.MaxValue)
-                    .First();
 
-                championship.WinnerId = champion.Id;
-                championship.WinnerColor = champion.TankColor;
-                championship.Status = ChampionshipStatus.Completed;
-                championship.CompletedAt = DateTimeOffset.UtcNow;
+            var winners = championship.Participants
+                .Where(cp => (cp.Points ?? 0) >= championship.Ft)
+                .ToArray();
+
+            if (winners.Length > 0)
+            {
+                var pointsGroup = winners.GroupBy(w => w.Points ?? 0);
+                var tie = pointsGroup.FirstOrDefault(g => g.Count() > 1);
+
+                // TODO: Need to check tie conditions in game and decide what to do if positive
+                if (tie is not null)
+                {
+                    _logger.LogWarning(
+                        "Tie detected among winners at {Points} points ({Colors}). Championship continues.",
+                        tie.Key, string.Join(", ", tie.Select(w => w.TankColor)));
+                }
+                else
+                {
+                    var champion = winners
+                        .OrderBy(w => w.Points ?? short.MaxValue)
+                        .First();
+
+                    championship.WinnerId = champion.Id;
+                    championship.WinnerColor = champion.TankColor;
+                    championship.Status = ChampionshipStatus.Completed;
+                    championship.CompletedAt = DateTimeOffset.UtcNow;
+                }
             }
         }
 
@@ -373,17 +375,23 @@ public class GameHub : Hub<IGameClient>
                 Label = p.IsAi ? "AI" : p.User?.DisplayName ?? p.TankColor,
                 User = displayNames[i++],
                 Color = p.TankColor,
-                Score = championship.Participants.FirstOrDefault(pa => pa.TankColor == p.TankColor)?.Points,
+                Score = isChampionship
+                    ? championship.Participants
+                        .FirstOrDefault(pa => pa.TankColor == p.TankColor)?.Points
+                    : p.Points,
                 Placement = p.Placement,
                 IsMatchWinner = p.IsMatchWinner,
-                IsChampionshipWinner = championship.WinnerColor == p.TankColor
+                IsChampionshipWinner =
+                    isChampionship && championship.WinnerColor == p.TankColor
             }).ToArray();
 
         return new ChampionshipMatchInfoDto
         {
             RoomId = roomId,
-            Ft = championship.Ft,
-            IsChampioship = true,
+            Ft = isChampionship
+                ? championship.Ft
+                : (short)Math.Max(1, match.PlayerCount - 1),
+            Mode = championship.Mode.ToWireValue(),
             ChampionshipId = championship.Id,
             MatchId = match.Id,
             ChampionshipStatus = championship.Status,
@@ -545,9 +553,21 @@ public class GameHub : Hub<IGameClient>
         if (championship is null)
             return;
 
+        /*
         if (championship.Status != ChampionshipStatus.Completed || championship.WinnerId is null)
         {
             _logger.LogWarning("FinishChampionship ignored: champioship {ChampionshipId} in room {RoomId} is not complete",
+                championship.Id, roomId);
+            return;
+        }
+        */
+
+        if (championship.Mode == GameMode.Championship
+            && (championship.Status != ChampionshipStatus.Completed
+                || championship.WinnerId is null))
+        {
+            _logger.LogWarning(
+                "FinishChampionship ignored: championship {ChampionshipId} in room {RoomId} is not complete",
                 championship.Id, roomId);
             return;
         }

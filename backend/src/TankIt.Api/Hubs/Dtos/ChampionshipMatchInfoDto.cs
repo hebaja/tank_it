@@ -4,7 +4,8 @@ public sealed class ChampionshipMatchInfoDto
 {
     public string RoomId { get; init; } = "";
     public short Ft { get; init; } = 0;
-    public bool IsChampioship { get; init; }
+    public string Mode { get; init; } = "single";
+    public bool IsChampionship => Mode == "championship";
     public Guid? ChampionshipId { get; init; } = new();
     public Guid MatchId { get; init; } = new();
     public ChampionshipStatus ChampionshipStatus { get; init; } = new();
