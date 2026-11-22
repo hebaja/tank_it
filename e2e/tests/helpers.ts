@@ -50,7 +50,7 @@ export async function registerThroughUi(
         .getByRole('button', { name: 'Create account', exact: true })
         .click();
     await expect(
-        page.getByRole('heading', { name: 'Ready to roll?' }),
+        page.getByText(identity.username, { exact: true }),
     ).toBeVisible();
 }
 
@@ -58,9 +58,7 @@ export async function signOut(page: Page): Promise<void> {
     // The shell keeps a labelled button for desktop and an icon button for
     // mobile — both are in the DOM, so take the first one.
     await page.getByRole('button', { name: 'Sign out' }).first().click();
-    await expect(
-        page.getByRole('heading', { name: 'Welcome back' }),
-    ).toBeVisible();
+    await expect(page.getByText('Guest', { exact: true })).toBeVisible();
 }
 
 export async function signIn(
@@ -115,6 +113,9 @@ export async function openLobby(
     }, session);
 
     await page.goto('/');
+    await page
+        .getByRole('button', { name: 'Online Play', exact: true })
+        .click();
     await expect(
         page.getByRole('heading', { name: 'Ready to roll?' }),
     ).toBeVisible();
