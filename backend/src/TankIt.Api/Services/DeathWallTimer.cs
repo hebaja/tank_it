@@ -10,8 +10,8 @@ public sealed class DeathWallTimer(
     ILogger logger,
     TimeProvider? timeProvider = null)
 {
-    public static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(10);
-    public static readonly TimeSpan RingInterval = TimeSpan.FromSeconds(15);
+    public static readonly TimeSpan StartDelay = TimeSpan.FromSeconds(25);
+    public static readonly TimeSpan RingInterval = TimeSpan.FromSeconds(10);
     public const int MaxStep = 6;
 
     private readonly CancellationTokenSource _cts = new();
