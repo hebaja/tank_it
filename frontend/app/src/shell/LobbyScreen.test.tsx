@@ -129,6 +129,10 @@ describe('LobbyScreen', () => {
 
     it('joins the default room and marks me in the player list', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         await joinDefaultRoom(app);
 
@@ -144,6 +148,10 @@ describe('LobbyScreen', () => {
 
     it('joins a custom room with the picked tank color', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         await app.user.clear(app.screen.getByLabelText(/^Room ID/));
         await app.user.type(app.screen.getByLabelText(/^Room ID/), 'squad-42');
@@ -171,6 +179,10 @@ describe('LobbyScreen', () => {
     it('shows players as the hub reports them joining and leaving', async () => {
         fakeHub.config.players = [{ connectionId: 'conn-me', color: 'blue' }];
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.act(async () => {
@@ -200,6 +212,10 @@ describe('LobbyScreen', () => {
     it('surfaces a hub failure and stays on the join form', async () => {
         fakeHub.config.joinError = new Error('roomId is required');
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         await app.user.click(app.screen.getByRole('button', { name: 'Join' }));
 
@@ -214,6 +230,10 @@ describe('LobbyScreen', () => {
 
     it('leaves the room and tears the connection down', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.user.click(
@@ -241,6 +261,10 @@ describe('LobbyScreen', () => {
 
     it('starts the match through the hub', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.user.click(
@@ -258,6 +282,10 @@ describe('LobbyScreen', () => {
     it('reports a failed match start', async () => {
         fakeHub.config.startMatchError = new Error('not allowed');
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.user.click(
@@ -271,6 +299,10 @@ describe('LobbyScreen', () => {
 
     it('joins in championship mode and forwards the championship id', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         await app.user.click(app.screen.getByLabelText('Game mode'));
         await app.user.click(
@@ -306,6 +338,10 @@ describe('LobbyScreen', () => {
         );
         try {
             const app = await renderApp();
+            await app.user.click(
+                app.screen.getByRole('button', { name: 'Online Play' }),
+            );
+            await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
             await app.user.click(
                 app.screen.getByRole('button', { name: 'Join' }),
@@ -330,6 +366,10 @@ describe('LobbyScreen', () => {
             { connectionId: 'conn-other', color: 'blue' },
         ];
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         expect(app.screen.getAllByText('Blue')).toHaveLength(1);

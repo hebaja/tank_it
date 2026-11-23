@@ -7,10 +7,12 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import { OAuthButtons } from './auth/OAuthButtons';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
+import { LandingScreen } from './screens/LandingScreen';
 import { AppShell } from './shell/AppShell';
 import theme from './theme';
 
 type AuthView = 'login' | 'register';
+type AppView = 'landing' | 'auth' | 'lobby';
 
 function FullPage({ label }: { label: string }) {
     return (
@@ -31,7 +33,7 @@ function FullPage({ label }: { label: string }) {
     );
 }
 
-function AuthScreen() {
+function AuthScreen({ onBack }: { onBack: () => void }) {
     const [view, setView] = useState<AuthView>('login');
 
     return (
@@ -45,6 +47,7 @@ function AuthScreen() {
                 justifyContent: 'center',
             }}
         >
+            <ButtonBack onBack={onBack} />
             <Stack
                 spacing={0.5}
                 sx={{ alignItems: 'center', textAlign: 'center' }}
@@ -74,20 +77,105 @@ function AuthScreen() {
     );
 }
 
-function Routes() {
-    const { status } = useAuth();
+function ButtonBack({ onBack }: { onBack: () => void }) {
+    return (
+        <Stack
+            sx={{
+                width: '100%',
+                maxWidth: 460,
+                alignItems: 'flex-start',
+            }}
+        >
+            <Typography
+                component="button"
+                type="button"
+                onClick={onBack}
+                sx={{
+                    border: 0,
+                    background: 'none',
+                    color: 'text.secondary',
+                    cursor: 'pointer',
+                    p: 0,
+                    font: 'inherit',
+                }}
+            >
+                ← Back to home
+            </Typography>
+        </Stack>
+    );
+}
 
-    // Keep document.title in sync so tab/context menus read correctly.
+function Routes() {
+    const { status, logout, notice } = useAuth();
+    const [view, setView] = useState<AppView>('landing');
+    const [afterAuthView, setAfterAuthView] = useState<'landing' | 'lobby'>(
+        'landing',
+    );
+
+    // Open the auth screen when an OAuth failure notice arrives at boot.
+    useEffect(() => {
+        if (status === 'anonymous' && notice && view === 'landing') {
+            setView('auth');
+        }
+    }, [status, notice, view]);
+
+    // Authenticated users can't stay on the auth screen.
+    useEffect(() => {
+        if (status === 'authenticated' && view === 'auth') {
+            setView(afterAuthView);
+        }
+    }, [status, view, afterAuthView]);
+
+    // Online play is open without a session, so the lobby stays mounted
+    // regardless of auth status.
+
     useEffect(() => {
         document.title =
-            status === 'authenticated'
+            view === 'lobby' && status === 'authenticated'
                 ? 'Tank It! — Lobby'
-                : 'Tank It! — Sign in';
-    }, [status]);
+                : view === 'auth'
+                  ? 'Tank It! — Sign in'
+                  : 'Tank It!';
+    }, [view, status]);
+
+    const handleLoginLogout = () => {
+        if (status === 'authenticated') {
+            logout();
+            setView('landing');
+            return;
+        }
+        setAfterAuthView('landing');
+        setView('auth');
+    };
+
+    const handleOnlinePlay = () => {
+        // Online play is open to everyone — no sign-in required.
+        setView('lobby');
+    };
 
     if (status === 'loading') return <FullPage label="Loading Tank It!…" />;
-    if (status === 'authenticated') return <AppShell />;
-    return <AuthScreen />;
+    if (view === 'lobby') return <AppShell />;
+    if (view === 'auth') {
+        return (
+            <AuthScreen
+                onBack={() => {
+                    setView('landing');
+                }}
+            />
+        );
+    }
+    return (
+        <LandingScreen
+            onLoginLogout={handleLoginLogout}
+            onLocalPlay={() => {
+                // Local play is not implemented yet.
+            }}
+            onOnlinePlay={handleOnlinePlay}
+            onTerms={() => {
+                // Terms & Conditions page is not implemented yet.
+            }}
+        />
+    );
 }
 
 export default function App() {

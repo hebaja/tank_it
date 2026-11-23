@@ -21,10 +21,10 @@ describe('AuthContext boot', () => {
         const app = await renderApp();
 
         expect(
-            await app.screen.findByRole('heading', { name: 'Welcome back' }),
+            await app.screen.findByRole('heading', { name: 'Tank It!' }),
         ).toBeInTheDocument();
         expect(fetchMock).not.toHaveBeenCalled();
-        expect(document.title).toBe('Tank It! — Sign in');
+        expect(document.title).toBe('Tank It!');
     });
 
     it('restores a persisted session without touching the API', async () => {
@@ -33,9 +33,7 @@ describe('AuthContext boot', () => {
 
         const app = await renderApp();
 
-        expect(
-            await app.screen.findByRole('heading', { name: 'Ready to roll?' }),
-        ).toBeInTheDocument();
+        expect(await app.screen.findByText('gabriel')).toBeInTheDocument();
         expect(fetchMock).not.toHaveBeenCalled();
         expect(app.screen.getByText('gabriel')).toBeInTheDocument();
     });
@@ -58,9 +56,7 @@ describe('AuthContext boot', () => {
 
         const app = await renderApp();
 
-        expect(
-            await app.screen.findByRole('heading', { name: 'Ready to roll?' }),
-        ).toBeInTheDocument();
+        expect(await app.screen.findByText('gabriel')).toBeInTheDocument();
         // The backend rotates refresh tokens — a second call would 401.
         expect(fetchUrls(fetchMock)).toEqual([
             `${API_ORIGIN}/api/auth/refresh`,
@@ -93,7 +89,7 @@ describe('AuthContext boot', () => {
         const app = await renderApp();
 
         expect(
-            await app.screen.findByRole('heading', { name: 'Welcome back' }),
+            await app.screen.findByRole('heading', { name: 'Tank It!' }),
         ).toBeInTheDocument();
         expect(localStorage.getItem('tankit.accessToken')).toBeNull();
         expect(localStorage.getItem('tankit.refreshToken')).toBeNull();
@@ -138,9 +134,7 @@ describe('AuthContext boot', () => {
 
         const app = await renderApp();
 
-        expect(
-            await app.screen.findByRole('heading', { name: 'Ready to roll?' }),
-        ).toBeInTheDocument();
+        expect(await app.screen.findByText('oauth-pilot')).toBeInTheDocument();
         expect(fetchMock).not.toHaveBeenCalled();
         expect(localStorage.getItem('tankit.accessToken')).toBe(accessToken);
         expect(localStorage.getItem('tankit.refreshToken')).toBe(
@@ -155,6 +149,9 @@ describe('AuthContext boot', () => {
         stubFetch(unexpectedFetch);
 
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
         await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         // The shell keeps a labelled button for desktop and a tooltip-labelled
@@ -165,11 +162,11 @@ describe('AuthContext boot', () => {
         await app.user.click(signOut);
 
         expect(
-            await app.screen.findByRole('heading', { name: 'Welcome back' }),
+            await app.screen.findByRole('heading', { name: 'Tank It!' }),
         ).toBeInTheDocument();
         expect(localStorage.getItem('tankit.accessToken')).toBeNull();
         expect(localStorage.getItem('tankit.refreshToken')).toBeNull();
         expect(localStorage.getItem('tankit.user')).toBeNull();
-        expect(document.title).toBe('Tank It! — Sign in');
+        expect(document.title).toBe('Tank It!');
     });
 });

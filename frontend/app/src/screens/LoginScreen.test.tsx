@@ -17,11 +17,17 @@ async function fillCredentials(
     await app.user.type(app.screen.getByLabelText(/^Password/), password);
 }
 
+async function openLogin(app: RenderedApp) {
+    await app.user.click(app.screen.getByRole('button', { name: 'Login' }));
+    await app.screen.findByRole('heading', { name: 'Welcome back' });
+}
+
 describe('LoginScreen', () => {
     it('shows inline validation and stays signed out on an empty submit', async () => {
         // Hang the request so the in-flight validation state stays observable.
         stubFetch(() => new Promise(() => {}));
         const app = await renderApp();
+        await openLogin(app);
 
         await app.user.click(
             app.screen.getByRole('button', { name: 'Sign in' }),
@@ -49,15 +55,14 @@ describe('LoginScreen', () => {
             throw new Error(`unexpected request: ${url}`);
         });
         const app = await renderApp();
+        await openLogin(app);
         await fillCredentials(app, 'gabriel', 'correct-horse-battery');
 
         await app.user.click(
             app.screen.getByRole('button', { name: 'Sign in' }),
         );
 
-        expect(
-            await app.screen.findByRole('heading', { name: 'Ready to roll?' }),
-        ).toBeInTheDocument();
+        expect(await app.screen.findByText('gabriel')).toBeInTheDocument();
         expect(fetchUrls(fetchMock)).toEqual([
             'http://localhost:8080/api/auth/login',
         ]);
@@ -69,7 +74,7 @@ describe('LoginScreen', () => {
         expect(
             JSON.parse(localStorage.getItem('tankit.user') ?? '{}'),
         ).toMatchObject({ username: 'gabriel' });
-        expect(document.title).toBe('Tank It! — Lobby');
+        expect(document.title).toBe('Tank It!');
     });
 
     it('shows the backend message when the password is wrong', async () => {
@@ -80,6 +85,7 @@ describe('LoginScreen', () => {
             throw new Error(`unexpected request: ${url}`);
         });
         const app = await renderApp();
+        await openLogin(app);
         await fillCredentials(app, 'gabriel', 'wrong-password');
 
         await app.user.click(
@@ -100,6 +106,7 @@ describe('LoginScreen', () => {
             throw new TypeError('Failed to fetch');
         });
         const app = await renderApp();
+        await openLogin(app);
         await fillCredentials(app, 'gabriel', 'correct-horse-battery');
 
         await app.user.click(
@@ -118,6 +125,7 @@ describe('LoginScreen', () => {
 
     it('switches to the registration screen', async () => {
         const app = await renderApp();
+        await openLogin(app);
 
         await app.user.click(
             app.screen.getByRole('button', { name: 'Create an account' }),
