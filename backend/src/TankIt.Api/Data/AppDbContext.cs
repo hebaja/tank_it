@@ -7,6 +7,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<OAuthAccount> OAuthAccounts => Set<OAuthAccount>();
+    public DbSet<OAuthLoginTicket> OAuthLoginTickets => Set<OAuthLoginTicket>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
@@ -46,6 +47,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(o => o.User)
                 .WithMany(u => u.OAuthAccounts)
                 .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OAuthLoginTicket>(e =>
+        {
+            e.ToTable("oauth_login_tickets", t => // avoid "o_auth_login_tickets" snake_case split
+                t.HasCheckConstraint("oauth_login_tickets_purpose_check",
+                    "purpose IN ('login', 'link')"));
+            e.Property(t => t.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.Property(t => t.CodeHash).HasMaxLength(64);
+            e.Property(t => t.Purpose).HasMaxLength(16).HasDefaultValue("login");
+            e.HasIndex(t => t.CodeHash).IsUnique()
+                .HasDatabaseName("oauth_login_tickets_code_hash_key");
+            e.HasIndex(t => t.UserId).HasDatabaseName("idx_oauth_login_tickets_user_id");
+            e.HasIndex(t => t.ExpiresAt).HasDatabaseName("idx_oauth_login_tickets_expires_at");
+            e.HasOne(t => t.User)
+                .WithMany()
+                .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

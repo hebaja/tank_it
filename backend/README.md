@@ -72,10 +72,25 @@ of `frontend/game/README.md` for the client side of this contract.
 
 ## Auth
 
-Stubbed in `Controllers/AuthController.cs`: password auth (ASP.NET Identity) plus OAuth
-(Google/GitHub/42) per the Remote Auth buffer module. `RefreshToken`/`OAuthAccount` tables
-already exist in the schema; wire `AddAuthentication(JwtBearerDefaults...)` in `Program.cs`
-when implementing.
+`Controllers/AuthController.cs` serves password auth (ASP.NET Identity password hashing + the
+existing JWT/refresh-token flow) and remote OAuth (Google/GitHub/42) per the Remote Auth
+buffer module.
+
+- `GET /api/auth/{google|github|42}` starts a provider challenge. Google uses
+  `AddGoogle`; GitHub and 42 use `AddOAuth`. Google/GitHub enable PKCE.
+- The provider callback lands in a short-lived `External` cookie scheme, never in the app
+  JWT. `GET /api/auth/external/complete` normalizes the identity, finds or creates the user,
+  and redirects to the SPA with a 256-bit single-use code.
+- `POST /api/auth/exchange` atomically consumes that code (SHA-256 hash stored in
+  `oauth_login_tickets`) and returns the normal JWT pair.
+- `POST /api/auth/link/{provider}` (authenticated) starts an explicit account-link flow.
+
+Credentials live under `Authentication:{Google|GitHub|42}:{ClientId|ClientSecret}` (env vars
+`Authentication__Google__ClientId`, etc.) and `Frontend:Url`. Without provider credentials
+the API still starts and password auth keeps working; only that provider's start endpoint
+returns 503. Register these callbacks with the providers (local Docker is HTTP):
+`http://localhost:8080/signin-google`, `http://localhost:8080/signin-github`,
+`http://localhost:8080/signin-42`. In production use the public HTTPS API origin.
 
 ## Championships
 

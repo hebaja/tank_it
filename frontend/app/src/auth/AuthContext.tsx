@@ -9,11 +9,17 @@ import {
     type ReactNode,
 } from 'react';
 import {
+    ApiError,
+    exchangeOAuthCode,
     login as loginApi,
     refresh as refreshApi,
     register as registerApi,
 } from './api';
-import { readOAuthCallback } from './oauthCallback';
+import {
+    finishOAuthCallback,
+    friendlyOAuthError,
+    readOAuthCallbackParams,
+} from './oauthCallback';
 import {
     clearSession,
     isExpiringSoon,
@@ -53,12 +59,56 @@ let bootPromise: Promise<BootResult> | null = null;
 function boot(): Promise<BootResult> {
     if (!bootPromise) {
         bootPromise = (async () => {
-            const oauth = readOAuthCallback();
-            if (oauth?.session) {
-                saveSession(oauth.session);
-                return { session: oauth.session };
+            const oauth = readOAuthCallbackParams();
+            if (oauth) {
+                if (oauth.code) {
+                    try {
+                        const fresh = await exchangeOAuthCode(oauth.code);
+                        saveSession(fresh);
+                        finishOAuthCallback();
+                        return { session: fresh };
+                    } catch (err) {
+                        finishOAuthCallback();
+                        return {
+                            session: null,
+                            error:
+                                err instanceof ApiError
+                                    ? err.message
+                                    : friendlyOAuthError('oauth_failed'),
+                        };
+                    }
+                }
+
+                finishOAuthCallback();
+
+                if (oauth.error) {
+                    return {
+                        session: null,
+                        error: friendlyOAuthError(oauth.error),
+                    };
+                }
+
+                if (oauth.linked) {
+                    // A link started from an authenticated session; restore it.
+                    const linkedSession = loadSession();
+                    return linkedSession
+                        ? { session: linkedSession }
+                        : {
+                              session: null,
+                              error: 'Session expired. Sign in again.',
+                          };
+                }
+
+                // A direct visit to the callback route with no parameters is
+                // not an auth failure: keep an existing signed-in session.
+                const currentSession = loadSession();
+                return currentSession
+                    ? { session: currentSession }
+                    : {
+                          session: null,
+                          error: 'OAuth response was missing a code. Please try again.',
+                      };
             }
-            if (oauth?.error) return { session: null, error: oauth.error };
 
             const stored = loadSession();
             if (!stored) return { session: null };
