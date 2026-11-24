@@ -13,8 +13,9 @@ import { LobbyScreen } from './LobbyScreen';
 /** Authenticated app shell: brand bar with the signed-in user + the lobby. */
 export function AppShell() {
     const { session, logout } = useAuth();
-    const username = session?.username ?? '';
+    const username = session?.username ?? 'Guest';
     const initial = username.charAt(0).toUpperCase() || '?';
+    const signedIn = session !== null;
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -83,29 +84,41 @@ export function AppShell() {
                                 </Typography>
                             </Box>
                         </Tooltip>
-                        <Button
-                            color="inherit"
-                            size="small"
-                            startIcon={<LogoutIcon fontSize="small" />}
-                            onClick={logout}
-                            sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                        >
-                            Sign out
-                        </Button>
-                        <Tooltip title="Sign out">
-                            <Button
-                                color="inherit"
-                                size="small"
-                                onClick={logout}
-                                sx={{
-                                    display: { xs: 'inline-flex', sm: 'none' },
-                                    minWidth: 0,
-                                    px: 1,
-                                }}
-                            >
-                                <LogoutIcon fontSize="small" />
-                            </Button>
-                        </Tooltip>
+                        {signedIn && (
+                            <>
+                                <Button
+                                    color="inherit"
+                                    size="small"
+                                    startIcon={<LogoutIcon fontSize="small" />}
+                                    onClick={logout}
+                                    sx={{
+                                        display: {
+                                            xs: 'none',
+                                            sm: 'inline-flex',
+                                        },
+                                    }}
+                                >
+                                    Sign out
+                                </Button>
+                                <Tooltip title="Sign out">
+                                    <Button
+                                        color="inherit"
+                                        size="small"
+                                        onClick={logout}
+                                        sx={{
+                                            display: {
+                                                xs: 'inline-flex',
+                                                sm: 'none',
+                                            },
+                                            minWidth: 0,
+                                            px: 1,
+                                        }}
+                                    >
+                                        <LogoutIcon fontSize="small" />
+                                    </Button>
+                                </Tooltip>
+                            </>
+                        )}
                     </Container>
                 </Toolbar>
             </AppBar>

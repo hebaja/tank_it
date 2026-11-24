@@ -2,8 +2,9 @@ namespace TankIt.Api.Services;
 
 using System.Collections.Concurrent;
 using TankIt.Api.Hubs.Dtos;
+using TankIt.Api.Models;
 
-public sealed class RoomService(MapService map, DeathWallService deathWall, ILogger<RoomService> logger)
+public sealed class RoomService(MapService map, DeathWallService deathWall, ChampionshipService championships, ILogger<RoomService> logger)
 {
     private readonly MapService _map = map;
     private readonly ILogger<RoomService> _logger = logger;
@@ -12,6 +13,7 @@ public sealed class RoomService(MapService map, DeathWallService deathWall, ILog
     private readonly ConcurrentDictionary<string, long> _roomCreatedAt = new();
     private readonly ConcurrentDictionary<string, PlayerInfo> _players = new();
     private readonly DeathWallService _deathWall = deathWall;
+    private readonly ChampionshipService _championships = championships;
 
     public BarrelPositionsDto[] GetOrCreateBarrels(string roomId)
     {
@@ -27,6 +29,13 @@ public sealed class RoomService(MapService map, DeathWallService deathWall, ILog
     public bool TryGetBarrels(string roomId, out BarrelPositionsDto[]? barrels)
         => _barrelsByRoom.TryGetValue(roomId, out barrels);
 
+    public BarrelPositionsDto[] RefreshBarrels(string roomId)
+    {
+        var barrels = _map.GetRandomPositions();
+        _barrelsByRoom[roomId] = barrels;
+        return barrels;
+    }
+
     public void TrackJoin(string roomId, string connectionId, string color)
     {
         _members.AddOrUpdate(roomId,
@@ -41,7 +50,7 @@ public sealed class RoomService(MapService map, DeathWallService deathWall, ILog
         _players[connectionId] = new PlayerInfo { ConnectionId = connectionId, Color = color };
     }
 
-    public void EvictRoom(string roomId, HashSet<string> connections)
+    public async Task EvictRoomAsync(string roomId, HashSet<string> connections)
     {
         _members.TryRemove(roomId, out _); // already empty, safe
         _barrelsByRoom.TryRemove(roomId, out _);
@@ -51,37 +60,60 @@ public sealed class RoomService(MapService map, DeathWallService deathWall, ILog
         foreach (var connId in connections)
             _players.TryRemove(connId, out _);
 
+        // Soft-delete the series: mark it completed in the DB, then drop the hot
+        // in-memory state so a later join in this room starts a fresh one. A live
+        // match must survive room churn (e.g. the lobby -> game handoff); only
+        // evict/finish series that are not in progress.
+        if (_championships.TryGetByRoomId(roomId, out var championship)
+            && championship is { Status: not ChampionshipStatus.InProgress })
+            await _championships.CompleteAndEvictAsync(roomId);
+
         _logger.LogInformation("Room {RoomId} evicted", roomId);
     }
 
-    public bool TryEvictRoom(string roomId)
+    public async Task<bool> TryEvictRoomAsync(string roomId)
     {
         if (!_members.TryGetValue(roomId, out var set))
             return false;
 
+        HashSet<string> connections;
         lock (set)
-            EvictRoom(roomId, set);
+            connections = [.. set];
+
+        await EvictRoomAsync(roomId, connections);
         return true;
     }
 
-    public void TrackLeave(string roomId, string connectionId)
+    public async Task TrackLeave(string roomId, string connectionId)
     {
-        if (_members.TryGetValue(roomId, out var set))
-        {
-            lock (set)
-            {
-                set.Remove(connectionId);
-                if (set.Count == 0)
-                    EvictRoom(roomId, set);
-            }
-        }
         _players.TryRemove(connectionId, out _);
+
+        if (!_members.TryGetValue(roomId, out var set))
+            return;
+
+        bool empty;
+        lock (set)
+        {
+            set.Remove(connectionId);
+            empty = set.Count == 0;
+        }
+
+        if (!empty)
+            return;
+
+        // Keep the room (barrels, death wall, room timestamp) alive while a match
+        // is running so the game connection can take over from the lobby one.
+        if (_championships.TryGetByRoomId(roomId, out var championship)
+            && championship is { Status: ChampionshipStatus.InProgress })
+            return;
+
+        await EvictRoomAsync(roomId, set);
     }
 
-    public void TrackDisconnect(string connectionId)
+    public async Task TrackDisconnect(string connectionId)
     {
         foreach (var roomId in _members.Keys.ToArray())
-            TrackLeave(roomId, connectionId);
+            await TrackLeave(roomId, connectionId);
     }
 
     public long TrackRoomCreation(string roomId)

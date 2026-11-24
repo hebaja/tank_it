@@ -14,7 +14,7 @@ public sealed class GameHubJoinRoomTests
     {
         var fixture = new HubFixture();
 
-        var joined = await fixture.Hub.JoinRoom(RoomId, "blue");
+        var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
 
         Assert.Equal(ConnectionId, joined.ConnectionId);
         Assert.Equal(RoomId, joined.RoomId);
@@ -30,11 +30,26 @@ public sealed class GameHubJoinRoomTests
     }
 
     [Fact]
+    public async Task JoinRoom_ReturnsOneSeatPerColor_WhenConnectionsOverlap()
+    {
+        var fixture = new HubFixture();
+        await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
+
+        var returningHub = fixture.CreateHub("connection-b");
+        var joined = await returningHub.JoinRoom(RoomId, "blue", "championship");
+
+        var player = Assert.Single(joined.Players);
+        Assert.Equal("connection-b", player.ConnectionId);
+        Assert.Equal("blue", player.Color);
+        fixture.DeathWall.Stop(RoomId);
+    }
+
+    [Fact]
     public async Task JoinRoom_NotifiesOtherPlayersInRoom()
     {
         var fixture = new HubFixture();
 
-        await fixture.Hub.JoinRoom(RoomId, "blue");
+        await fixture.Hub.JoinRoom(RoomId, "blue", "championship");
 
         var playerJoined = Assert.Single(fixture.Captured.PlayerJoins);
         Assert.Equal(ConnectionId, playerJoined.ConnectionId);
@@ -52,7 +67,7 @@ public sealed class GameHubJoinRoomTests
     {
         var fixture = new HubFixture();
 
-        await Assert.ThrowsAsync<HubException>(() => fixture.Hub.JoinRoom(roomId, color));
+        await Assert.ThrowsAsync<HubException>(() => fixture.Hub.JoinRoom(roomId, color, "championship"));
 
         fixture.DeathWall.Stop(roomId);
     }

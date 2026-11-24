@@ -2,9 +2,13 @@ import * as signalR from '@microsoft/signalr';
 import type {
     BarrelDestroyPayload,
     BlockDestroyPayload,
+    ChampionshipFinishedPayload,
     DeathWallStepPayload,
+    GameMode,
     MatchEndPayload,
+    MatchEndedPayload,
     MatchStartedPayload,
+    PlayerJoinedPayload,
     ProjectilePayload,
     ProjectilesCollidePayload,
     RoomJoinedPayload,
@@ -43,17 +47,26 @@ export class GameHubConnection {
         await this.conn.stop();
     }
 
-    async joinRoom(roomId: string, color: string): Promise<RoomJoinedPayload> {
+    async joinRoom(
+        roomId: string,
+        color: string,
+        mode: GameMode,
+    ): Promise<RoomJoinedPayload> {
         const joined = await this.conn.invoke<RoomJoinedPayload>(
             'JoinRoom',
             roomId,
             color,
+            mode,
         );
         this.connectionId = joined.connectionId;
         return joined;
     }
-    async leaveRoom(roomId: string): Promise<void> {
-        await this.conn.invoke('LeaveRoom', roomId);
+    async leaveRoom(roomId: string, champId?: string): Promise<void> {
+        await this.conn.invoke('LeaveRoom', roomId, champId ?? '');
+    }
+
+    async finishChampionship(roomId: string): Promise<void> {
+        await this.conn.invoke('FinishChampionship', roomId);
     }
 
     sendTankMove(payload: TankMovePayload): void {
@@ -74,10 +87,10 @@ export class GameHubConnection {
             );
     }
 
-    sendStartMatch(roomId: string): void {
+    sendStartMatch(roomId: string, champId?: string): void {
         if (this.conn.state !== signalR.HubConnectionState.Connected) return;
         this.conn
-            .send('StartMatch', roomId)
+            .send('StartMatch', roomId, champId)
             .catch((err) =>
                 console.warn('[GameHubConnection] StartMatch send failed', err),
             );
@@ -155,6 +168,15 @@ export class GameHubConnection {
             );
     }
 
+    sendChampNextMatchRequested(roomId: string, champId?: string): void {
+        if (this.conn.state !== signalR.HubConnectionState.Connected) return;
+        this.conn
+            .send('StartMatch', roomId, champId)
+            .catch((err) =>
+                console.warn('[GameHubConnection] StartMatch send failed', err),
+            );
+    }
+
     sendProjectileFireFail(payload: TankInfoPayload): void {
         if (this.conn.state !== signalR.HubConnectionState.Connected) return;
         this.conn
@@ -220,6 +242,26 @@ export class GameHubConnection {
     }
     offProjectilesCollided(cb: (p: ProjectilesCollidePayload) => void): void {
         this.conn.off('ProjectilesCollided', cb);
+    }
+    onMatchEnded(cb: (p: MatchEndedPayload) => void): void {
+        this.conn.on('MatchEnded', cb);
+    }
+    offMatchEnded(cb: (p: MatchEndedPayload) => void): void {
+        this.conn.off('MatchEnded', cb);
+    }
+    onPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {
+        this.conn.on('PlayerJoined', cb);
+    }
+    offPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {
+        this.conn.off('PlayerJoined', cb);
+    }
+    onChampionshipFinished(cb: (p: ChampionshipFinishedPayload) => void): void {
+        this.conn.on('ChampionshipFinished', cb);
+    }
+    offChampionshipFinished(
+        cb: (p: ChampionshipFinishedPayload) => void,
+    ): void {
+        this.conn.off('ChampionshipFinished', cb);
     }
     onProjectileFireFailed(cb: (p: TankInfoPayload) => void): void {
         this.conn.on('ProjectileFireFailed', cb);

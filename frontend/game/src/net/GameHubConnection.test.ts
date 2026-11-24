@@ -138,6 +138,8 @@ const roomJoined: RoomJoinedPayload = {
     players: [],
     randomBarrelPositions: [],
     deathWallStep: -1,
+    championshipId: '',
+    mode: 'single',
 };
 
 describe('GameHubConnection', () => {
@@ -147,6 +149,20 @@ describe('GameHubConnection', () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+    });
+
+    it('listens for the ChampionshipFinished client callback', () => {
+        const hub = new GameHubConnection();
+        const callback = vi.fn();
+        const finished = { roomId: 'room-1' };
+
+        hub.onChampionshipFinished(callback);
+        connection().emit('ChampionshipFinished', finished);
+        expect(callback).toHaveBeenCalledWith(finished);
+
+        hub.offChampionshipFinished(callback);
+        connection().emit('ChampionshipFinished', finished);
+        expect(callback).toHaveBeenCalledTimes(1);
     });
 
     it('connects once per start and reconnects after stop', async () => {
@@ -178,12 +194,14 @@ describe('GameHubConnection', () => {
         };
         connection().invokeResult = status;
 
-        await expect(hub.joinRoom('squad-42', 'red')).resolves.toEqual(status);
-        await hub.leaveRoom('squad-42');
+        await expect(
+            hub.joinRoom('squad-42', 'red', 'single'),
+        ).resolves.toEqual(status);
+        await hub.leaveRoom('squad-42', 'champ-1');
 
         expect(connection().invocations).toEqual([
-            { method: 'JoinRoom', args: ['squad-42', 'red'] },
-            { method: 'LeaveRoom', args: ['squad-42'] },
+            { method: 'JoinRoom', args: ['squad-42', 'red', 'single'] },
+            { method: 'LeaveRoom', args: ['squad-42', 'champ-1'] },
         ]);
     });
 
@@ -193,10 +211,13 @@ describe('GameHubConnection', () => {
 
         expect(hub.getConnectionId()).toBeNull();
 
-        const joined = await hub.joinRoom('room-1', 'blue');
+        const joined = await hub.joinRoom('room-1', 'blue', 'single');
 
         expect(joined).toBe(roomJoined);
         expect(hub.getConnectionId()).toBe('connection-a');
+        expect(connection().invocations).toEqual([
+            { method: 'JoinRoom', args: ['room-1', 'blue', 'single'] },
+        ]);
     });
 
     it('drops sends while the connection is down and forwards them once connected', async () => {
@@ -220,7 +241,7 @@ describe('GameHubConnection', () => {
         hub.sendStartMatch('squad-42');
         expect(connection().sends).toEqual([
             { method: 'TankMove', args: [move] },
-            { method: 'StartMatch', args: ['squad-42'] },
+            { method: 'StartMatch', args: ['squad-42', undefined] },
         ]);
     });
 
@@ -234,7 +255,7 @@ describe('GameHubConnection', () => {
 
         hub.sendMatchEnd({
             roomId: 'squad-42',
-            placements: [],
+            championshipId: 'champ-1',
         });
 
         await vi.waitFor(() =>

@@ -35,7 +35,7 @@ public class LobbyHubTests : IClassFixture<AuthApiFactory>
     private static async Task<RoomJoinedDto> JoinAsync(
         HubConnection connection, string roomId, string color)
         => await connection.InvokeAsync<RoomJoinedDto>(
-            "JoinRoom", roomId, color);
+            "JoinRoom", roomId, color, "single");
 
     [Fact]
     public async Task JoinRoom_ReturnsRoomStateWithTheCaller()
@@ -65,7 +65,7 @@ public class LobbyHubTests : IClassFixture<AuthApiFactory>
             TaskCreationOptions.RunContinuationsAsynchronously);
         first.On<PlayerJoinedDto>("PlayerJoined", p => joined.TrySetResult(p));
 
-        await JoinAsync(first, roomId, "blue");
+        var firstStatus = await JoinAsync(first, roomId, "blue");
 
         await using var second = CreateConnection();
         await second.StartAsync();
@@ -113,7 +113,7 @@ public class LobbyHubTests : IClassFixture<AuthApiFactory>
             secondConnectionId = status.Players
                 .Single(p => p.Color == "green").ConnectionId;
 
-            await second.InvokeAsync("LeaveRoom", roomId);
+            await second.InvokeAsync("LeaveRoom", roomId, "");
         }
 
         var payload = await left.Task.WaitAsync(EventTimeout);
@@ -138,7 +138,7 @@ public class LobbyHubTests : IClassFixture<AuthApiFactory>
         var firstReceived = new TaskCompletionSource<MatchStartedDto>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         first.On<MatchStartedDto>("MatchStarted", p => firstReceived.TrySetResult(p));
-        await JoinAsync(first, roomId, "blue");
+        var firstStatus = await JoinAsync(first, roomId, "blue");
 
         await using var second = CreateConnection();
         await second.StartAsync();
@@ -148,7 +148,7 @@ public class LobbyHubTests : IClassFixture<AuthApiFactory>
             TaskCreationOptions.RunContinuationsAsynchronously);
         second.On<MatchStartedDto>("MatchStarted", p => secondReceived.TrySetResult(p));
 
-        await second.InvokeAsync("StartMatch", roomId);
+        await second.InvokeAsync("StartMatch", roomId, firstStatus.ChampionshipId!.Value.ToString());
 
         var start = await firstReceived.Task.WaitAsync(EventTimeout);
         Assert.Equal(roomId, start.RoomId);

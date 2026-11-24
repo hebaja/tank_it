@@ -19,9 +19,9 @@ const fakeHub = vi.hoisted(() => {
         hubUrl: string;
         startCalls = 0;
         stopCalls = 0;
-        joins: { roomId: string; color: string }[] = [];
-        leaves: string[] = [];
-        starts: string[] = [];
+        joins: { roomId: string; color: string; mode: string }[] = [];
+        leaves: { roomId: string; champId: string }[] = [];
+        starts: { roomId: string; champId: string }[] = [];
         offEvents: string[] = [];
         handlers = new Map<string, Set<(payload: unknown) => void>>();
 
@@ -38,23 +38,26 @@ const fakeHub = vi.hoisted(() => {
             this.stopCalls += 1;
         }
 
-        async joinRoom(roomId: string, color: string) {
-            this.joins.push({ roomId, color });
+        async joinRoom(roomId: string, color: string, mode: string) {
+            this.joins.push({ roomId, color, mode });
             if (config.joinError) throw config.joinError;
             return {
+                connectionId: 'conn-me',
                 roomId,
+                championshipId: 'champ-1',
+                mode,
                 players: config.players ?? [{ connectionId: 'conn-me', color }],
                 randomBarrelPositions: [],
                 roomCreatedAt: 1_700_000_000_000,
             };
         }
 
-        async leaveRoom(roomId: string): Promise<void> {
-            this.leaves.push(roomId);
+        async leaveRoom(roomId: string, champId: string): Promise<void> {
+            this.leaves.push({ roomId, champId: champId ?? '' });
         }
 
-        async startMatch(roomId: string): Promise<void> {
-            this.starts.push(roomId);
+        async startMatch(roomId: string, champId: string): Promise<void> {
+            this.starts.push({ roomId, champId: champId ?? '' });
             if (config.startMatchError) throw config.startMatchError;
         }
 
@@ -126,13 +129,17 @@ describe('LobbyScreen', () => {
 
     it('joins the default room and marks me in the player list', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         await joinDefaultRoom(app);
 
         expect(hub().hubUrl).toBe('http://localhost:8080/hubs/game');
         expect(hub().startCalls).toBe(1);
         expect(hub().joins).toEqual([
-            { roomId: 'local-dev-room', color: 'blue' },
+            { roomId: 'local-dev-room', color: 'blue', mode: 'single' },
         ]);
         expect(app.screen.getByText('Blue')).toBeInTheDocument();
         expect(app.screen.getByText('you')).toBeInTheDocument();
@@ -141,6 +148,10 @@ describe('LobbyScreen', () => {
 
     it('joins a custom room with the picked tank color', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         await app.user.clear(app.screen.getByLabelText(/^Room ID/));
         await app.user.type(app.screen.getByLabelText(/^Room ID/), 'squad-42');
@@ -158,7 +169,9 @@ describe('LobbyScreen', () => {
                 name: 'Room: squad-42',
             }),
         ).toBeInTheDocument();
-        expect(hub().joins).toEqual([{ roomId: 'squad-42', color: 'red' }]);
+        expect(hub().joins).toEqual([
+            { roomId: 'squad-42', color: 'red', mode: 'single' },
+        ]);
         expect(app.screen.getByText('Red')).toBeInTheDocument();
         expect(app.screen.getByText('you')).toBeInTheDocument();
     });
@@ -166,6 +179,10 @@ describe('LobbyScreen', () => {
     it('shows players as the hub reports them joining and leaving', async () => {
         fakeHub.config.players = [{ connectionId: 'conn-me', color: 'blue' }];
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.act(async () => {
@@ -195,6 +212,10 @@ describe('LobbyScreen', () => {
     it('surfaces a hub failure and stays on the join form', async () => {
         fakeHub.config.joinError = new Error('roomId is required');
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
 
         await app.user.click(app.screen.getByRole('button', { name: 'Join' }));
 
@@ -209,6 +230,10 @@ describe('LobbyScreen', () => {
 
     it('leaves the room and tears the connection down', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.user.click(
@@ -220,7 +245,9 @@ describe('LobbyScreen', () => {
                 name: 'Ready to roll?',
             }),
         ).toBeInTheDocument();
-        expect(hub().leaves).toEqual(['local-dev-room']);
+        expect(hub().leaves).toEqual([
+            { roomId: 'local-dev-room', champId: 'champ-1' },
+        ]);
         expect(hub().stopCalls).toBe(1);
         expect(hub().offEvents.sort()).toEqual([
             'MatchStarted',
@@ -234,6 +261,10 @@ describe('LobbyScreen', () => {
 
     it('starts the match through the hub', async () => {
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.user.click(
@@ -241,7 +272,9 @@ describe('LobbyScreen', () => {
         );
 
         await vi.waitFor(() =>
-            expect(hub().starts).toEqual(['local-dev-room']),
+            expect(hub().starts).toEqual([
+                { roomId: 'local-dev-room', champId: 'champ-1' },
+            ]),
         );
         expect(app.screen.queryByText('Failed to start game')).toBeNull();
     });
@@ -249,6 +282,10 @@ describe('LobbyScreen', () => {
     it('reports a failed match start', async () => {
         fakeHub.config.startMatchError = new Error('not allowed');
         const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
         await joinDefaultRoom(app);
 
         await app.user.click(
@@ -258,5 +295,85 @@ describe('LobbyScreen', () => {
         expect(
             await app.screen.findByText('Failed to start game'),
         ).toBeInTheDocument();
+    });
+
+    it('joins in championship mode and forwards the championship id', async () => {
+        const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
+
+        await app.user.click(app.screen.getByLabelText('Game mode'));
+        await app.user.click(
+            await app.screen.findByRole('option', { name: 'Championship' }),
+        );
+        await app.user.click(app.screen.getByRole('button', { name: 'Join' }));
+        expect(
+            await app.screen.findByRole('heading', {
+                name: 'Room: local-dev-room',
+            }),
+        ).toBeInTheDocument();
+
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Start Game' }),
+        );
+
+        await vi.waitFor(() =>
+            expect(hub().starts).toEqual([
+                { roomId: 'local-dev-room', champId: 'champ-1' },
+            ]),
+        );
+        expect(hub().joins).toEqual([
+            { roomId: 'local-dev-room', color: 'blue', mode: 'championship' },
+        ]);
+        expect(app.screen.getByText(/Championship/)).toBeInTheDocument();
+    });
+
+    it('prefills mode, room and color from the query string', async () => {
+        window.history.pushState(
+            {},
+            '',
+            '/?roomId=query-room&color=red&mode=championship',
+        );
+        try {
+            const app = await renderApp();
+            await app.user.click(
+                app.screen.getByRole('button', { name: 'Online Play' }),
+            );
+            await app.screen.findByRole('heading', { name: 'Ready to roll?' });
+
+            await app.user.click(
+                app.screen.getByRole('button', { name: 'Join' }),
+            );
+            expect(
+                await app.screen.findByRole('heading', {
+                    name: 'Room: query-room',
+                }),
+            ).toBeInTheDocument();
+            expect(hub().joins).toEqual([
+                { roomId: 'query-room', color: 'red', mode: 'championship' },
+            ]);
+            expect(app.screen.getByText('Red')).toBeInTheDocument();
+        } finally {
+            window.history.pushState({}, '', '/');
+        }
+    });
+
+    it('keeps one row per tank color when a duplicate seat joins', async () => {
+        fakeHub.config.players = [
+            { connectionId: 'conn-me', color: 'blue' },
+            { connectionId: 'conn-other', color: 'blue' },
+        ];
+        const app = await renderApp();
+        await app.user.click(
+            app.screen.getByRole('button', { name: 'Online Play' }),
+        );
+        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
+        await joinDefaultRoom(app);
+
+        expect(app.screen.getAllByText('Blue')).toHaveLength(1);
+        expect(app.screen.getAllByText('you')).toHaveLength(1);
+        expect(app.screen.getByText('you')).toBeInTheDocument();
     });
 });

@@ -76,9 +76,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 t.HasCheckConstraint("championships_status_check",
                     "status IN ('pending', 'in_progress', 'completed')");
                 t.HasCheckConstraint("championships_player_count_check",
-                    "player_count BETWEEN 2 AND 4");
+                    "player_count BETWEEN 1 AND 4");
                 t.HasCheckConstraint("championships_target_score_check",
                     "target_score > 0");
+                t.HasCheckConstraint("championships_mode_check",
+                    "mode IN ('single', 'championship')");
             });
             e.HasOne(c => c.Winner)
                 .WithMany()
@@ -91,17 +93,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(c => c.Status).HasDatabaseName("idx_championships_status");
             e.HasIndex(c => c.CreatedBy).HasDatabaseName("idx_championships_created_by");
             e.HasIndex(c => c.WinnerId).HasDatabaseName("idx_championships_winner_id");
+            e.Property(c => c.Mode)
+                .HasConversion<string>(
+                        m => GameModeToDb(m),
+                        v => GameModeFromDb(v))
+                .HasMaxLength(12)
+                .HasDefaultValueSql("'championship'");
         });
 
         modelBuilder.Entity<ChampionshipParticipant>(e =>
         {
             e.Property(p => p.Id).HasDefaultValueSql("gen_random_uuid()");
             e.Property(p => p.IsAi).HasDefaultValue(false);
+            e.Property(p => p.IsEliminatedFromChampionship).HasDefaultValue(false);
             e.Property(p => p.TankColor).HasMaxLength(10);
             e.Property(p => p.CreatedAt).HasDefaultValueSql("now()");
-            e.ToTable(t => t.HasCheckConstraint(
-                "championship_participants_is_ai_user_id_check",
-                "is_ai = true OR user_id IS NOT NULL"));
             e.HasOne(p => p.Championship)
                 .WithMany(c => c.Participants)
                 .HasForeignKey(p => p.ChampionshipId)
@@ -135,7 +141,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 t.HasCheckConstraint("matches_status_check",
                     "status IN ('lobby', 'in_progress', 'completed', 'aborted')");
                 t.HasCheckConstraint("matches_player_count_check",
-                    "player_count BETWEEN 2 AND 4");
+                    "player_count BETWEEN 1 AND 4");
                 t.HasCheckConstraint("matches_championship_id_sequence_number_check",
                     "championship_id IS NULL OR sequence_number IS NOT NULL");
             });
@@ -164,10 +170,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(p => p.TankColor).HasMaxLength(10);
             e.Property(p => p.ShotsFired).HasDefaultValue(0);
             e.Property(p => p.Hits).HasDefaultValue(0);
+            e.Property(p => p.IsMatchWinner).HasDefaultValue(false);
+            e.Property(p => p.IsChampionshipWinner).HasDefaultValue(false);
             e.Property(p => p.Kills).HasDefaultValue(0);
-            e.ToTable(t => t.HasCheckConstraint(
-                "match_participants_is_ai_user_id_check",
-                "is_ai = true OR user_id IS NOT NULL"));
             e.HasOne(p => p.Match)
                 .WithMany(m => m.Participants)
                 .HasForeignKey(p => p.MatchId)
@@ -252,6 +257,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         "in_progress" => MatchStatus.InProgress,
         "completed" => MatchStatus.Completed,
         "aborted" => MatchStatus.Aborted,
+        _ => throw new ArgumentOutOfRangeException(nameof(v))
+    };
+
+    private static string GameModeToDb(GameMode m) => m switch
+    {
+        GameMode.SingleMatch => "single",
+        GameMode.Championship => "championship",
+        _ => throw new ArgumentOutOfRangeException(nameof(m))
+    };
+
+    private static GameMode GameModeFromDb(string v) => v switch
+    {
+        "single" => GameMode.SingleMatch,
+        "championship" => GameMode.Championship,
         _ => throw new ArgumentOutOfRangeException(nameof(v))
     };
 }

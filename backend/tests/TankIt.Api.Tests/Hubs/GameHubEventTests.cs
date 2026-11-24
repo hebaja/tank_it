@@ -33,9 +33,11 @@ public sealed class GameHubEventTests
     public async Task DestroyEvents_BroadcastToOtherRoomMembers()
     {
         var fixture = new HubFixture();
+        var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "single");
+        await fixture.Hub.StartMatch(RoomId, joined.ChampionshipId!.Value.ToString());
         var block = new BlockDestroyRequest { RoomId = RoomId, TileX = 3, TileY = 4 };
         var barrel = new BarrelDestroyRequest { RoomId = RoomId, Index = 2 };
-        var tank = new TankDestroyRequest { RoomId = RoomId, Color = "red" };
+        var tank = new TankDestroyRequest { RoomId = RoomId, Color = "blue" };
 
         await fixture.Hub.BlockDestroy(block);
         await fixture.Hub.BarrelDestroy(barrel);
@@ -44,7 +46,8 @@ public sealed class GameHubEventTests
         Assert.Same(block, Assert.Single(fixture.Captured.BlockDestroys));
         Assert.Same(barrel, Assert.Single(fixture.Captured.BarrelDestroys));
         Assert.Same(tank, Assert.Single(fixture.Captured.TankDestroys));
-        fixture.Clients.Verify(clients => clients.OthersInGroup(RoomId), Times.Exactly(3));
+        fixture.Clients.Verify(clients => clients.OthersInGroup(RoomId), Times.AtLeast(3));
+        fixture.DeathWall.Stop(RoomId);
     }
 
     [Theory]
@@ -59,18 +62,24 @@ public sealed class GameHubEventTests
     }
 
     [Fact]
-    public async Task MatchEnd_BroadcastsPlacementToOtherPlayers()
+    public async Task MatchEnd_SettlesMatchWithoutClientSuppliedPlacements()
     {
         var fixture = new HubFixture();
-        var request = new TankPlacementRequest
+        var joined = await fixture.Hub.JoinRoom(RoomId, "blue", "single");
+        await fixture.Hub.StartMatch(RoomId, joined.ChampionshipId!.Value.ToString());
+        var request = new MatchEndRequest
         {
             RoomId = RoomId,
-            Placements = [new TankPlacement { Color = "blue", Place = 1, Points = 2 }],
+            ChampionshipId = joined.ChampionshipId!.Value.ToString(),
         };
 
         await fixture.Hub.MatchEnd(request);
+        await fixture.Hub.TankDestroy(new TankDestroyRequest { RoomId = RoomId, Color = "blue" });
 
-        Assert.Same(request, Assert.Single(fixture.Captured.MatchEnds));
-        fixture.Clients.Verify(clients => clients.OthersInGroup(RoomId), Times.Once);
+        var ended = Assert.Single(fixture.Captured.MatchEnds);
+        Assert.Equal("single", ended.Mode);
+        Assert.Single(ended.TanksScore);
+        Assert.Equal("blue", Assert.Single(ended.TanksScore).Color);
+        fixture.DeathWall.Stop(RoomId);
     }
 }

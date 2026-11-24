@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TankIt.Api.Data;
 using TankIt.Api.Hubs;
 using TankIt.Api.Hubs.Dtos;
 using TankIt.Api.Services;
@@ -28,12 +30,14 @@ public sealed class GameHubIntegrationTests
         var blueRoom = await blue.InvokeAsync<RoomJoinedDto>(
             "JoinRoom",
             roomId,
-            "blue");
+            "blue",
+            "single");
         await red.StartAsync();
         var redRoom = await red.InvokeAsync<RoomJoinedDto>(
             "JoinRoom",
             roomId,
-            "red");
+            "red",
+            "single");
 
         Assert.Equal(roomId, blueRoom.RoomId);
         Assert.Equal(10, blueRoom.RandomBarrelPositions.Length);
@@ -41,11 +45,11 @@ public sealed class GameHubIntegrationTests
         Assert.Contains(redRoom.Players, player => player.Color == "red");
         Assert.Equal("red", (await playerJoined.Task.WaitAsync(TimeSpan.FromSeconds(5))).Color);
 
-        await blue.InvokeAsync("StartMatch", roomId);
+        await blue.InvokeAsync("StartMatch", roomId, blueRoom.ChampionshipId!.Value.ToString());
         Assert.Equal(roomId, (await blueMatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5))).RoomId);
         Assert.Equal(roomId, (await redMatchStarted.Task.WaitAsync(TimeSpan.FromSeconds(5))).RoomId);
 
-        await red.InvokeAsync("LeaveRoom", roomId);
+        await red.InvokeAsync("LeaveRoom", roomId, "");
         Assert.Equal(
             redRoom.ConnectionId,
             (await playerLeft.Task.WaitAsync(TimeSpan.FromSeconds(5))).ConnectionId);
@@ -64,9 +68,10 @@ public sealed class GameHubIntegrationTests
         var departedRoom = await departing.InvokeAsync<RoomJoinedDto>(
             "JoinRoom",
             roomId,
-            "blue");
+            "blue",
+            "single");
         await remaining.StartAsync();
-        await remaining.InvokeAsync<RoomJoinedDto>("JoinRoom", roomId, "red");
+        await remaining.InvokeAsync<RoomJoinedDto>("JoinRoom", roomId, "red", "single");
 
         await departing.StopAsync();
 
@@ -93,9 +98,16 @@ public sealed class GameHubIntegrationTests
             var builder = WebApplication.CreateBuilder();
             builder.WebHost.UseTestServer();
             builder.Services.AddSignalR();
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase($"gamehub-{Guid.NewGuid()}"));
+            builder.Services.AddScoped<ChampionshipRepository>();
             builder.Services.AddSingleton<MapService>();
-            builder.Services.AddSingleton<RoomService>();
             builder.Services.AddSingleton<DeathWallService>();
+            builder.Services.AddSingleton<ChampionshipService>();
+            builder.Services.AddSingleton<RoomService>();
+            builder.Services.AddSingleton(TimeProvider.System);
+            builder.Services.AddSingleton(new MatchSettlementOptions());
+            builder.Services.AddSingleton<MatchSettlementService>();
 
             var application = builder.Build();
             application.MapHub<GameHub>("/hubs/game");

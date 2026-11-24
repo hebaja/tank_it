@@ -41,3 +41,6 @@ appsettings.*.local.json
 *.ntvs*
 *.njsproj
 *.sw?
+
+.agents
+skills-lock.json

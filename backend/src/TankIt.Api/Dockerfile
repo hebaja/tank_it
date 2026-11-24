@@ -22,7 +22,9 @@ COPY frontend/game/package.json frontend/game/yarn.lock ./
 RUN yarn install --frozen-lockfile
 COPY frontend/game/ ./
 ARG VITE_HUB_URL=/hubs/game
-ENV VITE_HUB_URL=$VITE_HUB_URL
+ARG VITE_LOBBY_URL=/
+ENV VITE_HUB_URL=$VITE_HUB_URL \
+    VITE_LOBBY_URL=$VITE_LOBBY_URL
 RUN yarn build-nolog
 
 # --- ASP.NET Core API ------------------------------------------------------

@@ -15,6 +15,8 @@ import { sessionConfig } from '../../net/sessionConfig';
 import type {
     Position,
     BlockDestroyPayload,
+    PlayerInfo,
+    PlayerJoinedPayload,
     RoomJoinedPayload,
     TankMovedPayload,
     DeathWallStepPayload,
@@ -22,8 +24,12 @@ import type {
     TankDestroyPayload,
     ProjectilePayload,
     ProjectilesCollidePayload,
+    MatchEndedPayload,
+    MatchStartedPayload,
+    ChampionshipFinishedPayload,
 } from '../../net/contracts';
 import { MusicTrack, SoundManager } from '../managers/SoundManager';
+import { redirectToLobby } from '../../net/lobbyRedirect';
 
 export class Game extends Scene {
     barrelGroup: Phaser.Physics.Arcade.Group;
@@ -36,12 +42,17 @@ export class Game extends Scene {
     private networkManager: NetworkManager;
     private soundManager: SoundManager;
     private tankRoster: Map<string, Tank>;
+    private spawnPoints: Map<Color, { x: number; y: number; angle: number }> =
+        new Map();
     private barrelPos: Position[] = [];
     private map: Tilemaps.Tilemap;
     private blocksLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private blocksHardLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private isShuttingDown: boolean = false;
+    private blocksInitialState: number[][];
     private musicTrack: MusicTrack;
+    private championshipId: string;
+    private activeColors: Set<Color> | null = null;
 
     constructor() {
         super('Game');
@@ -74,7 +85,7 @@ export class Game extends Scene {
         const { map, tanksSpawnLayer } = this.createMap();
         this.map = map;
         this.createGroups();
-        this.initTanks(tanksSpawnLayer);
+        this.collectSpawnPoints(tanksSpawnLayer);
         this.createManagers();
         this.createCollisions();
         this.registerSceneEvents();
@@ -107,6 +118,13 @@ export class Game extends Scene {
         this.events.on(
             GameEvent.ProjectilesCollided,
             this.handleProjectilesCollided,
+            this,
+        );
+        this.events.on(GameEvent.PlayerJoined, this.handlePlayerJoined, this);
+        this.events.on(GameEvent.MatchEnded, this.handleMatchEnded, this);
+        this.events.on(
+            GameEvent.ChampionshipFinished,
+            this.handleChampionshipFinished,
             this,
         );
         this.events.on(
@@ -162,6 +180,16 @@ export class Game extends Scene {
         this.blocksLayer.setCollisionByExclusion([-1]);
         this.blocksHardLayer.setCollisionByExclusion([-1]);
 
+        const w = this.blocksLayer.width;
+        const h = this.blocksLayer.height;
+        this.blocksInitialState = [];
+        for (let row = 0; row < h; row++) {
+            this.blocksInitialState[row] = [];
+            for (let col = 0; col < w; col++) {
+                this.blocksInitialState[row][col] =
+                    this.blocksLayer.getTileAt(col, row)?.index ?? -1;
+            }
+        }
         return { map, tanksSpawnLayer };
     }
 
@@ -272,17 +300,24 @@ export class Game extends Scene {
             (p, t) => {
                 const proj = p as Projectile;
                 const tank = t as Tank;
-                if (proj.getOwner() === tank) return;
-                if (proj.getOwner()?.getIsLocal()) {
+                const owner = proj.getOwner();
+                if (owner === tank) return;
+
+                const isVictim = tank.getColor() == sessionConfig.localColor;
+                const isKiller = owner?.getIsLocal() ?? false;
+
+                if (tank.active && (isVictim || isKiller)) {
                     this.events.emit(GameEvent.TankDestroy, {
                         roomId: sessionConfig.roomId,
+                        championshipId: this.championshipId,
                         color: tank.getColor(),
                         x: tank.x,
                         y: tank.y,
+                        wallStep: null,
                     });
                 }
                 this.events.emit(GameEvent.TankDestroySfx);
-                this.destroyTank(tank);
+                if (isVictim || isKiller) this.destroyTank(tank);
                 this.destroyProjectile(proj);
             },
         );
@@ -356,7 +391,7 @@ export class Game extends Scene {
             y: tank.y,
             type: 'explosion',
         });
-        this.matchManager.recordPlacement(tank);
+        this.matchManager.checkEnd(this.tankGroup);
     }
 
     private destroyProjectile(proj: Projectile) {
@@ -383,52 +418,54 @@ export class Game extends Scene {
 
     private registerSceneEvents() {
         this.events.once(Scenes.Events.SHUTDOWN, this.shutdown, this);
-        // this.events.on
-        this.events.on(GameEvent.TileDestroy, (tile: Tilemaps.Tile) => {
-            this.tankGroup.getChildren().forEach((t) => {
-                const tank: Tank = t as Tank;
-                const body = tank.body;
-                if (!body) return;
-                if (
-                    tile.intersects(
-                        body.left,
-                        body.top,
-                        body.right,
-                        body.bottom,
-                    )
-                ) {
-                    this.events.emit(GameEvent.Explosion, {
-                        x: tank.x,
-                        y: tank.y,
-                        type: GameEvent.Explosion,
-                    });
-                    this.matchManager.recordPlacement(tank);
-                    tank.destroy();
-                }
-            });
-        });
-    }
-
-    update() {
-        const winner =
-            this.tankGroup.getLength() === 1
-                ? (this.tankGroup
-                      .getChildren()
-                      .find((t) => (t as Tank).getColor()) as Tank | undefined)
-                : undefined;
-
-        this.matchManager.checkEnd(this.tankGroup.getLength(), winner);
+        this.events.on(
+            GameEvent.TileDestroy,
+            ({ tile, step }: { tile: Tilemaps.Tile; step: number }) => {
+                this.tankGroup.getChildren().forEach((t) => {
+                    const tank: Tank = t as Tank;
+                    const body = tank.body;
+                    if (!body) return;
+                    if (
+                        tile.intersects(
+                            body.left,
+                            body.top,
+                            body.right,
+                            body.bottom,
+                        )
+                    ) {
+                        this.events.emit(GameEvent.Explosion, {
+                            x: tank.x,
+                            y: tank.y,
+                            type: GameEvent.Explosion,
+                        });
+                        if (
+                            tank.active &&
+                            tank.getColor() == sessionConfig.localColor
+                        ) {
+                            this.events.emit(GameEvent.TankDestroy, {
+                                roomId: sessionConfig.roomId,
+                                championshipId: this.championshipId,
+                                color: tank.getColor(),
+                                x: tank.x,
+                                y: tank.y,
+                                wallStep: step,
+                            });
+                        }
+                        this.destroyTank(tank);
+                    }
+                });
+            },
+        );
     }
 
     shutdown() {
         this.isShuttingDown = true;
         this.explosionManager.destroy();
         this.deathWallManager?.destroy();
-        this.matchManager.destroy();
         this.speedSystem.destroy();
         this.events.off(GameEvent.TileDestroy);
         this.networkManager.destroy();
-        this.soundManager.destroy();
+        this.soundManager?.destroy();
         this.events.off(GameEvent.TankMoved, this.handleTankMoved, this);
         this.events.off(GameEvent.RoomJoined, this.handleRoomJoined, this);
         this.events.off(GameEvent.MatchStarted, this.handleMatchStarted, this);
@@ -467,10 +504,17 @@ export class Game extends Scene {
             this.handleProjectilesCollided,
             this,
         );
+        this.events.off(GameEvent.PlayerJoined, this.handlePlayerJoined, this);
+        this.events.off(
+            GameEvent.ChampionshipFinished,
+            this.handleChampionshipFinished,
+            this,
+        );
     }
 
-    initTanks(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
+    private collectSpawnPoints(tanksSpawnLayer: Tilemaps.ObjectLayer | null) {
         this.tankRoster = new Map();
+        this.spawnPoints.clear();
 
         tanksSpawnLayer?.objects.forEach((obj) => {
             const properties = obj.properties as
@@ -490,19 +534,11 @@ export class Game extends Scene {
                 return;
             }
 
-            const color = colorValue as Color;
-            const isLocal = color === sessionConfig.localColor;
-            const tank = new Tank(
-                this,
-                obj.x ?? 0,
-                obj.y ?? 0,
+            this.spawnPoints.set(colorValue as Color, {
+                x: obj.x ?? 0,
+                y: obj.y ?? 0,
                 angle,
-                color,
-                this.tankGroup,
-                this.projectileGroup,
-                isLocal,
-            );
-            this.tankRoster.set(color, tank);
+            });
         });
     }
 
@@ -511,24 +547,124 @@ export class Game extends Scene {
 
     private handleRoomJoined = (payload: RoomJoinedPayload) => {
         this.barrelPos = payload.randomBarrelPositions;
+        this.championshipId = payload.championshipId;
+
+        const playersByColor = new Map<string, PlayerInfo>();
+        for (const player of payload.players)
+            if (!playersByColor.has(player.color))
+                playersByColor.set(player.color, player);
+
+        if (playersByColor.size !== payload.players.length)
+            console.warn(
+                `[RoomJoined] Duplicate player colors in room ${payload.roomId}; spawning one tank per color`,
+            );
+
+        for (const player of playersByColor.values())
+            this.ensureTank(
+                player.color as Color,
+                player.color === sessionConfig.localColor,
+            );
 
         if (this.map) {
             this.createBarrels(this.map);
-            this.deathWallManager = new DeathWallManager(
-                this,
-                this.map,
-                this.tankGroup,
-                payload.deathWallStep,
-            );
+            if (!this.deathWallManager) {
+                this.deathWallManager = new DeathWallManager(
+                    this,
+                    this.map,
+                    this.tankGroup,
+                    payload.deathWallStep,
+                );
+            } else {
+                this.deathWallManager.reset(payload.deathWallStep);
+            }
         }
     };
 
-    private handleMatchStarted = () => {
+    private handlePlayerJoined = (payload: PlayerJoinedPayload) => {
+        const color = payload.color as Color;
+        if (!this.isActive(color)) return;
+        this.ensureTank(color, false);
+    };
+
+    private isActive(color: Color): boolean {
+        return this.activeColors === null || this.activeColors.has(color);
+    }
+
+    private ensureTank(color: Color, isLocal: boolean): Tank | undefined {
+        const existing = this.tankRoster.get(color);
+
+        if (existing) return existing;
+
+        const spawn = this.spawnPoints.get(color);
+        if (!spawn) {
+            console.warn(`[TankSpawn] No spawn point for color ${color}`);
+            return undefined;
+        }
+        const tank = new Tank(
+            this,
+            spawn.x,
+            spawn.y,
+            spawn.angle,
+            color,
+            this.tankGroup,
+            this.projectileGroup,
+            isLocal,
+        );
+        this.tankRoster.set(color, tank);
+
+        return tank;
+    }
+
+    private handleMatchStarted = (payload: MatchStartedPayload) => {
         if (this.isShuttingDown) return;
 
-        this.isShuttingDown = true;
+        this.scene.resume();
         this.scene.stop('Overlay');
-        this.scene.restart();
+        this.tankGroup.clear(true, true);
+        this.tankRoster.clear();
+        this.projectileGroup.clear();
+        this.speedSystem.clearOilGroup();
+        this.deathWallManager?.reset();
+
+        this.barrelPos = payload.randomBarrelPositions;
+        this.createBarrels(this.map);
+
+        this.activeColors =
+            payload.activeColors && payload.activeColors.length > 0
+                ? new Set(payload.activeColors)
+                : null;
+
+        for (let row = 0; row < this.blocksInitialState.length; row++) {
+            for (
+                let col = 0;
+                col < this.blocksInitialState[row].length;
+                col++
+            ) {
+                const idx = this.blocksInitialState[row][col];
+                if (idx === -1) {
+                    this.blocksLayer.removeTileAt(col, row);
+                } else {
+                    this.blocksLayer.putTileAt(idx, col, row);
+                }
+            }
+        }
+
+        const playersByColor = new Map<string, PlayerInfo>();
+
+        for (const player of payload.players)
+            if (!playersByColor.has(player.color))
+                playersByColor.set(player.color, player);
+
+        if (playersByColor.size !== payload.players.length)
+            console.warn(
+                `[RoomJoined] Duplicate player colors in room ${payload.roomId}; spawning one tank per color`,
+            );
+
+        for (const player of playersByColor.values()) {
+            const color = player.color as Color;
+            if (!this.isActive(color)) continue;
+            this.ensureTank(color, color === sessionConfig.localColor);
+        }
     };
 
     private handleDeathWallStep = (p: DeathWallStepPayload) =>
@@ -586,6 +722,23 @@ export class Game extends Scene {
             .getChildren()
             .filter((c) => ids.includes((c as Projectile).getId()))
             .forEach((proj) => (proj as Projectile).destroy());
+    };
+
+    private handleMatchEnded = (payload: MatchEndedPayload) => {
+        this.time.delayedCall(GAME_CONFIG.timing.matchEndOverlayDelay, () => {
+            this.scene.pause();
+            this.scene.launch('Overlay', payload);
+        });
+    };
+
+    private handleChampionshipFinished = (
+        payload: ChampionshipFinishedPayload,
+    ) => {
+        if (this.isShuttingDown) return;
+        if (payload.roomId !== sessionConfig.roomId) return;
+
+        this.isShuttingDown = true;
+        redirectToLobby();
     };
 
     private handleProjectileFireFailed = () => {

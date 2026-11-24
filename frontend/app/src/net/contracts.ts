@@ -1,10 +1,15 @@
+export type GameMode = 'single' | 'championship';
+
 export interface PlayerInfo {
     connectionId: string;
     color: string;
 }
 
 export interface RoomStatusPayload {
+    connectionId: string;
     roomId: string;
+    championshipId: string;
+    mode: GameMode;
     players: PlayerInfo[];
     randomBarrelPositions: BarrelPos[];
     roomCreatedAt: number;
@@ -26,4 +31,5 @@ export type BarrelPos = {
 
 export interface GameStartedPayload {
     roomId: string;
+    mode?: GameMode;
 }

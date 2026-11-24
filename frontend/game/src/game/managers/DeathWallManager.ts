@@ -12,6 +12,8 @@ export class DeathWallManager {
     private dangerLayer: Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer;
     private effect: Phaser.Tweens.Tween[] = [];
     private destroyed: Set<Tilemaps.Tile> = new Set();
+    private readonly dangerIndex: number;
+    private generation: number = 0;
 
     constructor(
         scene: Scene,
@@ -31,6 +33,7 @@ export class DeathWallManager {
             .setDepth(GAME_CONFIG.depth.dangerLayer);
         this.ringEnd = this.dangerLayer.width / 64 - 1;
         this.dangerLayer.forEachTile((tile) => tile.setAlpha(0.0));
+        this.dangerIndex = this.destroyedIndex - 1;
 
         scene.physics.add.collider(this.dangerLayer, tankGroup);
 
@@ -76,6 +79,7 @@ export class DeathWallManager {
 
     private explodeWarned(onDone?: () => void) {
         const tweens = this.effect;
+        const generation = this.generation;
         let pending = tweens.length;
 
         if (tweens.length > 0)
@@ -87,12 +91,16 @@ export class DeathWallManager {
             effect.remove();
             tile.setAlpha(0.0);
 
-            this.scene.events.emit(GameEvent.TileDestroy, tile);
+            this.scene.events.emit(GameEvent.TileDestroy, {
+                tile,
+                step: this.step,
+            });
             this.scene.events.emit(GameEvent.Explosion, {
                 x: tile.pixelX + tile.width / 2,
                 y: tile.pixelY + tile.width / 2,
                 type: GameEvent.Explosion,
                 onComplete: () => {
+                    if (generation !== this.generation) return;
                     this.markDestroyed(tile);
                     if (--pending === 0) onDone?.();
                 },
@@ -138,5 +146,27 @@ export class DeathWallManager {
                 repeat: -1,
             }),
         );
+    }
+
+    private stopEffects(): void {
+        this.effect.forEach((e) => {
+            e.stop();
+            e.remove();
+        });
+        this.effect = [];
+    }
+
+    reset(initialStep: number = -1) {
+        this.generation++;
+        this.stopEffects();
+        this.destroyed.clear();
+        this.step = -1;
+
+        this.dangerLayer.forEachTile((tile) => {
+            tile.index = this.dangerIndex;
+            tile.setCollision(false);
+            tile.setAlpha(0);
+        });
+        if (initialStep >= 0) this.catchUp(initialStep);
     }
 }

@@ -1,5 +1,6 @@
 import * as signalR from '@microsoft/signalr';
 import {
+    GameMode,
     GameStartedPayload,
     PlayerJoinedPayload,
     PlayerLeftPayload,
@@ -30,20 +31,25 @@ export class LobbyHubConnection {
         await this.conn.stop();
     }
 
-    async joinRoom(roomId: string, color: string): Promise<RoomStatusPayload> {
+    async joinRoom(
+        roomId: string,
+        color: string,
+        mode: GameMode,
+    ): Promise<RoomStatusPayload> {
         return await this.conn.invoke<RoomStatusPayload>(
             'JoinRoom',
             roomId,
             color,
+            mode,
         );
     }
 
-    async leaveRoom(roomId: string): Promise<void> {
-        await this.conn.invoke('LeaveRoom', roomId);
+    async leaveRoom(roomId: string, champId?: string): Promise<void> {
+        await this.conn.invoke('LeaveRoom', roomId, champId ?? '');
     }
 
-    async startMatch(roomId: string): Promise<void> {
-        await this.conn.invoke('StartMatch', roomId);
+    async startMatch(roomId: string, champId: string): Promise<void> {
+        await this.conn.invoke('StartMatch', roomId, champId);
     }
 
     onPlayerJoined(cb: (p: PlayerJoinedPayload) => void): void {

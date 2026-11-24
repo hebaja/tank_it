@@ -1,70 +1,21 @@
 import { Scene } from 'phaser';
 import { GameEvent } from '../config/events';
-
-interface TankScoreInfo {
-    label: string;
-    user: string;
-    color: string;
-    score: number;
-    isWinner: boolean;
-}
-
-interface MatchInfo {
-    roomId: string;
-    isChampionship: boolean;
-    ft: number;
-    tanks: TankScoreInfo[];
-}
+import { MatchEndedPayload } from '../../net/contracts';
 
 export class Overlay extends Scene {
-    private retryBtn: Phaser.GameObjects.Container;
     private scorePanel: Phaser.GameObjects.Container;
     private retryBtnWidth: number = 80;
     private retryBtnHeight: number = 30;
     private scorePanelWidth: number = 216;
-    private scorePanelHeight: number = 144;
+    private scorePanelHeight: number = 164;
     private retryBtnScale: number = 3;
     private scorePanelScale: number = 4;
     private retryBtnScaleHover: number = 3.025;
     private screenWidth!: number;
     private screenHeight!: number;
+    private matchInfo: MatchEndedPayload;
     private LABEL_OFFSET: number = 30;
     private CONTENT_OFFSET: number = 12;
-    private matchInfo: MatchInfo = {
-        roomId: 'local-dev-room',
-        isChampionship: false,
-        ft: 10,
-        tanks: [
-            {
-                label: 'blue',
-                user: '(asdrubal)',
-                color: '#419fdd',
-                score: 7,
-                isWinner: false,
-            },
-            {
-                label: 'red',
-                user: '(gertrudes)',
-                color: '#e74c3c',
-                score: 4,
-                isWinner: false,
-            },
-            {
-                label: 'green',
-                user: '(cremilda)',
-                color: '#2ecc71',
-                score: 5,
-                isWinner: false,
-            },
-            {
-                label: 'dark',
-                user: '(robisberto)',
-                color: '#6b6960',
-                score: 2,
-                isWinner: false,
-            },
-        ],
-    };
 
     constructor() {
         super('Overlay');
@@ -72,7 +23,7 @@ export class Overlay extends Scene {
 
     preload() {
         this.load.setPath('assets');
-        this.load.image('retry_background', 'bars/button_background.png');
+        this.load.image('button_background', 'bars/button_background.png');
         this.load.image('score_background', 'bars/score_panel_background.png');
         this.load.image('token_blue', 'bars/token_blue.png');
         this.load.image('token_red', 'bars/token_red.png');
@@ -83,6 +34,10 @@ export class Overlay extends Scene {
             frameWidth: 32,
             frameHeight: 32,
         });
+    }
+
+    init(data: MatchEndedPayload) {
+        this.matchInfo = data;
     }
 
     create() {
@@ -100,23 +55,49 @@ export class Overlay extends Scene {
                 repeat: -1,
             });
         }
-        if (this.matchInfo.isChampionship) this.createScorePanel();
-        else this.createRetryButton();
+        // TODO: Need to check if championship or simple match
+        this.createScorePanel();
+        // this.createRetryButton();
     }
 
     createRetryButton() {
         this.add
             .rectangle(0, 0, this.screenWidth, this.screenHeight, 0x000000, 0.6)
             .setOrigin(0);
-        this.retryBtn = this.add.container(
-            this.screenWidth / 2,
-            this.screenHeight / 2,
+        const panel = this.add.container(0, 0);
+        panel.add(
+            this.createPanelButton(
+                'Retry',
+                this.screenWidth / 2,
+                this.screenHeight / 2,
+                this.retryBtnScale,
+                this.retryBtnScaleHover,
+                () => {
+                    console.log('pointer');
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.MatchRestartRequested);
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                },
+            ),
         );
+    }
+
+    createPanelButton(
+        label: string,
+        x: number,
+        y: number,
+        scale: number,
+        scaleHover: number,
+        callback?: () => void,
+    ) {
+        const btn = this.add.container(x, y);
+
         const background = this.add
             .nineslice(
                 0,
                 0,
-                'retry_background',
+                'button_background',
                 0,
                 this.retryBtnWidth,
                 this.retryBtnHeight,
@@ -128,39 +109,36 @@ export class Overlay extends Scene {
             .setOrigin(0.5);
 
         const text = this.add
-            .text(0, 0, 'Retry?', {
+            .text(0, 0, label, {
                 fontFamily: 'press-start-2P-regular',
                 fontSize: '8px',
                 color: '#ffffe6',
             })
             .setOrigin(0.5);
 
-        this.retryBtn.setSize(this.retryBtnWidth, this.retryBtnHeight);
-        this.retryBtn.setScale(this.retryBtnScale);
-
-        this.retryBtn.setInteractive({ useHandCursor: true });
-
-        this.retryBtn.add([background, text]);
-
-        this.retryBtn.on('pointerdown', () => {
+        btn.setSize(this.retryBtnWidth, this.retryBtnHeight);
+        btn.setScale(scale);
+        btn.setInteractive({ useHandCursor: true });
+        btn.add([background, text]);
+        btn.on('pointerdown', () => {
             text.setScale(1);
-            this.retryBtn.setScale(this.retryBtnScale);
-            this.scene.get('Game').events.emit(GameEvent.MatchRestartRequested);
-            this.scene.get('Game').events.emit(GameEvent.OptionSelect);
-            this.retryBtn.disableInteractive();
+            btn.setScale(scale);
+            callback?.();
+            btn.disableInteractive();
         });
-        this.retryBtn.on('pointerup', () => {
+        btn.on('pointerup', () => {
             text.setScale(1.01);
-            this.retryBtn.setScale(this.retryBtnScaleHover);
+            btn.setScale(scaleHover);
         });
-        this.retryBtn.on('pointerover', () => {
+        btn.on('pointerover', () => {
             text.setScale(1.01);
-            this.retryBtn.setScale(this.retryBtnScaleHover);
+            btn.setScale(scaleHover);
         });
-        this.retryBtn.on('pointerout', () => {
+        btn.on('pointerout', () => {
             text.setScale(1);
-            this.retryBtn.setScale(this.retryBtnScale);
+            btn.setScale(scale);
         });
+        return btn;
     }
 
     createScorePanel() {
@@ -189,16 +167,17 @@ export class Overlay extends Scene {
             )
             .setOrigin(0.5);
 
-        for (let i = 0; i < this.matchInfo.tanks.length; i++) {
+        for (let i = 0; i < this.matchInfo.tanksScore.length; i++) {
             labels.push(
                 this.createTankScore(
-                    this.matchInfo.tanks[i].label,
-                    this.matchInfo.tanks[i].user,
-                    this.matchInfo.tanks[i].color,
+                    this.matchInfo.tanksScore[i].label,
+                    this.matchInfo.tanksScore[i].user,
+                    this.matchInfo.tanksScore[i].color,
                     this.CONTENT_OFFSET,
                     this.CONTENT_OFFSET + this.LABEL_OFFSET * i,
-                    this.matchInfo.tanks[i].score,
-                    this.matchInfo.tanks[i].isWinner,
+                    this.matchInfo.tanksScore[i].score,
+                    this.matchInfo.tanksScore[i].isMatchWinner,
+                    this.matchInfo.tanksScore[i].isChampionshipWinner,
                 ),
             );
         }
@@ -206,7 +185,86 @@ export class Overlay extends Scene {
         this.scorePanel.setSize(this.scorePanelWidth, this.scorePanelHeight);
         this.scorePanel.setScale(this.scorePanelScale);
 
-        this.scorePanel.add([background, ...labels]);
+        /*
+        const btnLabel = this.matchInfo.championshipWinnerId
+            ? 'Finish'
+            : 'Next';
+
+        const panelBtn = this.createPanelButton(
+            btnLabel,
+            0,
+            this.scorePanelHeight / 2 - (this.retryBtnHeight * 0.8) / 2 - 8,
+            0.8,
+            0.825,
+            () => {
+                if (this.matchInfo.championshipWinnerId) {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampionshipFinishRequested, {
+                            roomId: this.matchInfo.roomId,
+                        });
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                } else {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampNextMatchRequested);
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                }
+            },
+        );
+
+        this.scorePanel.add([background, ...labels, panelBtn]);
+        */
+
+        const isChampionship = this.matchInfo.isChampionship;
+
+        const btnLabel = isChampionship
+            ? this.matchInfo.championshipWinnerId
+                ? 'Finish'
+                : 'Next'
+            : 'Retry';
+
+        const buttonY =
+            this.scorePanelHeight / 2 - (this.retryBtnHeight * 0.8) / 2 - 8;
+
+        const panelBtn = this.createPanelButton(
+            btnLabel,
+            isChampionship ? 0 : -52,
+            buttonY,
+            0.8,
+            0.825,
+            () => {
+                if (isChampionship && this.matchInfo.championshipWinnerId) {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampionshipFinishRequested, {
+                            roomId: this.matchInfo.roomId,
+                        });
+                } else {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampNextMatchRequested);
+                }
+                this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+            },
+        );
+
+        const panelButtons = [panelBtn];
+
+        if (!isChampionship) {
+            panelButtons.push(
+                this.createPanelButton('Lobby', 52, buttonY, 0.8, 0.825, () => {
+                    this.scene
+                        .get('Game')
+                        .events.emit(GameEvent.ChampionshipFinishRequested, {
+                            roomId: this.matchInfo.roomId,
+                        });
+                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
+                }),
+            );
+        }
+
+        this.scorePanel.add([background, ...labels, ...panelButtons]);
     }
 
     createTankScore(
@@ -216,7 +274,8 @@ export class Overlay extends Scene {
         x: number,
         y: number,
         score: number,
-        isWinner: boolean,
+        _isMatchWinner: boolean,
+        isChampionshipWinner: boolean,
     ) {
         const tokens = [];
         const tankLabel = this.createTankLabel(tankText, color);
@@ -255,7 +314,7 @@ export class Overlay extends Scene {
             tankLabel.height - userLabel.height,
         );
         const labelContainer = this.add.container(0, 0, [tankLabel, userLabel]);
-        if (isWinner)
+        if (isChampionshipWinner)
             labelContainer.add(
                 this.add
                     .sprite(

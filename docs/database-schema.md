@@ -53,9 +53,13 @@ erDiagram
     championships {
         uuid id PK
         varchar status "pending | in_progress | completed"
-        smallint player_count "2-4, fixed for the whole series"
+        text room_id "session key; durable unit"
+        varchar mode "single | championship"
+        smallint player_count "1-4 while pending; frozen at match start"
         smallint target_score "FT-N: 5 (2p) | 7 (3p) | 10 (4p)"
+        smallint ft "first-to target; set at match start"
         uuid winner_id FK "nullable"
+        varchar winner_color "nullable; AI/anonymous champion"
         uuid created_by FK "nullable"
         timestamptz started_at
         timestamptz completed_at
@@ -63,33 +67,41 @@ erDiagram
     championship_participants {
         uuid id PK
         uuid championship_id FK
-        uuid user_id FK "nullable = AI opponent"
+        uuid user_id FK "nullable = AI or anonymous seat"
         boolean is_ai
+        boolean is_eliminated_from_championship "excluded from tie-break matches"
         varchar tank_color
+        smallint placement
+        smallint points "cumulative championship score"
     }
     matches {
         uuid id PK
         varchar status "lobby | in_progress | completed | aborted"
         int map_seed
         boolean is_ranked
-        smallint player_count "2-4"
+        smallint player_count "1-4, seats in this match"
         uuid winner_id FK "nullable"
         uuid championship_id FK "nullable = standalone match"
         smallint sequence_number "order within championship"
+        smallint deaths "deaths recorded this match"
         timestamptz started_at
         timestamptz ended_at
     }
     match_participants {
         uuid id PK
         uuid match_id FK
-        uuid user_id FK "nullable = AI opponent"
+        uuid user_id FK "nullable = AI or anonymous seat"
         boolean is_ai
+        boolean is_match_winner
+        boolean is_championship_winner
+        boolean is_done
         varchar tank_color
-        smallint placement
-        smallint points "player_count - placement"
+        smallint placement "0 = winner"
+        smallint points "player_count - 1 - placement"
         int shots_fired
         int hits
         int kills
+        int survived_seconds
         int elo_delta
     }
     player_stats {
@@ -127,21 +139,28 @@ never sets a password. Login logic must check `oauth_accounts` when `password_ha
 
 ## Championship mode (FT-N)
 
-A championship is a fixed-roster race to a target score. `championship_participants` fixes the
-roster (2–4 seats, AI allowed) and `championships.player_count` at creation; every
-`matches` row belonging to that championship (`matches.championship_id` set) must use the same
+**Durable unit:** there is no separate `rooms` table. A `championships` row is the persistent
+session — its `room_id` is a text key from the lobby/URL that groups all matches and participants
+for that session. Single matches also get a `championships` row with `mode = 'single'`; the
+`room_id` behaves identically. Match-end eviction soft-completes the series and drops hot caches;
+rejoining with the same `room_id` creates a fresh series row.
+
+A championship is a fixed-roster race to a target score. `championship_participants` defines
+the seats (1–4 while the lobby is open, AI allowed); `championships.player_count` tracks the
+current seat count while pending and is frozen when the first match starts. From then on every
+`matches` row belonging to that championship (`matches.championship_id` set) uses the same
 `player_count` and gets a `sequence_number` marking its order in the series — enforced by
 `uq_matches_championship_sequence`, a unique index on `(championship_id, sequence_number)`.
 
-**Scoring, generalized from your rule.** For an N-player match, `match_participants.points =
-N - placement` (placement 1 = winner). A 4-player match gives 0/1/2/3 exactly as specified;
+**Scoring, generalized from your rule.** For an N-player match, the winner scores N−1 and
+the first player to die scores 0. A 4-player match gives 0/1/2/3 exactly as specified;
 this generalizes cleanly to 3-player (0/1/2) and 2-player (0/1) matches. `points` is populated
 for every match, not just championship ones — it's cheap to compute and useful for stats
 either way.
 
-**Target score by roster size** (`championships.target_score`, set by the app at creation,
-not a DB default, so it stays overridable): 4 players → FT10, 3 players → FT7, 2 players →
-FT5. Chosen so the number of matches-to-decide-it stays roughly comparable across roster
+**Target score by roster size** (`championships.target_score`, set by the app when the first
+match starts, not a DB default, so it stays overridable): 4 players → FT10, 3 players → FT7,
+2 players → FT5. Chosen so the number of matches-to-decide-it stays roughly comparable across roster
 sizes, not derived from a formula — these are the numbers from the discussion, stored
 explicitly for auditability.
 
@@ -152,48 +171,37 @@ a match completes, two participants can only cross the threshold _simultaneously
 deciding match — which is exactly your dark=11/green=12 example: unequal totals, green wins
 outright, no tie-break needed.
 
-Standings query (validated against a real Postgres instance while writing this schema):
+Standings query (cumulative points drive the FT win check):
 
 ```sql
 SELECT
   u.id, u.display_name,
-  SUM(mp.points)                          AS total_points,
-  SUM(mp.kills)                           AS total_kills,
-  COUNT(*) FILTER (WHERE mp.placement=1)  AS matches_won
+  SUM(mp.points) AS total_points
 FROM match_participants mp
 JOIN matches m ON m.id = mp.match_id
 JOIN users u ON u.id = mp.user_id
 WHERE m.championship_id = $championshipId AND mp.user_id IS NOT NULL
 GROUP BY u.id, u.display_name
-ORDER BY total_points DESC, total_kills DESC, matches_won DESC;
+ORDER BY total_points DESC;
 ```
 
-**Tie-break cascade**, applied only when two or more participants land on the _same_ total
-`points` at/above `target_score`:
+Note: `match_participants.placement` is 0-indexed (0 = winner) in the current settlement code,
+so a `COUNT(placement = 1)` "matches won" column would be wrong. Tie-breaking does not use it.
 
-1. **More kills** — `SUM(kills)` across the championship's matches (in the query above).
-2. **More matches won** — `COUNT(placement = 1)` across the championship's matches (also above).
-3. **Head-to-head** — _not_ "who scored more points in shared matches": in a fixed-roster
-   championship every match is shared, so that sum is always identical to `total_points` and
-   would resolve nothing (caught this by testing against a real database — the naive version
-   is a no-op). The meaningful version instead counts, pairwise, how many times one tied
-   player placed better than the other:
-    ```sql
-    SELECT a.user_id, COUNT(*) FILTER (WHERE a.placement < b.placement) AS times_placed_better
-    FROM match_participants a
-    JOIN match_participants b ON a.match_id = b.match_id AND a.user_id <> b.user_id
-    WHERE a.user_id IN ($tiedUserIds) AND b.user_id IN ($tiedUserIds)
-    GROUP BY a.user_id;
-    ```
-    For a 3+-way tie this only answers pairwise questions, not a clean ranking — fall straight
-    to rule 4 for ties wider than 2 players.
-4. **Sudden-death decider match** _(added here, not explicitly agreed on — flag if you'd
-   rather leave this undefined or handle it differently)_: if still tied after all of the
-   above — including the case where the tied players split their head-to-head record evenly,
-   which is a real, reachable outcome, verified with test data — the tied players play one
-   more match. Its winner is champion outright. No new schema needed: it's just another
-   `matches` row with `championship_id` set and `sequence_number` continuing the series,
-   participants limited to the tied players.
+**Tie-break (exact tie only — same total at/above target).** When 2+ participants land on the
+same cumulative `points` at/above `target_score` after a match:
+
+- Non-leaders are eliminated from the series via `championship_participants.is_eliminated_from_championship = true`.
+- The tied leaders replay additional matches among themselves — only non-eliminated participants
+  are copied into the next `Match` (`activeColors` in `MatchStarted` tells clients who plays).
+- After each match, `SUM(points)` is re-checked. The cycle repeats until exactly one participant
+  has sole leadership at/above target — that participant is the champion.
+- There is no kills comparison, matches-won comparison, head-to-head step, or sudden-death
+  decider. The tie is resolved by repeated play among the tied players.
+
+No new schema is needed for tie-break matches: they are ordinary `matches` rows with
+`championship_id` set and `sequence_number` continuing the series, with `match_participants`
+limited to the tied subset.
 
 ## Not in this schema (out of scope per committed modules)
 

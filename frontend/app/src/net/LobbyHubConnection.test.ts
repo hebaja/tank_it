@@ -140,14 +140,14 @@ describe('LobbyHubConnection', () => {
             roomCreatedAt: 1,
         });
 
-        const status = await wrapper.joinRoom('room-7', 'blue');
-        await wrapper.leaveRoom('room-7');
-        await wrapper.startMatch('room-7');
+        const status = await wrapper.joinRoom('room-7', 'blue', 'championship');
+        await wrapper.leaveRoom('room-7', 'champ-1');
+        await wrapper.startMatch('room-7', 'champ-1');
 
         expect(connection.invokes).toEqual([
-            { method: 'JoinRoom', args: ['room-7', 'blue'] },
-            { method: 'LeaveRoom', args: ['room-7'] },
-            { method: 'StartMatch', args: ['room-7'] },
+            { method: 'JoinRoom', args: ['room-7', 'blue', 'championship'] },
+            { method: 'LeaveRoom', args: ['room-7', 'champ-1'] },
+            { method: 'StartMatch', args: ['room-7', 'champ-1'] },
         ]);
         expect(status.roomId).toBe('room-7');
         expect(status.players[0]).toEqual({
@@ -160,7 +160,7 @@ describe('LobbyHubConnection', () => {
         const { wrapper, connection } = build();
         connection.invokeError = new Error('roomId is required');
 
-        await expect(wrapper.joinRoom('', 'blue')).rejects.toThrow(
+        await expect(wrapper.joinRoom('', 'blue', 'single')).rejects.toThrow(
             'roomId is required',
         );
 

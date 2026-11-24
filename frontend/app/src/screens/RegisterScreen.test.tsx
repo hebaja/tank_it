@@ -15,6 +15,8 @@ const valid = {
 };
 
 async function openRegister(app: RenderedApp) {
+    await app.user.click(app.screen.getByRole('button', { name: 'Login' }));
+    await app.screen.findByRole('heading', { name: 'Welcome back' });
     await app.user.click(
         app.screen.getByRole('button', { name: 'Create an account' }),
     );
@@ -124,15 +126,13 @@ describe('RegisterScreen', () => {
             app.screen.getByRole('button', { name: 'Create account' }),
         );
 
-        expect(
-            await app.screen.findByRole('heading', { name: 'Ready to roll?' }),
-        ).toBeInTheDocument();
+        expect(await app.screen.findByText('pilot42')).toBeInTheDocument();
         expect(fetchUrls(fetchMock)).toEqual([
             'http://localhost:8080/api/auth/register',
         ]);
         expect(requestBody(fetchMock.mock.calls[0])).toEqual(valid);
         expect(localStorage.getItem('tankit.accessToken')).toBe('access-token');
-        expect(document.title).toBe('Tank It! — Lobby');
+        expect(document.title).toBe('Tank It!');
     });
 
     it('only sends the display name when one was typed', async () => {
@@ -146,7 +146,7 @@ describe('RegisterScreen', () => {
             app.screen.getByRole('button', { name: 'Create account' }),
         );
 
-        await app.screen.findByRole('heading', { name: 'Ready to roll?' });
+        await app.screen.findByText('gabriel');
         expect(requestBody(fetchMock.mock.calls[0])).toEqual({
             ...valid,
             displayName: 'Gabs',

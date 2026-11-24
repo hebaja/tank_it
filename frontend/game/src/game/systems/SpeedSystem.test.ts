@@ -15,9 +15,20 @@ const oilMock = vi.hoisted(() => {
     return { Oil: FakeOil, instances };
 });
 
-vi.mock('phaser', () => ({ Scenes: { Events: { UPDATE: 'update' } } }));
+vi.mock('phaser', () => ({
+    Scenes: { Events: { UPDATE: 'update' } },
+    Physics: { Arcade: { Sprite: class {} } },
+    GameObjects: { Sprite: class {}, Container: class {} },
+    Display: { Align: { CENTER: 0.5 } },
+    Input: { Keyboard: { KeyCodes: {} } },
+    Math: { DegToRad: (d: number) => (d * Math.PI) / 180 },
+}));
 vi.mock('../objects/Oil', () => ({ Oil: oilMock.Oil }));
+vi.mock('../../net/sessionConfig', () => ({
+    sessionConfig: { roomId: 'room-1', localColor: 'blue', mode: 'single' },
+}));
 
+import { Tank } from '../objects/Tank';
 import { SpeedSystem } from './SpeedSystem';
 
 function createSystem() {
@@ -51,9 +62,15 @@ describe('SpeedSystem', () => {
     });
 
     it('slows a tank on oil overlap and clears the slowdown each update', () => {
-        const tank = { setSlow: vi.fn() };
+        const tank = Object.assign(Object.create(Tank.prototype), {
+            setSlow: vi.fn(),
+        });
         const tankGroup = { getChildren: vi.fn(() => [tank]) };
-        const oilGroup = { add: vi.fn(), destroy: vi.fn() };
+        const oilGroup = {
+            add: vi.fn(),
+            destroy: vi.fn(),
+            getChildren: vi.fn(() => []),
+        };
         const events = { on: vi.fn(), off: vi.fn() };
         const overlap = vi.fn();
         const scene = {

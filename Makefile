@@ -88,6 +88,9 @@ dev:
 prod:
 	$(COMPOSE) --profile prod up -d
 
+db-migrate:  # apply pending migrations inside container
+	$(COMPOSE) exec backend dotnet ef database update -p src/TankIt.Api -s src/TankIt.Api
+
 heroku-login:
 	heroku container:login
 
@@ -144,11 +147,14 @@ heroku-health:
 heroku-rollback:
 	heroku releases:rollback -a $(HEROKU_APP)
 
-db-migrate:
-	cd backend && dotnet ef database update -p src/TankIt.Api -s src/TankIt.Api
+db-update name=MigrationName:  # add migration + apply (one shot)
+	$(COMPOSE) exec backend dotnet ef migrations add $(name) -p src/TankIt.Api -s src/TankIt.Api
+	$(COMPOSE) exec backend dotnet ef database update -p src/TankIt.Api -s src/TankIt.Api
 
-db-migration-add name=MigrationName:
-	cd backend && dotnet ef migrations add $(name) -p src/TankIt.Api -s src/TankIt.Api
+db-reset:
+	$(COMPOSE) exec -T db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" \
+		-c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"'
+	$(COMPOSE) restart backend
 
 .NOTPARALLEL: deploy-heroku deploy-heroku-fast
 
@@ -156,4 +162,4 @@ db-migration-add name=MigrationName:
 	heroku-login heroku-check heroku-build heroku-push heroku-release \
 	deploy-heroku deploy-heroku-fast heroku-logs heroku-health heroku-rollback \
 	lint lint-frontend lint-backend typecheck typecheck-frontend typecheck-backend \
-	test test-frontend test-backend test-e2e backend-restore db-migrate db-migration-add
+	test test-frontend test-backend test-e2e backend-restore db-migrate db-update db-reset

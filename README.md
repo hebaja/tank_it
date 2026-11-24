@@ -69,6 +69,9 @@ Local stack:
 | `make install`        | Install root and frontend Yarn dependencies; restore backend dependencies |
 | `make dev`            | Start dev profile (hot reload)                                            |
 | `make prod`           | Start prod profile                                                        |
+| `make db-migrate`     | Apply pending EF migrations inside the backend container                  |
+| `make db-update`      | Add a migration and apply it (one shot)                                   |
+| `make db-reset`       | Drop and recreate the DB schema, then restart the backend                 |
 
 Quality:
 

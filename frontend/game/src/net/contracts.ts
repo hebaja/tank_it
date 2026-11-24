@@ -1,5 +1,7 @@
 import { Color } from '../game/config/color';
 
+export type GameMode = 'single' | 'championship';
+
 export interface TankMovePayload {
     roomId: string;
     playerId: string;
@@ -26,6 +28,14 @@ export interface RoomJoinedPayload {
     players: PlayerInfo[];
     deathWallStep: number;
     randomBarrelPositions: Position[];
+    championshipId: string;
+    mode: GameMode;
+}
+
+export interface PlayerJoinedPayload {
+    connectionId: string;
+    color: string;
+    championshipId?: string;
 }
 
 export type TankMovedPayload = TankMovePayload;
@@ -44,18 +54,17 @@ export type Position = {
 
 export interface MatchEndPayload {
     roomId: string;
-    placements: MatchPlacement[];
+    championshipId: string;
 }
-
-export type MatchPlacement = {
-    color: Color;
-    points: number;
-    place: number;
-    timestamp: number;
-};
 
 export interface MatchStartedPayload {
     roomId: string;
+    champioshipId: string;
+    mode: GameMode;
+    matchId: string;
+    players: PlayerInfo[];
+    /** Colors playing this match; excludes players eliminated by a tie-break. */
+    activeColors: Color[];
     randomBarrelPositions: Position[];
 }
 
@@ -71,9 +80,11 @@ export interface BarrelDestroyPayload {
 
 export interface TankDestroyPayload {
     roomId: string;
+    championshipId: string;
     color: Color;
     x: number;
     y: number;
+    wallStep?: number | null;
 }
 
 export interface ProjectilePayload {
@@ -91,4 +102,31 @@ export interface ProjectilesCollidePayload {
     projectileA: ProjectilePayload;
     projectileB: ProjectilePayload;
     timestamp: number;
+}
+
+export interface MatchEndedPayload {
+    roomId: string;
+    mode: GameMode;
+    championshipStatus: string;
+    isChampionship: boolean;
+    championshipId: string;
+    matchId: string;
+    ft: number;
+    tanksScore: TankScoreInfo[];
+    matchWinnerId: string;
+    championshipWinnerId: string;
+}
+
+export interface TankScoreInfo {
+    label: string;
+    user: string;
+    color: string;
+    score: number;
+    placement: number;
+    isMatchWinner: boolean;
+    isChampionshipWinner: boolean;
+}
+
+export interface ChampionshipFinishedPayload {
+    roomId: string;
 }

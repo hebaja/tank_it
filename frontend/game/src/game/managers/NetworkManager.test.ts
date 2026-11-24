@@ -49,6 +49,7 @@ const sessionMock = vi.hoisted(() => ({
         roomId: 'room-1',
         localColor: 'blue',
         hubUrl: 'http://localhost:8080/hubs/game',
+        mode: 'single',
     },
 }));
 
@@ -63,6 +64,9 @@ const hubMock = vi.hoisted(() => {
         onProjectileFired: vi.fn(),
         onProjectileDestroyed: vi.fn(),
         onProjectilesCollided: vi.fn(),
+        onMatchEnded: vi.fn(),
+        onPlayerJoined: vi.fn(),
+        onChampionshipFinished: vi.fn(),
         onProjectileFireFailed: vi.fn(),
         offTankMoved: vi.fn(),
         offMatchStarted: vi.fn(),
@@ -73,6 +77,8 @@ const hubMock = vi.hoisted(() => {
         offProjectileFired: vi.fn(),
         offProjectileDestroyed: vi.fn(),
         offProjectilesCollided: vi.fn(),
+        offMatchEnded: vi.fn(),
+        offChampionshipFinished: vi.fn(),
         offProjectileFireFailed: vi.fn(),
         sendTankMove: vi.fn(),
         sendMatchEnd: vi.fn(),
@@ -83,6 +89,7 @@ const hubMock = vi.hoisted(() => {
         sendProjectileFire: vi.fn(),
         sendProjectileDestroy: vi.fn(),
         sendProjectilesCollide: vi.fn(),
+        finishChampionship: vi.fn(),
         sendProjectileFireFail: vi.fn(),
         start: vi.fn(),
         stop: vi.fn(),
@@ -145,6 +152,8 @@ const roomJoined: RoomJoinedPayload = {
     players: [],
     randomBarrelPositions: [],
     deathWallStep: -1,
+    championshipId: '',
+    mode: 'single',
 };
 
 function createScene() {
@@ -159,6 +168,7 @@ describe('NetworkManager projectile lifecycle', () => {
         hubMock.hub.joinRoom.mockResolvedValue(roomJoined);
         hubMock.hub.stop.mockResolvedValue(undefined);
         hubMock.hub.leaveRoom.mockResolvedValue(undefined);
+        hubMock.hub.finishChampionship.mockResolvedValue(undefined);
         hubMock.hub.getConnectionId.mockReturnValue('connection-a');
     });
 
@@ -232,6 +242,11 @@ describe('NetworkManager projectile lifecycle', () => {
         expect(joined).toBe(roomJoined);
         expect(joinedListener).toHaveBeenCalledWith(roomJoined);
         expect(manager.getConnectionId()).toBe('connection-a');
+        expect(hubMock.hub.joinRoom).toHaveBeenCalledWith(
+            'room-1',
+            'blue',
+            'single',
+        );
     });
 
     it('removes listeners and leaves the room on destroy', () => {
@@ -248,7 +263,7 @@ describe('NetworkManager projectile lifecycle', () => {
         expect(hubMock.hub.offProjectileFireFailed).toHaveBeenCalledTimes(1);
         expect(hubMock.hub.sendProjectileFire).not.toHaveBeenCalled();
         expect(hubMock.hub.sendProjectileFireFail).not.toHaveBeenCalled();
-        expect(hubMock.hub.leaveRoom).toHaveBeenCalledWith('room-1');
+        expect(hubMock.hub.leaveRoom).toHaveBeenCalledWith('room-1', undefined);
         expect(hubMock.hub.stop).toHaveBeenCalledTimes(1);
     });
 });
