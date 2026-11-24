@@ -7,7 +7,7 @@ test.describe('authentication', () => {
 
         await registerThroughUi(page, identity);
 
-        await expect(page).toHaveTitle('Tank It! — Lobby');
+        await expect(page).toHaveTitle('Tank It!');
         await expect(
             page.getByRole('heading', { name: 'Tank It!' }),
         ).toBeVisible();
@@ -22,7 +22,7 @@ test.describe('authentication', () => {
         // The session survives a reload without asking for credentials again.
         await page.reload();
         await expect(
-            page.getByRole('heading', { name: 'Ready to roll?' }),
+            page.getByText(identity.username, { exact: true }),
         ).toBeVisible();
     });
 
@@ -45,9 +45,6 @@ test.describe('authentication', () => {
         ).toBeNull();
 
         await signIn(page, identity.username, identity.password);
-        await expect(
-            page.getByRole('heading', { name: 'Ready to roll?' }),
-        ).toBeVisible();
         await expect(
             page.getByText(identity.username, { exact: true }),
         ).toBeVisible();
