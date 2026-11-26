@@ -15,11 +15,14 @@ export class SoundManager {
     private musicTrack: MusicTrack;
     private isDestroyed: boolean = false;
 
-    static pickMusicTrack() {
-        return MUSIC_TRACKS[Math.floor(Math.random() * MUSIC_TRACKS.length)];
+    static pickMusicTrack(exclude?: MusicTrack) {
+        const tracks = exclude
+            ? MUSIC_TRACKS.filter((track) => track !== exclude)
+            : MUSIC_TRACKS;
+        return tracks[Math.floor(Math.random() * tracks.length)];
     }
 
-    static preload(scene: Scene, musicTrack: MusicTrack) {
+    static preload(scene: Scene) {
         scene.load.audio('tank-fire', [
             'sounds/sfx/tank_fire.ogg',
             'sounds/sfx/tank_fire.mp3',
@@ -60,13 +63,29 @@ export class SoundManager {
             'sounds/sfx/ammo_bar_complete.ogg',
             'sounds/sfx/ammo_bar_complete.mp3',
         ]);
-        scene.load.audio(`music-${musicTrack}-intro`, [
-            `sounds/music/${musicTrack}_intro.ogg`,
-            `sounds/music/${musicTrack}_intro.mp3`,
+        scene.load.audio(`music-track01-intro`, [
+            `sounds/music/track01_intro.ogg`,
+            `sounds/music/track01_intro.mp3`,
         ]);
-        scene.load.audio(`music-${musicTrack}-loop`, [
-            `sounds/music/${musicTrack}_loop.ogg`,
-            `sounds/music/${musicTrack}_loop.mp3`,
+        scene.load.audio(`music-track01-loop`, [
+            `sounds/music/track01_loop.ogg`,
+            `sounds/music/track01_loop.mp3`,
+        ]);
+        scene.load.audio(`music-track02-intro`, [
+            `sounds/music/track02_intro.ogg`,
+            `sounds/music/track02_intro.mp3`,
+        ]);
+        scene.load.audio(`music-track02-loop`, [
+            `sounds/music/track02_loop.ogg`,
+            `sounds/music/track02_loop.mp3`,
+        ]);
+        scene.load.audio(`music-track03-intro`, [
+            `sounds/music/track03_intro.ogg`,
+            `sounds/music/track03_intro.mp3`,
+        ]);
+        scene.load.audio(`music-track03-loop`, [
+            `sounds/music/track03_loop.ogg`,
+            `sounds/music/track03_loop.mp3`,
         ]);
     }
 
@@ -318,6 +337,26 @@ export class SoundManager {
         this.musicIntro?.off(Sound.Events.COMPLETE, this.startMusicLoop, this);
         this.musicIntro?.destroy();
         this.musicLoop?.destroy();
+        this.musicIntro = undefined;
+        this.musicLoop = undefined;
+    }
+
+    changeMusic(musicTrack: MusicTrack) {
+        if (this.isDestroyed || this.musicTrack === musicTrack) return;
+
+        this.stopMusic();
+        this.musicTrack = musicTrack;
+        this.startMusic();
+    }
+
+    private stopMusic() {
+        this.musicIntro?.off(Sound.Events.COMPLETE, this.startMusicLoop, this);
+        this.musicIntro?.stop();
+        this.musicIntro?.destroy();
+
+        this.musicLoop?.stop();
+        this.musicLoop?.destroy();
+
         this.musicIntro = undefined;
         this.musicLoop = undefined;
     }
