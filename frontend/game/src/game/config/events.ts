@@ -38,6 +38,8 @@ export const GameEvent = {
     ChampNextMatchRequested: 'champ_next_match_requested',
     ChampionshipFinishRequested: 'champ_finish_requested',
     ChampionshipFinished: 'champ_finished',
+    MusicDuck: 'music_duck',
+    MusicRestore: 'music_restore',
 };
 
 export type GameEventKey = (typeof GameEvent)[keyof typeof GameEvent];
