@@ -162,6 +162,7 @@ export class DeathWallManager {
         this.destroyed.clear();
         this.step = -1;
 
+        this.scene.events.emit(GameEvent.DangerWarningFinish);
         this.dangerLayer.forEachTile((tile) => {
             tile.index = this.dangerIndex;
             tile.setCollision(false);

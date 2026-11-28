@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Scene, Scenes } from 'phaser';
 import { GameEvent } from '../config/events';
 import { MatchEndedPayload } from '../../net/contracts';
 
@@ -41,6 +41,13 @@ export class Overlay extends Scene {
     }
 
     create() {
+        const game = this.scene.get('Game');
+        game.events.emit(GameEvent.MusicDuck);
+
+        this.events.once(Scenes.Events.SHUTDOWN, () => {
+            game.events.emit(GameEvent.MusicRestore);
+        });
+
         this.children.removeAll();
         const { width, height } = this.scale;
         this.screenWidth = width;
@@ -55,9 +62,7 @@ export class Overlay extends Scene {
                 repeat: -1,
             });
         }
-        // TODO: Need to check if championship or simple match
         this.createScorePanel();
-        // this.createRetryButton();
     }
 
     createRetryButton() {
@@ -184,37 +189,6 @@ export class Overlay extends Scene {
 
         this.scorePanel.setSize(this.scorePanelWidth, this.scorePanelHeight);
         this.scorePanel.setScale(this.scorePanelScale);
-
-        /*
-        const btnLabel = this.matchInfo.championshipWinnerId
-            ? 'Finish'
-            : 'Next';
-
-        const panelBtn = this.createPanelButton(
-            btnLabel,
-            0,
-            this.scorePanelHeight / 2 - (this.retryBtnHeight * 0.8) / 2 - 8,
-            0.8,
-            0.825,
-            () => {
-                if (this.matchInfo.championshipWinnerId) {
-                    this.scene
-                        .get('Game')
-                        .events.emit(GameEvent.ChampionshipFinishRequested, {
-                            roomId: this.matchInfo.roomId,
-                        });
-                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
-                } else {
-                    this.scene
-                        .get('Game')
-                        .events.emit(GameEvent.ChampNextMatchRequested);
-                    this.scene.get('Game').events.emit(GameEvent.OptionSelect);
-                }
-            },
-        );
-
-        this.scorePanel.add([background, ...labels, panelBtn]);
-        */
 
         const isChampionship = this.matchInfo.isChampionship;
 

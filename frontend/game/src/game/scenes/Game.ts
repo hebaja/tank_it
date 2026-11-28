@@ -78,7 +78,7 @@ export class Game extends Scene {
         Barrel.preload(this);
         SpeedSystem.preload(this);
         AmmoGauge.preload(this);
-        SoundManager.preload(this, this.musicTrack);
+        SoundManager.preload(this);
     }
 
     create() {
@@ -625,6 +625,10 @@ export class Game extends Scene {
         this.projectileGroup.clear();
         this.speedSystem.clearOilGroup();
         this.deathWallManager?.reset();
+
+        const nextTrack = SoundManager.pickMusicTrack(this.musicTrack);
+        this.musicTrack = nextTrack;
+        this.soundManager.changeMusic(nextTrack);
 
         this.barrelPos = payload.randomBarrelPositions;
         this.createBarrels(this.map);

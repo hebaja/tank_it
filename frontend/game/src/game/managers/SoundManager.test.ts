@@ -130,17 +130,17 @@ describe('SoundManager music', () => {
         }
     });
 
-    it.each(MUSIC_TRACKS)('preloads only the %s music files', (track) => {
+    it('preloads every music track', () => {
         const audio = vi.fn();
         const scene = { load: { audio } } as unknown as Scene;
 
-        SoundManager.preload(scene, track);
+        SoundManager.preload(scene);
 
         const musicCalls = audio.mock.calls.filter(([key]) =>
             String(key).startsWith('music-'),
         );
 
-        expect(musicCalls).toEqual([
+        const expected = MUSIC_TRACKS.flatMap((track) => [
             [
                 `music-${track}-intro`,
                 [
@@ -156,6 +156,8 @@ describe('SoundManager music', () => {
                 ],
             ],
         ]);
+
+        expect(musicCalls).toEqual(expected);
     });
 
     it('starts the intro and prepares the loop', () => {
